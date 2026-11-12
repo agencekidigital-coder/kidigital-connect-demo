@@ -193,6 +193,11 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 @media(max-width:430px){.heroart{display:none}.h1{font-size:27px}.mode button{padding:8px 10px}.metricnum{font-size:26px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
 
+
+/* Accès à la page de connexion Supabase (phase de test, la démo reste locale). */
+.naitea-login-link{font-size:12px;font-weight:750;color:#5B3A48;background:#FFF7F1;border:1px solid #EAD5D4;border-radius:100px;padding:9px 13px;white-space:nowrap;text-decoration:none}
+.naitea-login-link:hover{background:#F7E9E5}
+@media(max-width:680px){.naitea-login-link{font-size:11px;padding:8px 10px}.toplabel{display:none}}
 </style>
 </head>
 <body>
@@ -200,7 +205,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
   <aside class="sidebar" id="sidebar"></aside>
   <div class="workspace">
     <div id="mobilehead" class="mobile-head"></div>
-    <header class="topbar"><span class="toplabel">L'espace qui fait grandir votre activité 🌷</span><div class="topbar-right"><div class="mode" id="modeDesktop"></div><div class="avatar">C</div></div></header>
+    <header class="topbar"><span class="toplabel">L'espace qui fait grandir votre activité 🌷</span><a class="naitea-login-link" href="/connexion.html" title="Tester la connexion sécurisée">🔐 Connexion (test)</a><div class="topbar-right"><div class="mode" id="modeDesktop"></div><div class="avatar">C</div></div></header>
     <main class="main" id="app"></main>
   </div>
 </div>
