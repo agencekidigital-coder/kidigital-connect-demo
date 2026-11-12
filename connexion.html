@@ -33,6 +33,10 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 .note{font-size:11px;line-height:1.6;color:#907983;margin-top:20px}
 .account{background:#f8eeeb;border-radius:16px;padding:18px;word-break:break-word}
 .account strong{display:block;margin-bottom:6px}
+.forgot{text-align:right;margin:12px 0 0}
+.textlink{border:0;background:none;color:var(--prune);text-decoration:underline;font:700 12px 'DM Sans',sans-serif;cursor:pointer;padding:4px}
+#forgotPanel{margin-top:22px;border-top:1px solid #ead9d4;padding-top:18px}
+#forgotPanel h2{font:600 21px 'Lora',Georgia,serif}
 .footer{text-align:center;margin-top:22px;font-size:12px}
 .footer a{color:var(--prune)}
 </style>
@@ -57,6 +61,28 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required>
 <button id="submitBtn" class="primary" type="submit" disabled>Chargement…</button>
 </form>
+<p id="forgotRow" class="forgot"><button type="button" class="textlink" id="forgotBtn">Mot de passe oublié ?</button></p>
+<div id="forgotPanel" hidden>
+<h2>Retrouver mon accès</h2>
+<p class="intro">Saisis ton adresse e-mail : nous t'enverrons un lien pour choisir un nouveau mot de passe.</p>
+<form id="forgotForm">
+<label for="resetEmail">Adresse e-mail du compte</label>
+<input id="resetEmail" type="email" autocomplete="email" required>
+<button id="sendResetBtn" type="submit" class="primary">Recevoir le lien de réinitialisation</button>
+</form>
+<p><button type="button" class="textlink" id="backLoginBtn">← Retour à la connexion</button></p>
+</div>
+</section>
+<section id="resetPanel" hidden>
+<h1>Choisir un nouveau mot de passe</h1>
+<p class="intro">Ton lien est valide. Choisis un nouveau mot de passe de 12 caractères minimum.</p>
+<form id="newPasswordForm">
+<label for="newPassword">Nouveau mot de passe</label>
+<input id="newPassword" type="password" autocomplete="new-password" minlength="12" required>
+<label for="confirmPassword">Confirmer le nouveau mot de passe</label>
+<input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" required>
+<button id="savePasswordBtn" type="submit" class="primary">Enregistrer mon nouveau mot de passe</button>
+</form>
 </section>
 <section id="accountPanel" hidden>
 <h1>Ton compte Naïtéa 🌸</h1>
@@ -73,6 +99,7 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <script type="module">
 let client = null;
 let mode = 'login';
+let recoveryMode = false;
 const $ = (id) => document.getElementById(id);
 function status(message, type) {
   $('status').textContent = message;
@@ -83,12 +110,15 @@ function selectMode(next) {
   $('loginTab').setAttribute('aria-selected', String(mode === 'login'));
   $('signupTab').setAttribute('aria-selected', String(mode === 'signup'));
   $('nameGroup').hidden = mode !== 'signup';
+  $('forgotRow').hidden = mode !== 'login';
+  $('forgotPanel').hidden = true;
   $('fullName').required = mode === 'signup';
   $('password').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
   $('submitBtn').textContent = mode === 'signup' ? 'Créer mon compte' : 'Se connecter';
   status('Les comptes sont gérés par Supabase Auth. Cette démo ne partage pas encore les données entre appareils.');
 }
 async function showAccount() {
+  if (recoveryMode) return;
   const { data, error } = await client.auth.getUser();
   const user = !error && data && data.user;
   $('authPanel').hidden = !!user;
@@ -108,9 +138,22 @@ async function init() {
     client = sdk.createClient(config.url, config.publishableKey);
     $('submitBtn').disabled = false;
     selectMode('login');
-    await showAccount();
-    client.auth.onAuthStateChange(() => {
-      setTimeout(() => { showAccount().catch(() => {}); }, 0);
+    if (window.location.hash.includes('type=recovery')) {
+      // Le SDK traite automatiquement le jeton reçu dans l'URL.
+      // Ne pas afficher l'espace connecté tant que la récupération est en cours.
+      recoveryMode = true;
+    }
+    if (!recoveryMode) await showAccount();
+    client.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        recoveryMode = true;
+        $('authPanel').hidden = true;
+        $('accountPanel').hidden = true;
+        $('resetPanel').hidden = false;
+        status('Lien de réinitialisation reconnu. Tu peux choisir ton nouveau mot de passe.', 'success');
+        return;
+      }
+      if (!recoveryMode) setTimeout(() => { showAccount().catch(() => {}); }, 0);
     });
   } catch (err) {
     status(err.message || 'Impossible de charger le service de connexion.', 'error');
@@ -118,6 +161,61 @@ async function init() {
 }
 $('loginTab').addEventListener('click', () => selectMode('login'));
 $('signupTab').addEventListener('click', () => selectMode('signup'));
+$('forgotBtn').addEventListener('click', () => {
+  $('forgotPanel').hidden = false;
+  $('authForm').hidden = true;
+  $('forgotRow').hidden = true;
+  $('resetEmail').value = $('email').value.trim();
+  status('Entre l’adresse e-mail utilisée lors de ton inscription.');
+});
+$('backLoginBtn').addEventListener('click', () => {
+  $('forgotPanel').hidden = true;
+  $('authForm').hidden = false;
+  $('forgotRow').hidden = false;
+  selectMode('login');
+});
+$('forgotForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!client) return status('Service de connexion indisponible.', 'error');
+  const email = $('resetEmail').value.trim();
+  const btn = $('sendResetBtn');
+  btn.disabled = true;
+  try {
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/connexion.html'
+    });
+    if (error) throw error;
+    status('Si cette adresse correspond à un compte, un e-mail de réinitialisation va arriver. Vérifie aussi les spams.', 'success');
+  } catch (error) {
+    status(error.message || 'Impossible d’envoyer le lien.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+$('newPasswordForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!client || !recoveryMode) return status('Ouvre d’abord le lien de réinitialisation reçu par e-mail.', 'error');
+  const password = $('newPassword').value;
+  if (password !== $('confirmPassword').value) return status('Les deux mots de passe ne correspondent pas.', 'error');
+  const btn = $('savePasswordBtn');
+  btn.disabled = true;
+  try {
+    const { error } = await client.auth.updateUser({ password });
+    if (error) throw error;
+    recoveryMode = false;
+    await client.auth.signOut();
+    history.replaceState(null, '', '/connexion.html');
+    $('resetPanel').hidden = true;
+    $('authPanel').hidden = false;
+    $('authForm').hidden = false;
+    selectMode('login');
+    status('Ton mot de passe est modifié ! Tu peux maintenant te connecter.', 'success');
+  } catch (error) {
+    status(error.message || 'Impossible de modifier le mot de passe.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
 $('authForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!client) return;
