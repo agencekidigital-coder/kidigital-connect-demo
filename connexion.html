@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#FFF7F1">
+<title>Connexion — Naïtéa</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Lora:wght@500;600;700&display=swap');
+:root{color-scheme:light;--prune:#5B3A48;--rose:#B97682;--peach:#F0C2AE;--sage:#A8B59E;--cream:#FFF7F1}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:radial-gradient(circle at 80% 12%,#f4dcd3 0,transparent 38%),var(--cream);color:var(--prune);font-family:'DM Sans',system-ui,sans-serif}
+main{min-height:100vh;display:grid;place-items:center;padding:28px 16px}
+.card{background:#fffefa;border:1px solid #ecdcd6;border-radius:26px;box-shadow:0 18px 70px #5b3a4817;width:min(100%,460px);padding:36px}
+.brand{text-align:center;font-family:'Lora',Georgia,serif;font-size:37px;font-weight:700;letter-spacing:-1.2px}
+.brand span{color:var(--rose)}
+.tagline{text-align:center;color:#8d7580;font-size:13px;margin:4px 0 28px}
+h1{font:600 25px/1.25 'Lora',Georgia,serif;margin:0 0 8px}
+.intro{font-size:13px;line-height:1.6;color:#866e78;margin:0 0 24px}
+.tabs{display:flex;background:#f8eeeb;padding:4px;border-radius:14px;margin-bottom:22px;gap:5px}
+.tabs button{flex:1;border:0;border-radius:10px;background:transparent;color:#7c6570;padding:11px 8px;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+.tabs button[aria-selected="true"]{background:white;box-shadow:0 2px 10px #5b3a4814;color:var(--prune)}
+label{display:block;font-size:12px;font-weight:700;margin:15px 0 7px}
+input{width:100%;border:1px solid #decac9;border-radius:12px;padding:13px 14px;background:white;color:var(--prune);font:14px 'DM Sans',sans-serif}
+input:focus{outline:2px solid #b9768288;outline-offset:2px}
+.primary{width:100%;border:0;border-radius:99px;background:var(--rose);color:white;padding:14px 18px;font:700 14px 'DM Sans',sans-serif;margin-top:22px;cursor:pointer}
+.primary:hover{background:#a66370}.primary:disabled{opacity:.6;cursor:wait}
+.secondary{display:inline-block;border:1px solid #b97682;border-radius:99px;background:transparent;color:var(--prune);padding:11px 17px;font:700 13px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none}
+.status{font-size:13px;line-height:1.55;border-radius:12px;padding:13px;margin:17px 0 0;background:#f7efeb;color:var(--prune)}
+.status.error{background:#fff0ef;color:#8f353b}
+.status.success{background:#edf5eb;color:#47664d}
+.status[hidden],section[hidden],div[hidden]{display:none!important}
+.note{font-size:11px;line-height:1.6;color:#907983;margin-top:20px}
+.account{background:#f8eeeb;border-radius:16px;padding:18px;word-break:break-word}
+.account strong{display:block;margin-bottom:6px}
+.footer{text-align:center;margin-top:22px;font-size:12px}
+.footer a{color:var(--prune)}
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+<div class="brand">Naïtéa<span>.</span></div>
+<p class="tagline">Grandir, bien entourés.</p>
+<section id="authPanel">
+<h1>Bienvenue dans ton espace</h1>
+<p class="intro">Connecte-toi ou crée ton compte professionnel. Cette première version sert à tester l'authentification sécurisée.</p>
+<div class="tabs" role="tablist" aria-label="Type de connexion">
+<button id="loginTab" type="button" role="tab" aria-selected="true">Se connecter</button>
+<button id="signupTab" type="button" role="tab" aria-selected="false">Créer un compte</button>
+</div>
+<form id="authForm">
+<div id="nameGroup" hidden><label for="fullName">Prénom et nom</label><input id="fullName" name="fullName" autocomplete="name" maxlength="120"></div>
+<label for="email">Adresse e-mail</label>
+<input id="email" name="email" type="email" autocomplete="email" required>
+<label for="password">Mot de passe</label>
+<input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required>
+<button id="submitBtn" class="primary" type="submit" disabled>Chargement…</button>
+</form>
+</section>
+<section id="accountPanel" hidden>
+<h1>Ton compte Naïtéa 🌸</h1>
+<p class="intro">L'authentification fonctionne. Les données de la démo ne sont pas encore synchronisées avec ce compte.</p>
+<div class="account"><strong>Connectée en tant que</strong><span id="accountEmail"></span></div>
+<p><a class="secondary" href="/">Ouvrir la démo actuelle</a></p>
+<button class="primary" type="button" id="logoutBtn">Se déconnecter</button>
+</section>
+<div id="status" class="status" role="status" aria-live="polite">Connexion à Supabase en cours…</div>
+<p class="note">Version de test : ne saisis aucune donnée réelle concernant des familles ou des enfants. Les paiements Stripe ne sont pas encore actifs.</p>
+<div class="footer"><a href="/">← Retour à la démo</a></div>
+</div>
+</main>
+<script type="module">
+let client = null;
+let mode = 'login';
+const $ = (id) => document.getElementById(id);
+function status(message, type) {
+  $('status').textContent = message;
+  $('status').className = 'status' + (type ? ' ' + type : '');
+}
+function selectMode(next) {
+  mode = next;
+  $('loginTab').setAttribute('aria-selected', String(mode === 'login'));
+  $('signupTab').setAttribute('aria-selected', String(mode === 'signup'));
+  $('nameGroup').hidden = mode !== 'signup';
+  $('fullName').required = mode === 'signup';
+  $('password').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+  $('submitBtn').textContent = mode === 'signup' ? 'Créer mon compte' : 'Se connecter';
+  status('Les comptes sont gérés par Supabase Auth. Cette démo ne partage pas encore les données entre appareils.');
+}
+async function showAccount() {
+  const { data, error } = await client.auth.getUser();
+  const user = !error && data && data.user;
+  $('authPanel').hidden = !!user;
+  $('accountPanel').hidden = !user;
+  if (user) {
+    $('accountEmail').textContent = user.email || 'Compte connecté';
+    status('Connexion réussie !', 'success');
+  }
+}
+async function init() {
+  try {
+    const response = await fetch('/api/public-config', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Configuration indisponible. Vérifie les variables Vercel et le déploiement.');
+    const config = await response.json();
+    if (!config.url || !config.publishableKey) throw new Error('Configuration publique incomplète.');
+    const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    client = sdk.createClient(config.url, config.publishableKey);
+    $('submitBtn').disabled = false;
+    selectMode('login');
+    await showAccount();
+    client.auth.onAuthStateChange(() => {
+      setTimeout(() => { showAccount().catch(() => {}); }, 0);
+    });
+  } catch (err) {
+    status(err.message || 'Impossible de charger le service de connexion.', 'error');
+  }
+}
+$('loginTab').addEventListener('click', () => selectMode('login'));
+$('signupTab').addEventListener('click', () => selectMode('signup'));
+$('authForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!client) return;
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  const fullName = $('fullName').value.trim();
+  $('submitBtn').disabled = true;
+  try {
+    if (mode === 'signup') {
+      const { data, error } = await client.auth.signUp({
+        email, password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: window.location.origin + '/connexion.html'
+        }
+      });
+      if (error) throw error;
+      if (data.session) {
+        await showAccount();
+      } else {
+        status('Compte demandé. Vérifie ta boîte e-mail et confirme ton adresse avant de te connecter.', 'success');
+      }
+    } else {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await showAccount();
+    }
+  } catch (err) {
+    status(err.message || 'Une erreur est survenue.', 'error');
+  } finally {
+    $('submitBtn').disabled = false;
+  }
+});
+$('logoutBtn').addEventListener('click', async () => {
+  if (!client) return;
+  const { error } = await client.auth.signOut();
+  if (error) return status(error.message, 'error');
+  $('accountPanel').hidden = true;
+  $('authPanel').hidden = false;
+  status('Tu es déconnectée.', 'success');
+});
+init();
+</script>
+</body>
+</html>
