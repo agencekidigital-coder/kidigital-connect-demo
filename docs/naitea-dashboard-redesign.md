@@ -27,3 +27,12 @@ L’authentification et les fichiers `connexion.html`, `api/` et `supabase/` ne 
 Contrôles Chromium automatisés : accueil par défaut, chargement réel des polices, toutes les rubriques de navigation, création et modification d’un atelier fictif, persistance après rechargement, détails des inscriptions, lien/iframe de partage, ouverture du studio, mode parents et menu Plus mobile. Contrôle des débordements à 320, 390, 430, 768, 1024 et 1440 px ; captures ordinateur et mobile inspectées.
 
 Les écritures de test utilisent exclusivement un contexte navigateur jetable et son localStorage. Aucun compte Supabase réel ni paiement Stripe n’est utilisé. Le serveur statique local ne simule pas la fonction Vercel `/api/public-config`.
+
+## Ajustements d’ergonomie — deuxième passe
+
+- Bandeau mobile raccourci à environ 157 px : titre adapté, texte d’introduction réservé à l’ordinateur, accès direct aux ateliers conservé.
+- Actions principales des cartes : Inscriptions et Modifier. Visuel/Booster, partage/intégration et Site & avis Google regroupés dans un panneau Plus natif, sans menu flottant susceptible d’être coupé.
+- Suppression des deux injections historiques d’actions dans le HTML des cartes ; les actions sont désormais définies au même endroit.
+- Ouverture de Plus au clavier, fermeture avec Échap et retour du focus au déclencheur ; boutons d’au moins 44 px.
+- Dates et informations d’atelier à 12 px, légendes statistiques à 11 px, descriptions agrandies et contrastes renforcés. Bouton principal assombri pour améliorer la lecture du texte blanc.
+- Vérification ciblée des actions (modification, partage, liens, Studio), clavier et affichage à 320, 390, 430, 768, 1024 et 1440 px. Aucune modification des intégrations Supabase/Stripe.
