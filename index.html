@@ -203,105 +203,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 .naitea-demo-warning{padding:13px 17px;margin:4px 0 19px;border:1px solid #ead5ca;border-radius:14px;background:#fff7f1;color:#5b3a48;font-size:12px;line-height:1.6}
 .naitea-demo-warning strong{font-weight:800}
 
-/* ======================================================================
-   NAÏTÉA — Charte officielle, première passe : tableau de bord pro.
-   Couleurs : rose #B97682 · prune #5B3A48 · sauge #A8B59E
-              pêche #F0C2AE · crème #FFF7F1
-   La démo locale et les couleurs des créations personnalisées sont préservées.
-   ====================================================================== */
-:root{
- --ui-primary:#B97682;--ui-primary-dark:#5B3A48;--ui-soft:#F8EAE5;
- --ui-soft-2:#FFF7F1;--ui-ink:#5B3A48;
- --ink:#5B3A48;--muted:#85747B;--paper:#FFFFFF;--bg:#FFF9F5;
- --line:#EEDFDA;--shadow:0 8px 26px rgba(91,58,72,.045);--radius:20px;
-}
-body{font-family:'DM Sans',Arial,sans-serif;color:var(--ink);background:var(--bg)}
-h1,h2,h3{color:var(--ink)}
-.naitea-brand{padding:8px 13px 33px;display:block}
-.naitea-brand-word b{font-family:'Lora',Georgia,serif;font-size:31px;font-weight:700;letter-spacing:-1.5px;line-height:1.25;color:#5B3A48}
-.naitea-brand .naitea-dot{color:#B97682}
-.naitea-brand-word small{font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1.05px;text-transform:none;color:#7B5B68;margin-top:3px;font-weight:500}
-.sidebar{background:#FFFCF9;border-right:1px solid #F0E3DE}
-.navbtn.active{background:#F8E9E5;color:#5B3A48;box-shadow:inset 3px 0 0 #B97682}
-.navbtn:hover{background:#FFF3EF;color:#5B3A48}
-.tipcard{background:linear-gradient(145deg,#F9EAE5,#F6F4EA);border-color:#F0DFDA}
-.tipcard button{color:#5B3A48}
-.topbar,.mobile-head,.mobilebar{background:#FFFCF9}
-.toplabel{color:#7D6570}
-.avatar{background:#F4E4DF;color:#5B3A48;border-color:#EAD2D0}
-.mode button.selected{color:#5B3A48}
-.h1{font-family:'Lora',Georgia,serif;color:#5B3A48;font-weight:700;letter-spacing:-1.25px}
-.eyebrow{color:#B97682}
-.btn{background:#B97682;border-color:#B97682;color:white;border-radius:999px}
-.btn:hover{background:#A65F6D;border-color:#A65F6D}
-.btn.secondary{color:#5B3A48;border-color:#E7CFCA;background:#FFF}
-.btn.secondary:hover{background:#FFF7F1}
-.btn.ghost{color:#7F4D60}
-.card{border-color:#EEE0DB}
-.naitea-login-link{background:#FFF7F1;border-color:#E9D2CC;color:#5B3A48}
-.naitea-demo-warning{border:1px solid #E9D8CF;background:#FFF6F0;border-radius:14px;padding:12px 16px;margin:2px 0 22px;color:#775B65;font-size:11.5px;line-height:1.6}
-.naitea-pro-dashboard .main{max-width:1320px}
-.naitea-pro-dashboard .headrow{margin-bottom:24px}
-.naitea-pro-dashboard .h1{font-size:clamp(30px,3.5vw,43px);margin-top:9px;line-height:1.2}
-.naitea-pro-dashboard .subtitle{color:#85727A;font-size:13px}
-.naitea-pro-dashboard .hero{min-height:215px;background:linear-gradient(112deg,#F8E4DF 0%,#FFF3EC 58%,#F6F2E9 100%);border:1px solid #F0DFD7;border-radius:26px;box-shadow:none;padding:30px 37px;margin-bottom:24px}
-.naitea-pro-dashboard .hero::before{width:270px;height:270px;right:-80px;top:-155px;background:#F0C2AE4D;filter:none}
-.naitea-pro-dashboard .hero::after{width:190px;height:190px;right:100px;bottom:-155px;background:#A8B59E22;filter:none}
-.naitea-pro-dashboard .herotext{max-width:600px}
-.naitea-pro-dashboard .herotext .eyebrow{color:#9C6572;font-weight:800;letter-spacing:1.7px}
-.naitea-pro-dashboard .herotext h2{font-family:'Lora',Georgia,serif;font-size:clamp(24px,2.5vw,31px);line-height:1.25;color:#5B3A48;letter-spacing:-.7px}
-.naitea-pro-dashboard .herotext p{font-size:13px;color:#785F6A;max-width:490px;line-height:1.7}
-.naitea-pro-dashboard .heroart{height:160px;width:205px;opacity:1;filter:none}
-.naitea-heroart .naitea-orb,.naitea-heroart .naitea-arc{position:absolute;display:block;filter:none}
-.naitea-heroart .naitea-orb-one{width:36px;height:36px;border-radius:50%;background:#B97682;left:70px;top:0}
-.naitea-heroart .naitea-orb-two{width:24px;height:24px;border-radius:50%;background:#F0C2AE;right:22px;top:26px}
-.naitea-heroart .naitea-arc-one{width:106px;height:75px;border-radius:80% 20% 65% 25%;background:#B97682;transform:rotate(-24deg);left:12px;top:64px}
-.naitea-heroart .naitea-arc-two{width:105px;height:74px;border-radius:75% 35% 50% 60%;background:#5B3A48;transform:rotate(21deg);right:8px;top:68px}
-.naitea-heroart .naitea-arc-three{width:80px;height:25px;border-radius:50% 70% 50% 50%;background:#F5D9CD;transform:rotate(14deg);left:63px;bottom:5px}
-.naitea-pro-dashboard .metric{border:1px solid #F0E2DC;box-shadow:0 4px 22px #5B3A4808;min-height:153px;border-radius:20px;padding:21px}
-.naitea-pro-dashboard .metric::after{background:#FFFFFF44}
-.naitea-pro-dashboard .metric:nth-child(1){background:#F9E9E5}
-.naitea-pro-dashboard .metric:nth-child(2){background:#FFF}
-.naitea-pro-dashboard .metric:nth-child(3){background:#EFF1E9}
-.naitea-pro-dashboard .metric:nth-child(4){background:#FFF3E9}
-.naitea-pro-dashboard .metrichead{color:#6D5560;font-weight:700}
-.naitea-pro-dashboard .metricnum{font-family:'Lora',Georgia,serif;font-weight:700;color:#5B3A48;font-size:35px;letter-spacing:-1px}
-.naitea-pro-dashboard .metricnote{color:#8C747B;font-size:11px}
-.naitea-pro-dashboard .roundicon{background:#FFFFFFA8;color:#9F6674;border-radius:13px}
-.naitea-pro-dashboard .roundicon.mint{background:#FFFFFFA8;color:#71866E}
-.naitea-pro-dashboard .roundicon.peach{background:#FFFFFFA8;color:#AF806A}
-.naitea-pro-dashboard .sectionhead{margin:30px 0 15px}
-.naitea-pro-dashboard .sectionhead h2{font-family:'Lora',Georgia,serif;font-size:20px;font-weight:700;color:#5B3A48;letter-spacing:-.5px}
-.naitea-pro-dashboard .eventcard{border-radius:20px}
-.naitea-pro-dashboard .eventillustration{background:linear-gradient(135deg,#F8E1DF,#F6EAE4)}
-.naitea-pro-dashboard .eventillustration.sage{background:linear-gradient(135deg,#E5EAD9,#F5F5EE)}
-.naitea-pro-dashboard .eventillustration.peach{background:linear-gradient(135deg,#F9E5D7,#FFF4ED)}
-.naitea-pro-dashboard .eventtitle{color:#5B3A48}
-.naitea-pro-dashboard .tag{background:#F9E8E5;color:#895766}
-.naitea-pro-dashboard .progress>div{background:#B97682}
-.naitea-pro-dashboard .progress.mint>div{background:#A8B59E}
-.naitea-pro-dashboard .mini-step .stepbadge{background:#F8EAE5;color:#9C6572}
-.naitea-pro-dashboard .activity .roundicon{background:#F8EAE5;color:#9C6572}
-@media(max-width:760px){
- .naitea-brand{padding:0}
- .naitea-brand-word b{font-size:23px}
- .naitea-brand-word small{font-size:8px;letter-spacing:.45px}
- .naitea-pro-dashboard .hero{padding:24px 21px;min-height:195px}
- .naitea-pro-dashboard .heroart{right:-22px;top:25px;transform:scale(.73);transform-origin:top right;opacity:.23}
- .naitea-pro-dashboard .metric{min-height:125px;padding:16px}
- .naitea-pro-dashboard .metricnum{font-size:28px}
- .naitea-pro-dashboard .sectionhead h2{font-size:18px}
-}
-@media(max-width:430px){.naitea-pro-dashboard .heroart{display:none}}
-
 </style>
+<link rel="stylesheet" href="/assets/naitea.css" />
 </head>
 <body>
 <div class="shell">
   <aside class="sidebar" id="sidebar"></aside>
   <div class="workspace">
     <div id="mobilehead" class="mobile-head"></div>
-    <header class="topbar"><span class="toplabel">L'espace qui fait grandir votre activité 🌷</span><a class="naitea-login-link" href="/connexion.html" title="Tester la connexion sécurisée">🔐 Connexion (test)</a><div class="topbar-right"><div class="mode" id="modeDesktop"></div><div class="avatar">C</div></div></header>
+    <header class="topbar"><span class="toplabel">Espace professionnel <span class="top-separator">/</span> <b>Mon activité</b></span><a class="naitea-login-link" href="/connexion.html" title="Tester la connexion sécurisée">🔐 Connexion (test)</a><div class="topbar-right"><div class="mode" id="modeDesktop"></div><div class="avatar" aria-label="Compte de démonstration">♡</div></div></header>
     <main class="main" id="app"></main>
   </div>
 </div>
@@ -333,7 +243,7 @@ const defaults={
 };
 let state;try{const raw=localStorage.getItem('kidigital-connect-v1');state=raw?{...structuredClone(defaults),...JSON.parse(raw)}:structuredClone(defaults)}catch(e){state=JSON.parse(JSON.stringify(defaults))}
 const save=()=>{try{localStorage.setItem('kidigital-connect-v1',JSON.stringify(state))}catch(e){}};
-let page='studioia',mode='pro',eventTab='upcoming',familyQuery='',parentFilter='Tous',parentSearch='',commChannel='instagram',commEvent='e1',editorDraft='',modalName='',panelEvent=null;
+let page='dashboard',mode='pro',eventTab='upcoming',familyQuery='',parentFilter='Tous',parentSearch='',commChannel='instagram',commEvent='e1',editorDraft='',modalName='',panelEvent=null;
 
 const brandDefaults={third:'#dcebe4',titleFont:'Playfair Display',bodyFont:'Nunito',name:'Le Cocon de Camille',accent:'#8f79bc',secondary:'#f4c7d6',text:'#402f57',font:'rounded',logo:'',photo:''};
 state.brand={...brandDefaults,...(state.brand||{})};
@@ -355,17 +265,35 @@ const addlog=(type,text)=>{state.logs.unshift({id:uid(),type,text,date:'À l’i
 function toast(message){document.getElementById('toastHost').innerHTML=`<div class="toast">${ic('check')}<span>${esc(message)}</span></div>`;clearTimeout(toast._t);toast._t=setTimeout(()=>document.getElementById('toastHost').innerHTML='',3500)}
 function navigate(to){page=to;modalName='';render();window.scrollTo({top:0,behavior:'smooth'})}
 function setMode(m){mode=m;if(m==='parent'){page='parent'}else{page='dashboard'}render();window.scrollTo(0,0)}
-function renderChrome(){document.body.classList.toggle('naitea-pro-dashboard',mode==='pro'&&page==='dashboard');document.getElementById('sidebar').innerHTML=`<div class="brand naitea-brand"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div><div class="navtitle">Mon espace</div><div class="nav">${nav.map(([id,icon,label])=>`<button class="navbtn ${page===id?'active':''}" data-nav="${id}">${ic(icon)}<span>${label}</span>${id==='automations'?'<span style="flex:0;color:#a48bd7">✧</span>':''}</button>`).join('')}</div><div class="sidebottom"><div class="tipcard"><strong>🌷 Le conseil du jour</strong><p>Un atelier bien rempli, c'est souvent le début d'une jolie relation.</p><button data-action="marketing">Booster mes ateliers →</button></div><button class="btn ghost small full" style="margin-top:13px" data-action="reset">${ic('refresh','s')} Réinitialiser la démo</button></div>`;
+function naiteaNavigation(){
+ const labels={dashboard:'Vue d’ensemble',studioia:'Studio IA',retouche:'Retouche photo',importsite:'Importer mon site',phototheque:'Photothèque',community:'Mon cercle'};
+ const primary=['dashboard','ateliers','offers','familles'];
+ const creation=['studioia','studio','retouche','medias','phototheque','publications','agenda-visuel'];
+ const button=([id,icon,label])=>`<button class="navbtn ${page===id?'active':''}" data-nav="${id}" ${page===id?'aria-current="page"':''}>${ic(icon)}<span>${esc(labels[id]||label)}</span>${page===id?'<i class="nav-dot"></i>':''}</button>`;
+ const group=(title,items)=>`<details class="navgroup" ${items.some(x=>x[0]===page)?'open':''}><summary>${title}<span>＋</span></summary><div class="nav">${items.map(button).join('')}</div></details>`;
+ return `<nav aria-label="Navigation professionnelle"><div class="navtitle">MON ACTIVITÉ</div><div class="nav">${nav.filter(x=>primary.includes(x[0])).map(button).join('')}</div>${group('Créer & communiquer',nav.filter(x=>creation.includes(x[0])))}${group('Développer mon activité',nav.filter(x=>!primary.includes(x[0])&&!creation.includes(x[0])))}</nav>`;
+}
+function renderChrome(){document.body.classList.toggle('naitea-pro-dashboard',mode==='pro'&&page==='dashboard');document.getElementById('sidebar').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/naitea-symbol.svg" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div>${naiteaNavigation()}<div class="sidebottom"><div class="tipcard"><strong>🌷 Le conseil du jour</strong><p>Un atelier bien rempli, c'est souvent le début d'une jolie relation.</p><button data-action="marketing">Booster mes ateliers →</button></div><button class="btn ghost small full" style="margin-top:13px" data-action="reset">${ic('refresh','s')} Réinitialiser la démo</button></div>`;
 const modeHTML=`<button class="${mode==='pro'?'selected':''}" data-mode="pro">${ic('heart','s')} Pro</button><button class="${mode==='parent'?'selected':''}" data-mode="parent">${ic('users','s')} Parents</button>`;
-document.getElementById('modeDesktop').innerHTML=modeHTML;document.getElementById('mobilehead').innerHTML=`<div class="brand naitea-brand"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div><div class="mode">${modeHTML}</div>`;
+document.getElementById('modeDesktop').innerHTML=modeHTML;document.getElementById('mobilehead').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/naitea-symbol.svg" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div><div class="mode">${modeHTML}</div>`;
 let mobiles=mode==='parent'?[['parent','search','Découvrir'],['dashboard','home','Espace pro']]:[['dashboard','home','Accueil'],['ateliers','calendar','Ateliers'],['studioia','wand','Studio IA'],['familles','users','Familles'],['more','menu','Plus']];
 document.getElementById('mobilebar').innerHTML=mobiles.map(([id,icon,label])=>`<button class="${page===id?'active':''}" data-nav="${id}">${ic(icon)}<span>${label}</span></button>`).join('')}
 function pagehead(kicker,title,subtitle,action=''){return `<div class="headrow"><div><div class="eyebrow">${kicker}</div><h1 class="h1">${title}</h1><p class="subtitle">${subtitle}</p></div>${action}</div>`}
 function eventCard(e,small=false){let count=activeCount(e.id),pct=Math.min(100,Math.round(count/e.capacity*100));return `<article class="card eventcard"><div class="eventillustration ${e.color}">${v5Cover(e)}<span class="tag" style="position:absolute;right:15px;bottom:13px;z-index:1;background:#fffdfc">${spots(e)===0?'Complet':spots(e)+' places libres'}</span></div><div class="eventcontent"><span class="tag ${e.color==='sage'?'mint':''}">${esc(e.category)}</span><div class="eventtitle">${esc(e.title)}</div><div class="details"><span>${ic('calendar','s')}${shortDate(e.date)} · ${esc(e.time)}</span><span>${ic('pin','s')}${esc(e.place)}</span></div><div style="margin-top:18px"><div class="between"><span class="fine">${count} / ${e.capacity} inscrites</span><span class="fine semibold">${pct} % rempli</span></div><div class="progress ${e.color==='sage'?'mint':''}"><div style="width:${pct}%"></div></div></div><div class="eventactions"><button class="btn small" data-action="detail" data-id="${e.id}">${ic('users','s')} Inscriptions</button><button class="btn secondary small" data-action="boost" data-id="${e.id}">${ic('megaphone','s')} Booster</button></div></div></article>`}
-function dashboard(){let ev=upcoming();let total=state.signups.filter(s=>s.status==='confirmed').length;let e=ev[0]||state.events[0];return `${pagehead('Tableau de bord','Bonjour '+(naiteaAuthName?esc(naiteaAuthName)+' ':'')+'<span style="font-size:.8em">👋</span>','Prête à faire grandir ton activité, un atelier à la fois ?',`<button class="btn" data-action="create-event">${ic('plus','s')} Créer un atelier</button>`)}<div class="naitea-demo-warning" role="note">🧪 <strong>Mode démonstration :</strong> les ateliers, familles et réservations affichés ci-dessous sont fictifs. Les modifications restent dans ce navigateur et ne sont pas encore associées à ton compte Supabase.</div><section class="hero"><div class="herotext"><div class="eyebrow" >✦ L’inspiration du jour</div><h2>${e?'Encore '+spots(e)+' place'+(spots(e)>1?'s':'')+' à remplir !':'Bienvenue dans ton espace'}</h2><p>${e?`Ton atelier « ${esc(e.title)} » arrive bientôt. Quelques actions simples peuvent aider les familles à le découvrir.`:'Crée ton premier atelier pour lancer tes automatisations.'}</p><button class="btn" data-action="boost" data-id="${e?e.id:''}">${ic('sparkles','s')} Créer ma relance visuelle</button></div><div class="heroart naitea-heroart" aria-hidden="true"><span class="naitea-orb naitea-orb-one"></span><span class="naitea-orb naitea-orb-two"></span><span class="naitea-arc naitea-arc-one"></span><span class="naitea-arc naitea-arc-two"></span><span class="naitea-arc naitea-arc-three"></span></div></section>
-<div class="grid4">${[['calendar','violet','Ateliers à venir',ev.length,'Ta programmation'],['users','pink','Inscriptions',total,'Tous les ateliers'],['heart','mint','Familles connues',state.family.length,'Dans ton répertoire'],['mail','peach','Abonnées newsletter',subscribers(),'Avec leur accord']].map(([i,c,t,n,sub])=>`<div class="card metric"><div class="metrichead"><span>${t}</span><div class="roundicon ${c}">${ic(i)}</div></div><div><div class="metricnum">${n}</div><div class="metricnote">${sub}</div></div></div>`).join('')}</div>
-<div class="sectionhead"><h2>🌷 Mes prochains ateliers</h2><button class="btn ghost small" data-nav="ateliers">Tout voir ${ic('arrow','s')}</button></div><div class="events">${ev.slice(0,2).map(e=>eventCard(e,true)).join('')||`<div class="card empty">Aucun atelier à venir. Crée ta prochaine rencontre !</div>`}</div>
-<div class="split"><div><div class="sectionhead"><h2>Activité récente</h2><span class="fine">Dans ton espace de démo</span></div><div class="card list">${state.logs.slice(0,4).map(l=>`<div class="activity"><div class="roundicon">${ic(l.type)}</div><div><strong>${esc(l.text)}</strong><p>${esc(l.date)}</p></div></div>`).join('')}</div></div><div><div class="sectionhead"><h2>Ton parcours automatisé</h2></div><div class="card">${[['megaphone','Communication','Fais connaître tes ateliers'],['calendar','Inscription','Collecte les réservations'],['mail','Confirmation','Rassure les parents'],['star','Après l’atelier','Avis et satisfaction'],['heart','Fidélisation','Invite aux prochains rendez-vous']].map(([i,t,d])=>`<div class="mini-step"><div class="stepbadge">${ic(i,'s')}</div><div><b>${t}</b><p>${d}</p></div></div>`).join('')}<button class="btn secondary small full" style="margin-top:14px" data-nav="automations">Voir mes automatisations ${ic('arrow','s')}</button></div></div></div>`}
+function dashboard(){
+ const ev=upcoming(),total=state.signups.filter(s=>s.status==='confirmed').length,e=ev[0];
+ const stats=[['calendar','Ateliers à venir',ev.length,'Rencontres programmées','ateliers'],['users','Inscriptions',total,'Sur les ateliers de la démo','ateliers'],['heart','Familles accompagnées',state.family.length,'Dans ton répertoire fictif','familles'],['mail','Abonnées newsletter',subscribers(),'Consentements simulés','familles']];
+ return `<div class="dashboard-intro">${pagehead('MON TABLEAU DE BORD','Bonjour'+(naiteaAuthName?' '+esc(naiteaAuthName):'')+'.','Un peu d’organisation, beaucoup de liens à créer.',`<button class="btn" data-action="create-event">${ic('plus','s')} Créer un atelier</button>`)}</div>
+ <div class="naitea-demo-warning" role="note">${ic('info','s')}<div><strong>Espace de démonstration</strong> · Toutes les données sont fictives. Tes modifications restent dans ce navigateur, sans synchronisation Supabase.</div><span class="demo-badge">DÉMO</span></div>
+ <section class="naitea-welcome"><div class="welcome-copy"><span class="eyebrow">GRANDIR, BIEN ENTOURÉS.</span><h2>Prendre soin des familles.<br><em>Et de ton activité.</em></h2><p>Les rencontres commencent ici. Retrouve tes ateliers, accompagne tes familles et fais rayonner ce qui te rend unique.</p><button class="btn welcome-button" data-nav="ateliers">Organiser mes ateliers ${ic('arrow','s')}</button></div><div class="welcome-art" aria-hidden="true"><span class="art-orbit"></span><img src="/assets/naitea-symbol.svg" alt=""><span class="art-caption">Cultiver le lien, chaque jour.</span><span class="art-leaf leaf-one"></span><span class="art-leaf leaf-two"></span></div></section>
+ <div class="sectionhead overview-head"><h2>Ton activité en un regard</h2><span class="fine">Données de démonstration</span></div>
+ <div class="grid4 dashboard-metrics">${stats.map(([i,t,n,sub,to],index)=>`<button class="card metric metric-${index}" data-nav="${to}"><div class="metrichead"><span>${t}</span><span class="roundicon">${ic(i)}</span></div><div class="metric-value"><span class="metricnum">${n}</span><span class="metric-arrow">${ic('arrow','s')}</span></div><span class="metricnote">${sub}</span></button>`).join('')}</div>
+ <div class="dashboard-columns"><div class="dashboard-program"><div class="sectionhead"><div><span class="eyebrow">LES PROCHAINES RENCONTRES</span><h2>Mes ateliers à venir</h2></div><button class="btn ghost small" data-nav="ateliers">Tout voir ${ic('arrow','s')}</button></div><div class="events">${ev.slice(0,2).map(e=>eventCard(e,true)).join('')||`<div class="card empty">${ic('calendar')}<h3>Une nouvelle rencontre à imaginer</h3><p>Aucun atelier à venir dans cette démo.</p><button class="btn" data-action="create-event">Créer un atelier</button></div>`}</div>
+ <section class="dashboard-activity"><div class="sectionhead"><h2>Les dernières nouvelles</h2><span class="fine">Activité fictive</span></div><div class="card list">${state.logs.slice(0,4).map(l=>`<div class="activity"><div class="roundicon">${ic(l.type)}</div><div><strong>${esc(l.text)}</strong><p>${esc(l.date)}</p></div></div>`).join('')||'<p class="fine">Aucune activité dans cette démo.</p>'}</div></section></div>
+ <aside class="dashboard-aside"><section class="inspiration-card"><div class="inspiration-icon">${ic('sparkles','l')}</div><span class="eyebrow">LE PETIT COUP DE POUCE</span><h2>${e?'Et si on faisait découvrir ton prochain atelier ?':'Fais éclore ta prochaine rencontre.'}</h2><p>${e?`Il reste ${spots(e)} place${spots(e)>1?'s':''} pour « ${esc(e.title)} ». Prépare un joli visuel pour en parler.`:'Imagine un atelier et donne aux familles l’envie de te rejoindre.'}</p><button class="btn secondary full" data-action="${e?'boost':'create-event'}" ${e?`data-id="${e.id}"`:''}>${e?'Créer mon visuel':'Créer un atelier'} ${ic('arrow','s')}</button><small>Simulation · aucune publication automatique</small></section>
+ <section class="journey-card card"><span class="eyebrow">PLUS DE TEMPS POUR LE LIEN</span><h2>Un quotidien plus doux</h2><p>De la première inscription au prochain rendez-vous, prépare ton parcours.</p><ol>${[['Inscription','Accueillir chaque famille'],['Confirmation','Rassurer avant la rencontre'],['Après l’atelier','Garder le lien']].map(([t,d])=>`<li><strong>${t}</strong><span>${d}</span></li>`).join('')}</ol><button class="btn ghost small" data-nav="automations">Mes automatisations ${ic('arrow','s')}</button><small>Envois simulés dans la démo</small></section></aside></div>
+ <div class="dashboard-signature"><img src="/assets/naitea-symbol.svg" width="27" height="24" alt=""> Naïtéa · Grandir, bien entourés.</div>`;
+}
 function ateliers(){let arr=eventTab==='upcoming'?upcoming():eventTab==='past'?archive():state.events;return `${pagehead('Mes événements','Mes ateliers 🌸','Publie tes ateliers, suis les inscriptions et active leur communication.',`<button class="btn" data-action="create-event">${ic('plus','s')} Nouvel atelier</button>`)}<div class="toolbar"><div class="pilltabs">${[['upcoming','À venir'],['past','Passés'],['all','Tous les ateliers']].map(([id,label])=>`<button data-tab="${id}" class="${eventTab===id?'active':''}">${label}</button>`).join('')}</div><button class="btn secondary small" data-mode="parent">${ic('external','s')} Voir côté parents</button></div><div class="events">${arr.map(e=>eventCard(e)).join('')||`<div class="card empty">${ic('calendar')}<h3>Pas encore d'atelier ici</h3><p>Crée ton prochain rendez-vous avec les familles.</p><button class="btn small" data-action="create-event">Créer un atelier</button></div>`}</div><div class="notify" style="margin-top:20px">${ic('info')}<div>Chaque atelier possède sa page d'inscription publique. Les confirmations et rappels sont simulés dans ce prototype : aucun véritable email n'est envoyé.</div></div>`}
 function offers(){return `${pagehead('Mes prestations','Mes accompagnements 💗','Présente tes offres individuelles et transforme de premières rencontres en demandes.',`<button class="btn" data-action="create-offer">${ic('plus','s')} Ajouter une offre</button>`)}<div class="grid2">${state.offers.map(o=>`<div class="card"><div class="between"><div class="roundicon pink" style="font-size:20px">${o.emoji}</div><span class="tag">Prestation individuelle</span></div><h3 style="font-size:17px;margin:15px 0 7px">${esc(o.title)}</h3><p class="subtitle" style="min-height:45px">${esc(o.description)}</p><div class="between" style="margin-top:21px"><span class="money">À partir de ${money(o.price)}</span><button class="btn secondary small" data-action="new-lead" data-id="${o.id}">${ic('plus','s')} Nouvelle demande</button></div></div>`).join('')}</div><div class="sectionhead"><h2>Demandes d'accompagnement</h2><span class="fine">${state.leads.length} demande(s)</span></div><div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Personne</th><th>Accompagnement</th><th>Statut</th><th>Action</th></tr></thead><tbody>${state.leads.map(l=>`<tr><td><div class="person"><span class="personicon">${esc(l.name[0])}</span>${esc(l.name)}</div><small class="fine">${esc(l.email)}</small></td><td>${esc((state.offers.find(o=>o.id===l.offerId)||{}).title||'Accompagnement')}</td><td><span class="statustag ${l.status==='Confirmé'?'':'gold'}">${esc(l.status)}</span></td><td><button class="btn secondary tiny" data-action="toggle-lead" data-id="${l.id}">${l.status==='Confirmé'?'Repasser en demande':'Marquer confirmé'}</button></td></tr>`).join('')}</tbody></table></div></div><div class="notify" style="margin-top:17px">${ic('sparkles')}<div>À terme, après un atelier, une famille intéressée pourra demander un accompagnement individuel sans recommencer son parcours.</div></div>`}
 const marketingText=(e,channel)=>{let t=e?e.title:'Massage bébé & douceur', d=e?shortDate(e.date):'prochainement', p=e?e.place:'Lille',price=e?money(e.price):'30 €',s=e?spots(e):3;
@@ -446,7 +374,7 @@ function thankYou(e,waiting){showModal(waiting?'Vous êtes sur la liste d’atte
 function newsletter(){const list=state.family.filter(f=>f.newsletter);const ev=upcoming().slice(0,3);let str=`Bonjour 🌷\n\nJe suis heureuse de vous retrouver avec les prochaines rencontres à partager autour de la parentalité.\n\n${ev.map(e=>`💕 ${e.title} — ${shortDate(e.date)} à ${e.time} (${e.place})`).join('\n')}\n\nVous souhaitez nous rejoindre ? Retrouvez les ateliers sur ma page Kidigital Connect.\n\nÀ très bientôt,\nCamille`;
 showModal('Préparer ma newsletter 💌',`${list.length} abonné${list.length>1?'s':''} avec consentement`, `<form id="newsletterForm"><div class="field"><label>Objet *</label><input required name="subject" value="De jolis moments à partager ce mois-ci 🌸"/></div><div class="field"><label>Message</label><textarea required name="message" style="min-height:230px">${esc(str)}</textarea></div><div class="notify">${ic('lock')}<div>Destinataires : ${list.length} famille(s) abonnée(s) uniquement. L'envoi est <b>simulé</b> et sera consigné dans le journal de la démo.</div></div><div class="modalfooter"><button class="btn secondary" type="button" data-action="close-modal">Annuler</button><button class="btn" type="submit" ${list.length?'':'disabled'}>${ic('send','s')} Simuler l’envoi à ${list.length} abonnée(s)</button></div></form>`)}
 function testAutomation(){let e=upcoming()[0]||state.events[0];showModal('Tester les automatisations ⚡','Voici ce que ferait Kidigital Connect après une inscription.',`<div class="card" style="padding:14px;box-shadow:none"><div class="taglabel">${ic('calendar','s')} Atelier de test</div><h3 style="margin:10px 0">${esc(e.title)}</h3><p class="fine">Les actions activées ci-dessous sont simulées, sans aucun envoi réel.</p>${automationDefs.map(([key,i,t])=>`<div class="mini-step"><div class="stepbadge">${ic(i,'s')}</div><div style="flex:1"><b>${t}</b></div><span class="statustag ${state.settings[key]?'':'grey'}">${state.settings[key]?'Activée':'Désactivée'}</span></div>`).join('')}</div><div class="modalfooter"><button class="btn" data-action="run-test">${ic('zap','s')} Simuler ce parcours</button></div>`)}
-function more(){showModal('Explorer Kidigital Connect 🌷','Accède aux autres rubriques de l’espace professionnel.',`<div class="nav" style="gap:5px">${nav.map(([id,ico,label])=>`<button class="navbtn" data-nav="${id}">${ic(ico)}<span>${label}</span>${ic('arrow','s')}</button>`).join('')}<button class="navbtn" data-mode="parent">${ic('search')}<span>Vue parents</span>${ic('arrow','s')}</button><button class="navbtn" data-action="reset">${ic('refresh')}<span>Réinitialiser les données de démo</span></button></div>`)}
+function more(){showModal('Explorer Naïtéa','Accède aux autres rubriques de l’espace professionnel.',`<div class="nav" style="gap:5px">${nav.map(([id,ico,label])=>`<button class="navbtn" data-nav="${id}">${ic(ico)}<span>${label}</span>${ic('arrow','s')}</button>`).join('')}<a class="navbtn" href="/connexion.html">${ic('users')}<span>Connexion / Mon compte</span></a><button class="navbtn" data-mode="parent">${ic('search')}<span>Vue parents</span>${ic('arrow','s')}</button><button class="navbtn" data-action="reset">${ic('refresh')}<span>Réinitialiser les données de démo</span></button></div>`)}
 function copyText(t){if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(t).then(()=>toast('Texte copié 📋')).catch(()=>fallbackCopy(t))}else fallbackCopy(t)}
 function fallbackCopy(t){let ta=document.createElement('textarea');ta.value=t;document.body.append(ta);ta.select();try{document.execCommand('copy');toast('Texte copié 📋')}catch(e){toast('Copie indisponible sur ce navigateur')}ta.remove()}
 function shareText(t){if(navigator.share){navigator.share({title:'Kidigital Connect',text:t}).catch(()=>{})}else copyText(t)}
@@ -630,7 +558,7 @@ handleForm=function(form){if(form.id==='editEvent'||form.id==='createEvent'){
  return v5BaseHandleForm(form)
 };
 const v5BaseCard=eventCard;
-eventCard=function(e,small=false){let html=v5BaseCard(e,small).replace(`<span class="eventemoji">${esc(e.emoji)}</span>`,v5Cover(e));html=html.replace('class="eventactions"', 'class="eventactions"').replace(/(<\/div><\/div><\/article>)$/,`<div class="v5-event-tools"><button class="btn secondary tiny" data-action="v5-edit" data-id="${esc(e.id)}">✏️ Modifier</button><button class="btn secondary tiny" data-action="v5-share" data-id="${esc(e.id)}">🔗 Lien / intégration</button></div>$1`);return html};
+eventCard=function(e,small=false){let html=v5BaseCard(e,small).replace(`<span class="eventemoji">${esc(e.emoji)}</span>`,v5Cover(e));html=html.replace('class="eventactions"', 'class="eventactions"').replace(/(<\/div><\/article>)$/,`<div class="v5-event-tools"><button class="btn secondary tiny" data-action="v5-edit" data-id="${esc(e.id)}">✏️ Modifier</button><button class="btn secondary tiny" data-action="v5-share" data-id="${esc(e.id)}">🔗 Lien / intégration</button></div>$1`);return html};
 const v5BaseParent=parent;
 parent=function(){let html=v5BaseParent();for(let e of state.events){html=html.replaceAll(`<span class="eventemoji">${esc(e.emoji)}</span>`,v5Cover(e))}html=html.replaceAll('class="money">','class="money">').replaceAll(`${money(state.events[0]?.price||30)}</span>`,`${money(state.events[0]?.price||30)} / duo</span>`);return html};
 const v5BaseDetail=detail;
