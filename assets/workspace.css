@@ -779,3 +779,5 @@ button.naitea-brand {
     padding: 11px 13px;
   }
 }
+.v8-calendar-mobile-hint{display:none}
+@media(max-width:760px){.v8-calendar-mobile-hint{display:block;font-size:11px;line-height:1.6;color:#71525f}.v8-cal-grid.month{min-width:0;grid-template-columns:repeat(7,minmax(0,1fr))}.v8-cal-grid.month .v8-cal-weekday{font-size:9px;padding:8px 1px}.v8-cal-grid.month .v8-cal-day{min-height:58px;padding:5px 2px}.v8-cal-grid.month .v8-cal-date{font-size:10px;margin:0 0 5px;text-align:center}.v8-cal-grid.month .v8-cal-item{font-size:0;min-height:30px;padding:4px 1px;overflow-wrap:normal;text-align:center}.v8-cal-grid.month .v8-cal-item strong{font-size:9px;font-weight:600}}

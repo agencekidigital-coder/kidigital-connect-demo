@@ -996,7 +996,7 @@ function v8Calendar() {
           })),
       ].sort((a, b) => a.time.localeCompare(b.time));
     cells.push(
-      `<div class="v8-cal-day ${date === daysFromNow(0) ? "today" : ""} ${x.getMonth() !== d.getMonth() ? "outside" : ""}"><div class="v8-cal-date">${v8CalView !== "month" ? x.toLocaleDateString("fr-FR", { weekday: "short" }) : ""} ${x.getDate()}</div>${items.map((e) => `<button class="v8-cal-item ${e.type}" data-v8="calendar-event" data-id="${esc(e.id)}" data-type="${e.type}"><strong>${esc(e.time)}</strong> ${esc(e.title)}</button>`).join("")}${!items.length && v8CalView === "day" ? '<p class="fine">Aucun événement ce jour.</p>' : ""}</div>`,
+      `<div class="v8-cal-day ${date === daysFromNow(0) ? "today" : ""} ${x.getMonth() !== d.getMonth() ? "outside" : ""}"><div class="v8-cal-date">${v8CalView !== "month" ? x.toLocaleDateString("fr-FR", { weekday: "short" }) : ""} ${x.getDate()}</div>${items.map((e) => `<button class="v8-cal-item ${e.type}" aria-label="${esc(e.time+' · '+e.title)}" title="${esc(e.title)}" data-v8="calendar-event" data-id="${esc(e.id)}" data-type="${e.type}"><strong>${esc(e.time)}</strong> ${esc(e.title)}</button>`).join("")}${!items.length && v8CalView === "day" ? '<p class="fine">Aucun événement ce jour.</p>' : ""}</div>`,
     );
   }
   return `<section class="v8-calendar card"><div class="v8-toolbar"><div><span class="eyebrow">ATELIERS & RENDEZ-VOUS</span><h2>Mon calendrier</h2></div><div class="v8-segments">${[
@@ -1013,7 +1013,7 @@ function v8Calendar() {
     )
     .join(
       "",
-    )}</div></div><div class="v8-toolbar">${v8Button("calendar-prev", "←", 'aria-label="Période précédente"')}<strong>${d.toLocaleDateString("fr-FR", v8CalView === "month" ? { month: "long", year: "numeric" } : { day: "numeric", month: "long", year: "numeric" })}</strong>${v8Button("calendar-next", "→", 'aria-label="Période suivante"')}${v8Button("calendar-today", "Aujourd’hui")}<input aria-label="Choisir une date du calendrier" id="v8CalendarDate" type="date" value="${v8CalDate}"></div><div class="v8-calendar-scroll"><div class="v8-cal-grid ${v8CalView}">${v8CalView === "month" ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((t) => `<div class="v8-cal-weekday">${t}</div>`).join("") : ""}${cells.join("")}</div></div><p class="fine">Rose : atelier collectif · Sauge : rendez-vous individuel · Données fictives</p></section>`;
+    )}</div></div><div class="v8-toolbar">${v8Button("calendar-prev", "←", 'aria-label="Période précédente"')}<strong>${d.toLocaleDateString("fr-FR", v8CalView === "month" ? { month: "long", year: "numeric" } : { day: "numeric", month: "long", year: "numeric" })}</strong>${v8Button("calendar-next", "→", 'aria-label="Période suivante"')}${v8Button("calendar-today", "Aujourd’hui")}<input aria-label="Choisir une date du calendrier" id="v8CalendarDate" type="date" value="${v8CalDate}"></div><p class="v8-calendar-mobile-hint">${v8CalView==='week'?'Faites glisser la semaine pour parcourir les jours.':'Touchez un horaire pour ouvrir le détail de la rencontre.'}</p><div class="v8-calendar-scroll"><div class="v8-cal-grid ${v8CalView}">${v8CalView === "month" ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((t) => `<div class="v8-cal-weekday">${t}</div>`).join("") : ""}${cells.join("")}</div></div><p class="fine">Rose : atelier collectif · Sauge : rendez-vous individuel · Données fictives</p></section>`;
 }
 // Availability rules are explicit; no fictional slots are silently enabled.
 function v8Minutes(t) {
