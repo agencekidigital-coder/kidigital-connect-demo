@@ -205,6 +205,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 
 </style>
 <link rel="stylesheet" href="/assets/naitea.css" />
+<link rel="stylesheet" href="/assets/workspace.css" />
 </head>
 <body>
 <div class="shell">
@@ -307,7 +308,7 @@ const marketingText=(e,channel)=>{let t=e?e.title:'Massage bébé & douceur', d=
 if(channel==='instagram')return `🌸 Un joli moment à partager avec votre tout-petit !\n\nJe vous donne rendez-vous pour mon atelier « ${t} » 💕\n\n📅 ${d} à ${e?e.time:'10:00'}\n📍 ${p}\n🎟️ ${price} · ${s} place${s>1?'s':''} encore disponible${s>1?'s':''}\n\nAu programme : de la douceur, des découvertes et des échanges sans jugement.\n\nEnvie de nous rejoindre ? Retrouvez le lien d'inscription dans ma bio. ✨\n\n#Parentalité #AtelierBébé #Lille #JeunesParents`;
 if(channel==='facebook')return `📣 Atelier ${t} — inscriptions ouvertes !\n\nVous cherchez une activité bienveillante à partager avec votre bébé ou d'autres parents ? Je vous accueille le ${d} à ${e?e.time:'10:00'} à ${p}.\n\nTarif : ${price}. ${s} place${s>1?'s':''} disponible${s>1?'s':''}.\n\nAu plaisir de vous rencontrer ! 🌷`;
 return `Objet : Un prochain atelier à découvrir 🌷\n\nBonjour,\n\nJe suis ravie de vous présenter mon prochain atelier « ${t} ».\n\n📅 ${d} à ${e?e.time:'10:00'}\n📍 ${p}\n💗 Tarif : ${price}\n\nSi ce moment vous tente, vous pouvez découvrir les détails et vous inscrire sur ma page Kidigital Connect.\n\nAu plaisir de vous retrouver,\nCamille`};
-function communication(){let e=eventBy(commEvent)||state.events[0];if(!editorDraft)editorDraft=marketingText(e,commChannel);return `${pagehead('Mon studio marketing','Ma communication ✨','Un atelier créé = une communication prête à être adaptée et partagée. <a href="#" data-nav="studio" style="color:#7154b1;font-weight:800">Créer aussi mon visuel →</a>',`<button class="btn secondary" data-action="newsletter">${ic('mail','s')} Préparer une newsletter</button>`)}<div class="grid2" style="align-items:start"><div class="card"><div class="taglabel">${ic('wand','s')} Assistant de communication</div><h3 style="font-size:18px;letter-spacing:-.4px;margin:12px 0 20px">Quel atelier souhaites-tu promouvoir ?</h3><div class="field"><label>Atelier</label><select id="commEvent">${state.events.map(x=>`<option value="${x.id}" ${x.id===e.id?'selected':''}>${esc(x.title)} · ${shortDate(x.date)}</option>`).join('')}</select></div><div class="field"><label>Canal de communication</label><div class="pilltabs" style="width:100%;justify-content:space-between">${[['instagram','Instagram'],['facebook','Facebook'],['email','Email']].map(([id,t])=>`<button data-comm="${id}" class="${commChannel===id?'active':''}" style="flex:1">${t}</button>`).join('')}</div></div><p class="info-note">Un texte de départ est préparé à partir des informations de l'atelier. Tu peux le réécrire avant de le publier.</p><button class="btn secondary full" data-action="regenerate">${ic('refresh','s')} Regénérer la proposition</button><div class="tinyline"></div><div class="taglabel">${ic('chart','s')} Petit objectif marketing</div><p class="subtitle" style="margin-top:8px">${spots(e)} places à remplir pour cet atelier. Invite les familles à s'inscrire directement depuis sa fiche.</p></div><div class="card"><div class="between" style="margin-bottom:14px"><div><div class="taglabel">${ic('book','s')} Texte prêt à personnaliser</div><p class="fine" style="margin-top:8px">Démo : aucune publication automatique</p></div><span class="tag">${commChannel==='instagram'?'Instagram':commChannel==='facebook'?'Facebook':'Email'}</span></div><textarea id="marketingEditor" class="commpreview" style="width:100%;height:300px;resize:vertical;outline:0" aria-label="Texte de communication">${esc(editorDraft)}</textarea><div class="eventactions"><button class="btn" data-action="copy-marketing">${ic('copy','s')} Copier le texte</button><button class="btn secondary" data-action="share-marketing">${ic('share','s')} Partager</button></div></div></div><div class="sectionhead"><h2>🌷 Les actions qui font la différence</h2></div><div class="grid3">${[['mail','Relance des familles','Une newsletter pour annoncer ton prochain atelier.'],['users','Partenaires locaux','Partage tes dates à une maison des familles ou une boutique.'],['star','Confiance & avis','Demande un retour après chaque atelier réalisé.']].map(([i,t,d])=>`<div class="tile"><div class="roundicon">${ic(i)}</div><h3 style="font-size:13px;margin:15px 0 6px">${t}</h3><p style="margin:0">${d}</p></div>`).join('')}</div>`}
+function communication(){let e=eventBy(commEvent)||state.events[0];if(!editorDraft)editorDraft=v8Marketing(e,commChannel);return `${pagehead('Mon studio marketing','Ma communication ✨','Un atelier créé = une communication prête à être adaptée et partagée. <a href="#" data-nav="studio" style="color:#7154b1;font-weight:800">Créer aussi mon visuel →</a>',`<button class="btn secondary" data-action="newsletter">${ic('mail','s')} Préparer une newsletter</button>`)}<div class="grid2" style="align-items:start"><div class="card"><div class="taglabel">${ic('wand','s')} Assistant de communication</div><h3 style="font-size:18px;letter-spacing:-.4px;margin:12px 0 20px">Quel atelier souhaites-tu promouvoir ?</h3><div class="field"><label>Atelier</label><select id="commEvent">${state.events.map(x=>`<option value="${x.id}" ${x.id===e.id?'selected':''}>${esc(x.title)} · ${shortDate(x.date)}</option>`).join('')}</select></div><div class="field"><label>Canal de communication</label><div class="pilltabs" style="width:100%;justify-content:space-between">${[['instagram','Instagram'],['facebook','Facebook'],['email','Email']].map(([id,t])=>`<button data-comm="${id}" class="${commChannel===id?'active':''}" style="flex:1">${t}</button>`).join('')}</div></div><p class="info-note">Assistant IA simulé : le texte et les bienfaits sont préparés à partir de modèles locaux adaptés à la catégorie. Relis et personnalise avant publication.</p><button class="btn secondary full" data-action="regenerate">${ic('refresh','s')} Regénérer la proposition</button><div class="tinyline"></div><div class="taglabel">${ic('chart','s')} Petit objectif marketing</div><p class="subtitle" style="margin-top:8px">${spots(e)} places à remplir pour cet atelier. Invite les familles à s'inscrire directement depuis sa fiche.</p></div><div class="card"><div class="between" style="margin-bottom:14px"><div><div class="taglabel">${ic('book','s')} Texte prêt à personnaliser</div><p class="fine" style="margin-top:8px">Démo : aucune publication automatique</p></div><span class="tag">${commChannel==='instagram'?'Instagram':commChannel==='facebook'?'Facebook':'Email'}</span></div><textarea id="marketingEditor" class="commpreview" style="width:100%;height:300px;resize:vertical;outline:0" aria-label="Texte de communication">${esc(editorDraft)}</textarea><div class="eventactions"><button class="btn" data-action="copy-marketing">${ic('copy','s')} Copier le texte</button><button class="btn secondary" data-action="share-marketing">${ic('share','s')} Partager</button></div></div></div><div class="sectionhead"><h2>🌷 Les actions qui font la différence</h2></div><div class="grid3">${[['mail','Relance des familles','Une newsletter pour annoncer ton prochain atelier.'],['users','Partenaires locaux','Partage tes dates à une maison des familles ou une boutique.'],['star','Confiance & avis','Demande un retour après chaque atelier réalisé.']].map(([i,t,d])=>`<div class="tile"><div class="roundicon">${ic(i)}</div><h3 style="font-size:13px;margin:15px 0 6px">${t}</h3><p style="margin:0">${d}</p></div>`).join('')}</div>`}
 function familles(){let arr=state.family.filter(f=>`${f.name} ${f.email} ${f.interest} ${f.source}`.toLocaleLowerCase('fr').includes(familyQuery.toLocaleLowerCase('fr')));return `${pagehead('Mes contacts','Mes familles 🫶','Un carnet de contacts simple pour garder le lien après les ateliers.',`<button class="btn" data-action="add-family">${ic('plus','s')} Ajouter un contact</button>`)}<div class="grid3" style="margin-bottom:23px"><div class="card metric"><div class="metrichead">Contacts connus<div class="roundicon">${ic('users')}</div></div><div class="metricnum">${state.family.length}</div></div><div class="card metric"><div class="metrichead">Abonnées newsletter<div class="roundicon mint">${ic('mail')}</div></div><div class="metricnum">${subscribers()}</div></div><div class="card metric"><div class="metrichead">Familles apportées par Kidigital<div class="roundicon pink">${ic('heart')}</div></div><div class="metricnum">${state.family.filter(f=>f.source==='Kidigital').length}</div></div></div><div class="toolbar"><div class="search">${ic('search','s')}<input id="familySearch" placeholder="Rechercher un contact..." value="${esc(familyQuery)}" autocomplete="off"/></div><button class="btn secondary small" data-action="export">${ic('download','s')} Exporter les contacts</button></div><div class="card"><div class="tablewrap"><table class="table"><thead><tr><th>Famille</th><th>Intérêt</th><th>Origine</th><th>Newsletter</th></tr></thead><tbody>${arr.map(f=>`<tr><td><div class="person"><span class="personicon">${esc(f.name[0])}</span>${esc(f.name)}</div><small class="fine">${esc(f.email)}</small></td><td>${esc(f.interest||'Non renseigné')}</td><td>${esc(f.source)}</td><td><span class="statustag ${f.newsletter?'':'grey'}">${f.newsletter?'Oui, consentement':'Non'}</span></td></tr>`).join('')}</tbody></table>${arr.length?'':`<div class="empty">Aucun contact trouvé.</div>`}</div></div><div class="notify" style="margin-top:18px">${ic('lock')}<div>Le consentement newsletter est indépendant de l'inscription à un atelier. Aucune donnée de santé n'est collectée dans cette démonstration. Les adresses en exemple sont fictives.</div></div>`}
 const automationDefs=[['confirmation','mail','Email de confirmation','Envoyé après chaque inscription validée avec la date, l’heure et le lieu.'],['reminder','bell','Rappel avant l’atelier','Rappel pratique 48 h avant la rencontre, aux participantes inscrites.'],['feedback','star','Remerciement & demande d’avis','Après l’atelier, aux participantes marquées présentes.'],['waitlist','users','Liste d’attente automatique','Si un atelier est complet, les familles peuvent rejoindre la liste d’attente.'],['newsletter','heart','Annonces des prochains ateliers','Préparation d’un message ciblé vers les seules familles abonnées.']];
 function automations(){return `${pagehead('Mon assistant connecté','Mes automatisations ⚡','Active les scénarios qui t’aident à gagner du temps sans perdre le lien humain.',`<button class="btn secondary" data-action="test-automation">${ic('zap','s')} Tester le parcours</button>`)}<div class="v2-alert"><div><b>🌸 Nouvelle automatisation : Relancer un atelier qui manque d'inscriptions</b><p>Règle testable : si l'atelier approche et que le remplissage est trop faible, créer un brouillon de publication à valider.</p><div class="flowsteps" style="margin-top:9px"><span class="flowdot">Atelier à J-${state.rule.days} ou moins</span><span class="arrow">→</span><span class="flowdot">Moins de ${state.rule.fill}% rempli</span><span class="arrow">→</span><span class="flowdot">Brouillon de relance</span></div></div><button class="btn" data-action="test-auto-relance">Tester une relance</button></div><div class="grid2" style="align-items:start"><div class="card"><div class="between"><h2 style="font-size:16px;margin:0">Scénarios prêts à l'emploi</h2><span class="tag mint">${Object.values(state.settings).filter(Boolean).length} actifs</span></div><div style="margin-top:10px">${automationDefs.map(([key,icon,title,desc])=>`<div class="automation"><div class="roundicon">${ic(icon)}</div><div class="content"><b>${title}</b><p>${desc}</p></div><label class="switch" aria-label="${title}"><input type="checkbox" data-setting="${key}" ${state.settings[key]?'checked':''}/><span class="slider"></span></label></div>`).join('')}</div><div class="notify" style="margin-top:14px">${ic('info')}<div>Les envois sont simulés : ce prototype ne contacte aucun parent et ne programme aucune vraie campagne.</div></div><div class="card" style="margin-top:15px"><b>Ma règle de remplissage</b><div class="inputgrid" style="margin-top:12px"><div class="field"><label>À combien de jours avant ?</label><select data-rule="days"><option value="5" ${state.rule.days==5?'selected':''}>J-5</option><option value="7" ${state.rule.days==7?'selected':''}>J-7</option><option value="10" ${state.rule.days==10?'selected':''}>J-10</option><option value="15" ${state.rule.days==15?'selected':''}>J-15</option></select></div><div class="field"><label>Si remplissage inférieur à</label><select data-rule="fill"><option value="40" ${state.rule.fill==40?'selected':''}>40 %</option><option value="50" ${state.rule.fill==50?'selected':''}>50 %</option><option value="70" ${state.rule.fill==70?'selected':''}>70 %</option><option value="90" ${state.rule.fill==90?'selected':''}>90 %</option></select></div></div><div class="upload-note">Mode sécurité : la relance est toujours créée comme brouillon, jamais publiée sans validation dans cette démo.</div></div></div><div class="card"><h2 style="font-size:16px;margin:0 0 14px">Parcours d'une inscription</h2>${[['0','Inscription','Une famille réserve un atelier'],['1','Tout de suite','Confirmation par email'],['2','48 h avant','Rappel de l’atelier'],['3','Après présence','Remerciement & demande d’avis'],['4','Plus tard','Invitation au prochain événement, si autorisée']].map(([num,t,d],i)=>`<div style="display:flex;gap:12px;align-items:start;padding:9px 0"><span style="height:32px;width:32px;flex-shrink:0;display:grid;place-items:center;background:${i===0?'#e9ddf8':'#f6f3fb'};border-radius:50%;font-weight:850;color:#8b72c9;font-size:11px">${num}</span><div><b style="font-size:11.7px">${t}</b><p class="fine" style="margin:5px 0">${d}</p></div></div>`).join('')}<div class="tinyline"></div><h3 style="font-size:13px">Journal des actions</h3>${state.logs.slice(0,6).map(l=>`<div class="logline"><span>${esc(l.text)}</span><small>${esc(l.date)}</small></div>`).join('')}</div></div>`}
@@ -359,14 +360,14 @@ let badgeText=(studioBadge||'PLACES DISPONIBLES').toUpperCase(),by=story?H-225:H
 ctx.fillStyle=primary;rounded(ctx,pad,by-35,W-pad*2,93,47);ctx.fill();ctx.fillStyle='#ffffff';ctx.textBaseline='middle';ctx.textAlign='center';ctx.font=`800 ${story?34:32}px ${font}`;ctx.fillText(badgeText.slice(0,48),W/2,by+13,W-pad*2-55);ctx.textAlign='left';ctx.textBaseline='top';
 let logo=await loadImage(b.logo);if(logo){ctx.save();ctx.globalAlpha=.95;containedPhoto(ctx,logo,W-210,story?85:52,114,90,15);ctx.restore()}
 }
-function scheduleModal(){let e=eventBy(studioEvent)||state.events[0];let now=new Date();now.setDate(now.getDate()+2);let date=now.toISOString().slice(0,10),text=marketingText(e,'instagram');showModal('Programmer une publication 📆','Validation et programmation simulées dans ce prototype.',`<form id="schedulePostForm"><div class="field"><label>Publication</label><input name="title" required value="${esc(e.title)} · ${intentLabel()}"/></div><div class="field"><label>Légende Instagram / Facebook</label><textarea name="caption" rows="6" required>${esc(text)}</textarea></div><div class="field"><label>Réseaux visés (démonstration)</label><div class="chipset"><label class="channel"><input name="instagram" type="checkbox" checked/> Instagram professionnel</label><label class="channel"><input name="facebook" type="checkbox" checked/> Page Facebook</label></div></div><div class="inputgrid"><div class="field"><label>Date prévue</label><input type="date" name="date" min="${daysFromNow(0)}" value="${date}" required/></div><div class="field"><label>Heure</label><input type="time" name="time" value="10:00" required/></div></div><div class="demowarning">⚠️ Aucune connexion Meta n'est active. L'élément sera enregistré dans le calendrier de simulation, mais ne sera jamais envoyé sur Instagram ou Facebook.</div><div class="modalfooter"><button class="btn secondary" data-action="close-modal" type="button">Annuler</button><button class="btn" type="submit">Enregistrer au calendrier de démo</button></div></form>`)}
+function scheduleModal(){let e=eventBy(studioEvent)||state.events[0];let now=new Date();now.setDate(now.getDate()+2);let date=now.toISOString().slice(0,10),text=v8Marketing(e,'instagram');showModal('Programmer une publication 📆','Validation et programmation simulées dans ce prototype.',`<form id="schedulePostForm"><div class="field"><label>Publication</label><input name="title" required value="${esc(e.title)} · ${intentLabel()}"/></div><div class="field"><label>Légende Instagram / Facebook</label><textarea name="caption" rows="6" required>${esc(text)}</textarea></div><div class="field"><label>Réseaux visés (démonstration)</label><div class="chipset"><label class="channel"><input name="instagram" type="checkbox" checked/> Instagram professionnel</label><label class="channel"><input name="facebook" type="checkbox" checked/> Page Facebook</label></div></div><div class="inputgrid"><div class="field"><label>Date prévue</label><input type="date" name="date" min="${daysFromNow(0)}" value="${date}" required/></div><div class="field"><label>Heure</label><input type="time" name="time" value="10:00" required/></div></div><div class="demowarning">⚠️ Aucune connexion Meta n'est active. L'élément sera enregistré dans le calendrier de simulation, mais ne sera jamais envoyé sur Instagram ou Facebook.</div><div class="modalfooter"><button class="btn secondary" data-action="close-modal" type="button">Annuler</button><button class="btn" type="submit">Enregistrer au calendrier de démo</button></div></form>`)}
 function snapshotVisual(){let c=document.getElementById('visualCanvas');if(!c)return '';let out=document.createElement('canvas');out.width=270;out.height=Math.round(270*c.height/c.width);out.getContext('2d').drawImage(c,0,0,out.width,out.height);return out.toDataURL('image/jpeg',.68)}
 function draftCampaign({date='',time='',title='',channels=['Instagram','Facebook'],caption='',eventId='',status='Brouillon · démo'}={}){let obj={id:uid(),date,time,title,channels,caption,eventId,status,format:studioFormat,style:studioStyle,intent:studioIntent,visualTitle:studioTitle,preview:snapshotVisual()};state.campaigns.unshift(obj);addlog('calendar',`Publication de démonstration créée : ${obj.title}`);return obj}
 function publications(){let cs=[...state.campaigns].sort((a,b)=>(a.date||'9999').localeCompare(b.date||'9999'));return `${pagehead('Mon calendrier éditorial','Mes publications 📅','Retrouve les brouillons et publications planifiées. Tout est simulé, aucun réseau n’est connecté.',`<button class="btn" data-nav="studio">${ic('plus','s')} Créer un visuel</button>`)}<div class="v2-alert"><div><b>Du visuel à la publication, au même endroit.</b><p>Une future version synchronisera ce calendrier avec Meta. Pour l'instant, les actions servent à tester le parcours et les validations.</p></div><span class="demo-mark">MODE DÉMO</span></div><div class="grid2" style="margin-bottom:18px"><div class="card metric"><div class="metrichead">Brouillons / planifications<div class="roundicon">${ic('calendar')}</div></div><div class="metricnum">${state.campaigns.length}</div></div><div class="card metric"><div class="metrichead">Comptes réellement connectés<div class="roundicon peach">${ic('lock')}</div></div><div class="metricnum">0</div><span class="fine">Intégration Meta à développer</span></div></div><div class="card"><h2 style="font-size:16px;margin:0 0 17px">File de publications</h2>${cs.length?cs.map(c=>`<div class="schedcard"><span class="schthumb" style="overflow:hidden">${c.preview?`<img src="${esc(c.preview)}" alt="Miniature du visuel" style="width:100%;height:100%;object-fit:cover">`:c.intent==='places'?'🌸':c.intent==='derniere'?'⏰':'✨'}</span><div style="flex:1;min-width:0"><div class="schedtitle">${esc(c.title)}</div><div class="scheddesc">${c.date?shortDate(c.date)+' · '+c.time:'Non planifié'} · ${esc(c.channels.join(' + '))}</div><span class="stepstatus">${esc(c.status)}</span></div><button class="btn secondary tiny" data-action="campaign-preview" data-id="${c.id}">Voir</button><button class="btn ghost tiny" data-action="campaign-delete" data-id="${c.id}" aria-label="Supprimer le brouillon">${ic('x','s')}</button></div>`).join(''):`<div class="empty">Aucune publication en attente. Crée ton premier visuel pour préparer une publication 🌷</div>`}</div>`}
 function reseaux(){return `${pagehead('Comptes sociaux','Mes réseaux sociaux 🔗','Prépare la connexion à tes comptes professionnels, sans accès réel pendant cette démo.') }<div class="grid2">${[['📸','Instagram professionnel','Compte Business ou Creator et autorisations de publication','instagram'],['📘','Page Facebook','Page que tu es autorisée à gérer et autorisations Meta','facebook']].map(([emo,name,desc,key])=>`<div class="card"><div class="between"><div style="font-size:38px">${emo}</div><span class="statustag grey">Non connecté</span></div><h2 style="font-size:18px;margin:15px 0 6px">${name}</h2><p class="subtitle">${desc}</p><div class="visual-actions"><button class="btn secondary full" data-action="meta-req" data-id="${key}">${ic('lock','s')} Voir les prérequis</button></div></div>`).join('')}</div><div class="notify" style="margin-top:19px">${ic('lock')}<div>La connexion réelle nécessite OAuth Meta, une application configurée et les permissions approuvées. Cette maquette n'accède à aucun compte et ne publie rien. Les comptes Instagram personnels ne sont pas pris en charge par l'API de publication professionnelle.</div></div><div class="sectionhead"><h2>Une fois la connexion réalisée…</h2></div><div class="flowsteps"><span class="flowdot">Visuel validé</span><span class="arrow">→</span><span class="flowdot">Choix du réseau</span><span class="arrow">→</span><span class="flowdot">Date programmée</span><span class="arrow">→</span><span class="flowdot">Publication & suivi</span></div>`}
 function metaReq(k){showModal('Connecter '+(k==='facebook'?'une page Facebook':'Instagram professionnel'),'Parcours technique prévu pour la version en ligne.',`<div class="mini-step"><div class="stepbadge">1</div><div><b>Disposer du bon compte</b><p class="fine">${k==='facebook'?'Une page Facebook gérée avec les droits nécessaires.':'Un compte Instagram Business ou Creator (selon le type de publication).'} </p></div></div><div class="mini-step"><div class="stepbadge">2</div><div><b>Accepter la connexion sécurisée</b><p class="fine">Une fenêtre de connexion Meta demanderait les permissions nécessaires, sans mot de passe transmis à Kidigital.</p></div></div><div class="mini-step"><div class="stepbadge">3</div><div><b>Valider les posts à publier</b><p class="fine">Tu gardes le contrôle des visuels, légendes et programmes.</p></div></div><div class="demowarning">La connexion est une fonctionnalité future : aucun accès Meta réel dans ce fichier HTML.</div><div class="modalfooter"><button class="btn" data-action="close-modal">J'ai compris</button></div>`)}
 function campaignPreview(id){let c=state.campaigns.find(x=>x.id===id);if(!c)return;showModal('Ma publication préparée ✨','Élément enregistré localement, sans envoi réel.',`${c.preview?`<img src="${esc(c.preview)}" alt="Visuel préparé" style="width:210px;max-height:280px;object-fit:contain;display:block;margin:0 auto 15px;border-radius:12px;box-shadow:0 8px 25px #0002">`:``}<div class="field"><label>Titre</label><div class="notify">${esc(c.title)}</div></div><div class="field"><label>Réseaux / statut</label><div class="notify">${esc(c.channels.join(', '))} · ${esc(c.status)}</div></div><div class="field"><label>Légende</label><textarea rows="9" readonly>${esc(c.caption)}</textarea></div><div class="modalfooter"><button class="btn secondary" data-action="campaign-delete" data-id="${c.id}">Supprimer</button><button class="btn" data-action="close-modal">Fermer</button></div>`)}
-function addAutorelance(){let matches=upcoming().filter(e=>{let diff=Math.ceil((new Date(e.date+'T12:00:00')-new Date())/86400000);return diff<=Number(state.rule.days)&&diff>=0&&activeCount(e.id)/e.capacity*100<Number(state.rule.fill)&&spots(e)>0});if(!matches.length){toast('Aucun atelier ne remplit cette règle aujourd’hui');return}let a=matches[0];let old=studioEvent;studioEvent=a.id;studioIntent='derniere';studioReset();draftCampaign({eventId:a.id,title:'Relance automatique proposée · '+a.title,channels:['Instagram','Facebook'],caption:marketingText(a,'instagram'),status:'À valider · démo'});studioEvent=old;addlog('zap','Relance proposée pour '+a.title);navigate('publications');toast('Relance brouillon prête à valider ✨')}
+function addAutorelance(){let matches=upcoming().filter(e=>{let diff=Math.ceil((new Date(e.date+'T12:00:00')-new Date())/86400000);return diff<=Number(state.rule.days)&&diff>=0&&activeCount(e.id)/e.capacity*100<Number(state.rule.fill)&&spots(e)>0});if(!matches.length){toast('Aucun atelier ne remplit cette règle aujourd’hui');return}let a=matches[0];let old=studioEvent;studioEvent=a.id;studioIntent='derniere';studioReset();draftCampaign({eventId:a.id,title:'Relance automatique proposée · '+a.title,channels:['Instagram','Facebook'],caption:v8Marketing(a,'instagram'),status:'À valider · démo'});studioEvent=old;addlog('zap','Relance proposée pour '+a.title);navigate('publications');toast('Relance brouillon prête à valider ✨')}
 
 function render(){renderChrome();let html=mode==='parent'?parent():({dashboard,ateliers,offers,communication,studio,publications,marque,reseaux,familles,automations,community}[page]||dashboard)();document.getElementById('app').innerHTML=html;if(mode==='pro'&&page==='studio')requestAnimationFrame(drawVisual);}
 function showModal(title,sub,body,foot=''){modalName=title;document.getElementById('modalHost').innerHTML=`<div class="modalback" data-overlay="1"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modalhead"><div><h2 id="modalTitle">${title}</h2><p>${sub}</p></div><button class="close" data-action="close-modal" aria-label="Fermer">${ic('x')}</button></div><div class="modalbody">${body}${foot?`<div class="modalfooter">${foot}</div>`:''}</div></div></div>`}
@@ -386,13 +387,13 @@ function copyText(t){if(navigator.clipboard&&window.isSecureContext){navigator.c
 function fallbackCopy(t){let ta=document.createElement('textarea');ta.value=t;document.body.append(ta);ta.select();try{document.execCommand('copy');toast('Texte copié 📋')}catch(e){toast('Copie indisponible sur ce navigateur')}ta.remove()}
 function shareText(t){if(navigator.share){navigator.share({title:'Kidigital Connect',text:t}).catch(()=>{})}else copyText(t)}
 function exportContacts(){let header=['Nom','Email','Intérêt','Source','Consentement newsletter'];let lines=[header,...state.family.map(f=>[f.name,f.email,f.interest||'',f.source,f.newsletter?'Oui':'Non'])].map(row=>row.map(v=>'"'+String(v||'').replaceAll('"','""')+'"').join(';')).join('\r\n');let blob=new Blob(['\ufeff'+lines],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='kidigital-connect-familles-demo.csv';a.click();URL.revokeObjectURL(url);toast('Fichier CSV généré')}
-function act(action,id){switch(action){case 'studio-download':downloadVisual();break;case 'studio-reset':studioReset();render();toast('Visuel réinitialisé');break;case 'studio-queue':scheduleModal();break;case 'studio-caption':commEvent=studioEvent;commChannel='instagram';editorDraft=marketingText(eventBy(studioEvent),'instagram');navigate('communication');break;case 'clear-photo':state.brand.photo='';save();render();toast('Photo retirée');break;case 'clear-logo':state.brand.logo='';save();render();toast('Logo retiré');break;case 'campaign-preview':campaignPreview(id);break;case 'campaign-delete':state.campaigns=state.campaigns.filter(c=>c.id!==id);save();closeModal();render();toast('Brouillon retiré');break;case 'meta-req':metaReq(id);break;case 'test-auto-relance':addAutorelance();break;case 'close-modal':closeModal();break;case 'create-event':eventCreate();break;case 'create-offer':offerCreate();break;case 'new-lead':leadCreate(id);break;case 'add-family':familyCreate();break;case 'detail':detail(id);break;case 'book':book(id);break;case 'boost':commEvent=id||state.events[0]?.id;studioEvent=commEvent;studioReset();closeModal();navigate('studio');break;case 'marketing':closeModal();navigate('communication');break;case 'newsletter':newsletter();break;case 'regenerate':editorDraft=marketingText(eventBy(commEvent),commChannel);render();toast('Nouvelle proposition préparée ✨');break;case 'copy-marketing':copyText(document.getElementById('marketingEditor')?.value||editorDraft);break;case 'share-marketing':shareText(document.getElementById('marketingEditor')?.value||editorDraft);break;case 'share-event':{let e=eventBy(id);shareText(`Découvrez mon atelier « ${e.title} » le ${fmtDate(e.date)} à ${e.time} · ${e.place}. ${money(e.price)}.`);break}case 'export':exportContacts();break;case 'test-automation':testAutomation();break;case 'run-test':{let n=0;for(let [key,,title] of automationDefs){if(state.settings[key]){addlog('zap','Simulation : '+title);n++}}closeModal();render();toast(n+' automatisation(s) simulée(s)');break}case 'toggle-lead':{let l=state.leads.find(x=>x.id===id);if(l){l.status=l.status==='Confirmé'?'Nouveau':'Confirmé';addlog('heart',`Accompagnement ${l.status.toLowerCase()} pour ${l.name}`);render()}break}case 'mark-presence':{let s=state.signups.find(x=>x.id===id);if(s){s.attended=!s.attended;if(s.attended&&state.settings.feedback)addlog('star',`Demande d’avis préparée pour ${s.name} (démo)`);save();let e=s.eventId;detail(e);toast(s.attended?'Présence enregistrée':'Présence retirée')}break}case 'reset':{if(confirm('Revenir aux données fictives de départ ? Tes ajouts de démonstration seront effacés.')){try{localStorage.removeItem('kidigital-connect-v1')}catch(e){}state=JSON.parse(JSON.stringify(defaults));state.brand={...brandDefaults};state.campaigns=[];state.social={facebook:false,instagram:false};state.rule={active:false,days:10,fill:70,approval:true};studioEvent='e1';studioIntent='places';studioReset();closeModal();mode='pro';page='dashboard';eventTab='upcoming';render();toast('Démo réinitialisée')}break}}
+function act(action,id){switch(action){case 'studio-download':downloadVisual();break;case 'studio-reset':studioReset();render();toast('Visuel réinitialisé');break;case 'studio-queue':scheduleModal();break;case 'studio-caption':commEvent=studioEvent;commChannel='instagram';editorDraft=v8Marketing(eventBy(studioEvent),'instagram');navigate('communication');break;case 'clear-photo':state.brand.photo='';save();render();toast('Photo retirée');break;case 'clear-logo':state.brand.logo='';save();render();toast('Logo retiré');break;case 'campaign-preview':campaignPreview(id);break;case 'campaign-delete':state.campaigns=state.campaigns.filter(c=>c.id!==id);save();closeModal();render();toast('Brouillon retiré');break;case 'meta-req':metaReq(id);break;case 'test-auto-relance':addAutorelance();break;case 'close-modal':closeModal();break;case 'create-event':eventCreate();break;case 'create-offer':offerCreate();break;case 'new-lead':leadCreate(id);break;case 'add-family':familyCreate();break;case 'detail':detail(id);break;case 'book':book(id);break;case 'boost':commEvent=id||state.events[0]?.id;studioEvent=commEvent;studioReset();closeModal();navigate('studio');break;case 'marketing':closeModal();navigate('communication');break;case 'newsletter':newsletter();break;case 'regenerate':editorDraft=v8Marketing(eventBy(commEvent),commChannel);render();toast('Nouvelle proposition préparée ✨');break;case 'copy-marketing':copyText(document.getElementById('marketingEditor')?.value||editorDraft);break;case 'share-marketing':shareText(document.getElementById('marketingEditor')?.value||editorDraft);break;case 'share-event':{let e=eventBy(id);shareText(`Découvrez mon atelier « ${e.title} » le ${fmtDate(e.date)} à ${e.time} · ${e.place}. ${money(e.price)}.`);break}case 'export':exportContacts();break;case 'test-automation':testAutomation();break;case 'run-test':{let n=0;for(let [key,,title] of automationDefs){if(state.settings[key]){addlog('zap','Simulation : '+title);n++}}closeModal();render();toast(n+' automatisation(s) simulée(s)');break}case 'toggle-lead':{let l=state.leads.find(x=>x.id===id);if(l){l.status=l.status==='Confirmé'?'Nouveau':'Confirmé';addlog('heart',`Accompagnement ${l.status.toLowerCase()} pour ${l.name}`);render()}break}case 'mark-presence':{let s=state.signups.find(x=>x.id===id);if(s){s.attended=!s.attended;if(s.attended&&state.settings.feedback)addlog('star',`Demande d’avis préparée pour ${s.name} (démo)`);save();let e=s.eventId;detail(e);toast(s.attended?'Présence enregistrée':'Présence retirée')}break}case 'reset':{if(confirm('Revenir aux données fictives de départ ? Tes ajouts de démonstration seront effacés.')){try{localStorage.removeItem('kidigital-connect-v1')}catch(e){}state=JSON.parse(JSON.stringify(defaults));state.brand={...brandDefaults};state.campaigns=[];state.social={facebook:false,instagram:false};state.rule={active:false,days:10,fill:70,approval:true};studioEvent='e1';studioIntent='places';studioReset();closeModal();mode='pro';page='dashboard';eventTab='upcoming';render();toast('Démo réinitialisée')}break}}
 }
 function handleForm(form){let d=Object.fromEntries(new FormData(form).entries());if(form.id==='schedulePostForm'){let ch=[...(d.instagram?['Instagram']:[]),...(d.facebook?['Facebook']:[])];if(!ch.length){toast('Choisis au moins un réseau');return;}draftCampaign({eventId:studioEvent,title:d.title,caption:d.caption,date:d.date,time:d.time,channels:ch,status:'Planifié · démo'});closeModal();navigate('publications');toast('Ajouté au calendrier de démonstration');return;}if(form.id==='createEvent'){let capacity=+d.capacity,price=+d.price;if(!d.title||!d.place||!d.date||capacity<1||!Number.isFinite(price)){toast('Vérifie les informations');return}let emojis={'Massage bébé':'🧸','Portage':'🤱','Post-partum':'🌸','Parentalité':'💜','Sommeil':'🌙','Autre':'🌷'};let colors={'Massage bébé':'pink','Portage':'peach','Post-partum':'sage','Parentalité':'blue','Sommeil':'blue','Autre':'pink'};let e={id:uid(),title:d.title.trim(),category:d.category,date:d.date,time:d.time,duration:d.duration||'1h30',place:d.place.trim(),capacity,price,emoji:emojis[d.category],color:colors[d.category],description:d.description||'Un temps de rencontre convivial pour les familles.'};state.events.push(e);addlog('calendar',`Nouvel atelier publié : ${e.title}`);commEvent=e.id;closeModal();navigate('ateliers');toast('Ton atelier est publié dans la démo 🌸')}else if(form.id==='createOffer'){state.offers.push({id:uid(),title:d.title,price:+d.price,description:d.description,emoji:'💗'});addlog('heart',`Accompagnement ajouté : ${d.title}`);closeModal();render();toast('Accompagnement ajouté')}else if(form.id==='createLead'){state.leads.push({id:uid(),name:d.name,email:d.email,offerId:d.offerId,status:'Nouveau',note:d.note||''});addlog('users',`Nouvelle demande : ${d.name}`);closeModal();render();toast('Demande ajoutée')}else if(form.id==='createFamily'){let email=d.email.toLowerCase().trim();if(state.family.some(f=>f.email===email)){toast('Cette adresse existe déjà dans les contacts');return}state.family.push({id:uid(),name:d.name.trim(),email,interest:d.interest,source:'Ajout manuel',newsletter:!!d.newsletter});addlog('users',`Contact ajouté : ${d.name}`);closeModal();render();toast('Famille ajoutée')}else if(form.id==='bookEvent'){let e=eventBy(d.eventId);if(!e)return;let email=d.email.toLowerCase().trim();if(state.signups.some(s=>s.eventId===e.id&&s.email===email)){toast('Cette adresse est déjà inscrite à cet atelier');return}let waiting=spots(e)===0;let status=waiting?'waitlist':'confirmed';state.signups.push({id:uid(),eventId:e.id,name:d.name.trim(),email,newsletter:!!d.newsletter,attended:null,status,source:'Kidigital'});let existing=state.family.find(f=>f.email===email);if(existing){if(d.newsletter)existing.newsletter=true;existing.interest=e.category}else state.family.push({id:uid(),name:d.name.trim(),email,newsletter:!!d.newsletter,source:'Kidigital',interest:e.category});addlog('users',`${d.name.trim()} : ${waiting?'liste d’attente':'inscription confirmée'} à « ${e.title} »`);if(!waiting&&state.settings.confirmation)addlog('mail',`Email de confirmation préparé pour ${d.name.trim()} (démo)`);if(d.newsletter)addlog('heart',`${d.name.trim()} a accepté la newsletter`);render();thankYou(e,waiting)}else if(form.id==='newsletterForm'){addlog('mail',`Newsletter « ${d.subject} » simulée pour ${subscribers()} abonnée(s)`);state.emailCount++;closeModal();render();toast('Simulation de newsletter enregistrée, aucun email envoyé 💌')}
 }
-document.addEventListener('click',e=>{const t=e.target.closest('[data-action],[data-nav],[data-mode],[data-tab],[data-comm],[data-filter]');if(t){if(t.dataset.action){act(t.dataset.action,t.dataset.id)}else if(t.dataset.nav){if(t.dataset.nav==='more')more();else if(t.dataset.nav==='parent')setMode('parent');else{mode='pro';closeModal();navigate(t.dataset.nav)}}else if(t.dataset.mode){closeModal();setMode(t.dataset.mode)}else if(t.dataset.tab){eventTab=t.dataset.tab;render()}else if(t.dataset.comm){editorDraft=document.getElementById('marketingEditor')?.value||editorDraft;commChannel=t.dataset.comm;editorDraft=marketingText(eventBy(commEvent),commChannel);render()}else if(t.dataset.filter){parentFilter=t.dataset.filter;render()}return}if(e.target.matches('[data-overlay]'))closeModal()});
+document.addEventListener('click',e=>{const t=e.target.closest('[data-action],[data-nav],[data-mode],[data-tab],[data-comm],[data-filter]');if(t){if(t.dataset.action){act(t.dataset.action,t.dataset.id)}else if(t.dataset.nav){if(t.dataset.nav==='more')more();else if(t.dataset.nav==='parent')setMode('parent');else{mode='pro';closeModal();navigate(t.dataset.nav)}}else if(t.dataset.mode){closeModal();setMode(t.dataset.mode)}else if(t.dataset.tab){eventTab=t.dataset.tab;render()}else if(t.dataset.comm){editorDraft=document.getElementById('marketingEditor')?.value||editorDraft;commChannel=t.dataset.comm;editorDraft=v8Marketing(eventBy(commEvent),commChannel);render()}else if(t.dataset.filter){parentFilter=t.dataset.filter;render()}return}if(e.target.matches('[data-overlay]'))closeModal()});
 document.addEventListener('submit',e=>{if(e.target.matches('form')){e.preventDefault();handleForm(e.target)}});
-document.addEventListener('change',e=>{if(e.target.matches('[data-setting]')){state.settings[e.target.dataset.setting]=e.target.checked;addlog('zap',`${e.target.checked?'Activée':'Désactivée'} : ${automationDefs.find(x=>x[0]===e.target.dataset.setting)[2]}`);render();toast('Préférence enregistrée')}else if(e.target.id==='commEvent'){editorDraft='';commEvent=e.target.value;editorDraft=marketingText(eventBy(commEvent),commChannel);render()}});
+document.addEventListener('change',e=>{if(e.target.matches('[data-setting]')){state.settings[e.target.dataset.setting]=e.target.checked;addlog('zap',`${e.target.checked?'Activée':'Désactivée'} : ${automationDefs.find(x=>x[0]===e.target.dataset.setting)[2]}`);render();toast('Préférence enregistrée')}else if(e.target.id==='commEvent'){editorDraft='';commEvent=e.target.value;editorDraft=v8Marketing(eventBy(commEvent),commChannel);render()}});
 document.addEventListener('input',e=>{if(e.target.id==='familySearch'){let pos=e.target.selectionStart;familyQuery=e.target.value;render();let n=document.getElementById('familySearch');n?.focus();n?.setSelectionRange(pos,pos)}else if(e.target.id==='parentSearch'){let pos=e.target.selectionStart;parentSearch=e.target.value;render();let n=document.getElementById('parentSearch');n?.focus();n?.setSelectionRange(pos,pos)}else if(e.target.id==='marketingEditor'){editorDraft=e.target.value}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
@@ -423,7 +424,7 @@ const v3Store=()=>{try{localStorage.setItem('kidigital-connect-v3',JSON.stringif
 const v3Event=()=>eventBy(v3.eventId)||state.events[0];
 const v3E=esc;
 const v3Photo=()=>v3.customPhoto||v3Art(v3.scene,v3.mood);
-const v3Caption=()=>{let e=v3Event(),left=spots(e);let beginning=v3.goal==='derniere'?`✨ Dernières places pour « ${e.title} » !`:v3.goal==='places'?`🌷 Il reste ${left} place${left>1?'s':''} pour notre atelier « ${e.title} » !`:v3.goal==='accompagnement'?'🤍 Un espace rien que pour vous et votre bébé.':v3.goal==='avis'?'💌 Vos mots sont précieux, merci pour votre confiance !':`🌸 Un nouveau rendez-vous à partager : ${e.title}.`;let mood=v3.tone==='professionnel'?'Un temps de qualité pour vous accompagner avec douceur et compétence.':v3.tone==='dynamique'?'Un moment à ne pas manquer avec votre tout-petit !':'Un joli moment pour prendre soin de votre lien et avancer à votre rythme.';return `${beginning}\n\n${mood}\n\n📅 ${shortDate(e.date)} à ${e.time}\n📍 ${e.place}\n💗 ${money(e.price)} par duo parent-enfant\n\n✨ Réservez votre place : lien dans ma bio ou contactez-moi en message privé.\n\n#atelierbebe #parentalite #perinatalite #${e.place.toLowerCase().replace(/[^a-zàâéèêëîïôùûüç]/gi,'').slice(0,14)}`};
+const v3Caption=()=>{let e=v3Event(),left=spots(e);let beginning=v3.goal==='derniere'?`✨ Dernières places pour « ${e.title} » !`:v3.goal==='places'?`🌷 Il reste ${left} place${left>1?'s':''} pour notre atelier « ${e.title} » !`:v3.goal==='accompagnement'?'🤍 Un espace rien que pour vous et votre bébé.':v3.goal==='avis'?'💌 Vos mots sont précieux, merci pour votre confiance !':`🌸 Un nouveau rendez-vous à partager : ${e.title}.`;let mood=v3.tone==='professionnel'?'Un temps de qualité pour vous accompagner avec douceur et compétence.':v3.tone==='dynamique'?'Un moment à ne pas manquer avec votre tout-petit !':'Un joli moment pour prendre soin de votre lien et avancer à votre rythme.';return `${beginning}\n\n${mood}\n\n${v8Benefits(e)}\n\n📅 ${shortDate(e.date)} à ${e.time}\n📍 ${e.place}\n💗 ${money(e.price)} par duo parent-enfant\n\n✨ Réservez votre place : lien dans ma bio ou contactez-moi en message privé.\n\n#atelierbebe #parentalite #perinatalite #${e.place.toLowerCase().replace(/[^a-zàâéèêëîïôùûüç]/gi,'').slice(0,14)}`};
 function v3LayersForGoal(){let e=v3Event(),badge=v3.goal==='lancement'?'NOUVEL ATELIER':v3.goal==='derniere'?'DERNIÈRES PLACES':v3.goal==='accompagnement'?'SUR RENDEZ-VOUS':v3.goal==='avis'?'MERCI POUR VOTRE CONFIANCE':`${spots(e)} PLACE${spots(e)===1?'':'S'} DISPONIBLE${spots(e)===1?'':'S'}`;
   let title=v3.goal==='accompagnement'?'Accompagnement post-partum':v3.goal==='avis'?'Vos doux retours':e.title;
   return [{id:'title',kind:'text',text:title,x:50,y:68,size:53,color:'#ffffff',weight:850,width:87,align:'center',font:'rounded'},
@@ -459,7 +460,7 @@ function v3LayerDom(l){let family=l.font==='editorial'?"Georgia,serif":l.font===
 function v3EditorPanel(){let l=v3Layer();if(!l)return `<div class="v3-empty">Clique sur un texte du visuel pour le modifier. Ou ajoute-en un nouveau.</div>`;return `<div class="between"><h3>Personnaliser l'élément</h3><span class="tag">${l.kind==='pill'?'Étiquette':'Texte'}</span></div><div class="v3-field"><label>Texte</label><textarea id="v3LayerText" class="v3-textfield" rows="3">${v3E(l.text)}</textarea></div><div class="v3-proprow"><div class="v3-field"><label>Typographie</label><select class="v3-select" id="v3Font"><option value="rounded" ${l.font==='rounded'?'selected':''}>Douce</option><option value="modern" ${l.font==='modern'?'selected':''}>Moderne</option><option value="editorial" ${l.font==='editorial'?'selected':''}>Éditoriale</option></select></div><div class="v3-field"><label>Alignement</label><select class="v3-select" id="v3Align"><option value="left" ${l.align==='left'?'selected':''}>Gauche</option><option value="center" ${l.align==='center'?'selected':''}>Centré</option><option value="right" ${l.align==='right'?'selected':''}>Droite</option></select></div></div><div class="v3-field"><label>Taille du texte · <b id="v3SizeLabel">${l.size}px</b></label><input class="v3-range" id="v3Size" type="range" min="11" max="92" value="${l.size}"/></div><div class="v3-proprow"><div class="v3-field"><label>Couleur du texte</label><input type="color" id="v3Color" value="${l.color}"></div><div class="v3-field"><label>Largeur du bloc</label><input class="v3-range" id="v3Width" type="range" min="25" max="95" value="${l.width||85}" ${l.kind==='pill'?'disabled':''}></div></div>${l.kind==='pill'?`<div class="v3-field"><label>Couleur de l'étiquette</label><input type="color" id="v3Pill" value="${l.pill||'#8060b0'}"></div>`:''}<div class="v3-proprow"><div class="v3-field"><label>Position horizontale</label><input class="v3-range" id="v3X" type="range" min="5" max="95" value="${Math.round(l.x)}"/></div><div class="v3-field"><label>Position verticale</label><input class="v3-range" id="v3Y" type="range" min="4" max="96" value="${Math.round(l.y)}"/></div></div><div class="v3-proprow"><button class="btn secondary small" data-v3="duplicate">${ic('plus','s')} Dupliquer</button><button class="btn secondary small" data-v3="delete">${ic('trash','s')} Supprimer</button></div><div class="v3-guide">💡 Tu peux aussi déplacer cet élément directement sur le visuel avec ton doigt ou ta souris.</div>`}
 function v3LegendPanel(){return `<h3>Assistant de légende ✨</h3><div class="v3-field"><label>Ton de la communication</label><select class="v3-select" id="v3Tone">${[['chaleureux','Chaleureux et doux'],['professionnel','Professionnel'],['dynamique','Dynamique']].map(([k,l])=>`<option value="${k}" ${k===v3.tone?'selected':''}>${l}</option>`).join('')}</select></div><div class="v3-field"><label>Légende Instagram / Facebook</label><textarea id="v3Caption" class="v3-caption">${v3E(v3.caption)}</textarea></div><div class="v3-proprow"><button class="btn secondary small" data-v3="regen-caption">✨ Réécrire</button><button class="btn secondary small" data-v3="copy-caption">📋 Copier</button></div><div class="v3-guide">Les propositions sont des modèles de texte locaux. Vérifie le tarif, la date et la disponibilité avant de publier.</div>`}
 function v3Studio(){let e=v3Event();if(!e)return pagehead('Studio IA','Mon studio créatif','Crée d’abord un atelier.',`<button class="btn" data-action="create-event">Créer un atelier</button>`);
- return `${pagehead('Communication intelligente','Studio créatif IA · V3','Génère un visuel, personnalise-le, puis prépare sa publication.',`<button class="btn secondary" data-nav="publications">${ic('calendar','s')} Voir mon calendrier</button>`)}
+ return `${pagehead('Communication intelligente','Mon studio créatif','Génère un visuel, personnalise-le, puis prépare sa publication.',`<button class="btn secondary" data-nav="publications">${ic('calendar','s')} Voir mon calendrier</button>`)}
  <div class="v3-intro"><div><div class="eyebrow">LA NOUVELLE EXPÉRIENCE KIDIGITAL</div><h2>Un visuel canon, un atelier qui rayonne. 🌷</h2><p>Choisis ton atelier et laisse-toi guider. Des illustrations de démonstration aux publications prêtes à programmer, tout le parcours est réuni ici.</p></div><span class="v3-badge">✨ STUDIO V3 · INTERACTIF</span></div>
  <div class="v3-toolbar"><div class="v3-row"><div><label>Je communique sur</label><select class="v3-select" id="v3Event">${state.events.map(x=>`<option value="${x.id}" ${v3.eventId===x.id?'selected':''}>${v3E(x.title)}</option>`).join('')}</select></div><div><label>Objectif</label><select class="v3-select" id="v3Goal">${v3Goals.map(([k,l])=>`<option value="${k}" ${v3.goal===k?'selected':''}>${l}</option>`).join('')}</select></div></div><div class="v3-row"><button class="btn secondary small" data-v3="undo" title="Annuler">↶</button><button class="btn secondary small" data-v3="redo" title="Refaire">↷</button><button class="btn secondary small" data-v3="save">${ic('check','s')} Enregistrer</button><button class="btn small" data-v3="download">${ic('download','s')} PNG</button><button class="btn peach small" data-v3="schedule">${ic('calendar','s')} Programmer</button></div></div>
  <div class="v3-workspace">
@@ -685,7 +686,7 @@ function v7ThemeApply(){
  root.style.setProperty('--purple',palette.main);root.style.setProperty('--purple-dark',palette.dark);root.style.setProperty('--purple-wash',palette.soft);
  const old=document.getElementById('v7ThemeStyle');if(old)old.remove();
 }
-nav.splice(nav.findIndex(x=>x[0]==='medias')+1,0,['phototheque','image','Photothèque Kidigital']);
+nav.splice(nav.findIndex(x=>x[0]==='medias')+1,0,['phototheque','image','Photothèque Naïtéa']);
 nav.splice(nav.findIndex(x=>x[0]==='publications')+1,0,['agenda-visuel','calendar','Agenda & flyers']);
 nav.splice(nav.findIndex(x=>x[0]==='marque')+1,0,['profil','users','Mon profil public']);
 nav.push(['entraide','message','Communauté pro']);
@@ -694,7 +695,7 @@ const v7Demos=[{id:'stock-1',name:'Parent & bébé · Cocon',data:v7Art('cocon',
 let v7MediaTab='kidigital',v7Category='Toutes',v7AgendaFormat='post',v7AgendaMonth=(upcoming()[0]?.date||daysFromNow(0)).slice(0,7),v7AgendaTitle='Les rendez-vous du mois',v7AgendaNote='Des moments doux à partager ensemble',v7AgendaStyle='rose',v7CommunityFilter='Tous';
 function v7MediaList(){return [...v7Demos,...state.v7Stock]}
 function v7MediaCard(m,shared){return `<div class="card v7-media-card"><img src="${esc(m.data)}" alt="${esc(m.name)}"><div class="v7-media-pad"><strong>${esc(m.name)}</strong><p class="fine">${esc(m.category||'Photos')} · ${esc(m.license||'Droits à vérifier')}</p><div class="v7-actions"><button class="btn secondary tiny" data-v7="use-stock" data-id="${esc(m.id)}">Utiliser dans le studio</button>${shared?`<button class="btn secondary tiny" data-v7="remove-stock" data-id="${esc(m.id)}">Retirer</button>`:''}</div></div></div>`}
-function v7Phototheque(){let list=v7MediaList().filter(m=>v7Category==='Toutes'||m.category===v7Category);return `${pagehead('Ressources visuelles','Photothèque Kidigital 🌷','Une sélection mise à disposition par Kidigital, distincte des photos privées des accompagnantes.',`<button class="btn secondary" data-nav="medias">Voir mes photos personnelles</button>`)}<div class="v7-panel card"><h3>Ajouter des visuels à la photothèque (mode administratrice · démo)</h3><p class="subtitle">Dépose uniquement des images pour lesquelles tu as le droit de les redistribuer aux utilisatrices. Cette démo partage les photos dans ton navigateur seulement, pas entre plusieurs comptes.</p><div class="v7-form-row"><label class="btn">+ Ajouter des photos<input id="v7StockUpload" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label><div class="field"><label>Catégorie des nouveaux visuels</label><select id="v7StockCategory">${['Maman & bébé','Portage','Ateliers','Allaitement','Grossesse','Post-partum','Autre'].map(c=>`<option>${c}</option>`).join('')}</select></div><div class="field"><label>Licence / autorisation</label><select id="v7StockLicense"><option>Création personnelle · redistribution autorisée</option><option>Licence commerciale avec redistribution autorisée</option><option>Autorisation écrite du titulaire des droits</option></select></div></div></div><div class="pilltabs" style="margin:20px 0">${['Toutes','Maman & bébé','Portage','Ateliers','Allaitement','Grossesse','Post-partum','Autre'].map(c=>`<button data-v7="category" data-val="${c}" class="${v7Category===c?'active':''}">${c}</button>`).join('')}</div><div class="v7-media-grid">${list.map(m=>v7MediaCard(m,!m.id.startsWith('stock-'))).join('')||'<p>Aucune image dans cette catégorie.</p>'}</div><div class="notify" style="margin-top:18px">${ic('info')}<div>En production : stockage cloud commun administré par Kidigital, licences vérifiées, attribution si requise, suppression et recherche par mots-clés. Les photos personnelles restent privées par défaut.</div></div>`}
+function v7Phototheque(){let list=v7MediaList().filter(m=>v7Category==='Toutes'||m.category===v7Category);return `${pagehead('Ressources visuelles','Photothèque Naïtéa 🌷','Une sélection mise à disposition par Kidigital, distincte des photos privées des accompagnantes.',`<button class="btn secondary" data-nav="medias">Voir mes photos personnelles</button>`)}<div class="v7-panel card"><h3>Ajouter des visuels à la photothèque (mode administratrice · démo)</h3><p class="subtitle">Dépose uniquement des images pour lesquelles tu as le droit de les redistribuer aux utilisatrices. Cette démo partage les photos dans ton navigateur seulement, pas entre plusieurs comptes.</p><div class="v7-form-row"><label class="btn">+ Ajouter des photos<input id="v7StockUpload" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden></label><div class="field"><label>Catégorie des nouveaux visuels</label><select id="v7StockCategory">${['Maman & bébé','Portage','Ateliers','Allaitement','Grossesse','Post-partum','Autre'].map(c=>`<option>${c}</option>`).join('')}</select></div><div class="field"><label>Licence / autorisation</label><select id="v7StockLicense"><option>Création personnelle · redistribution autorisée</option><option>Licence commerciale avec redistribution autorisée</option><option>Autorisation écrite du titulaire des droits</option></select></div></div></div><div class="pilltabs" style="margin:20px 0">${['Toutes','Maman & bébé','Portage','Ateliers','Allaitement','Grossesse','Post-partum','Autre'].map(c=>`<button data-v7="category" data-val="${c}" class="${v7Category===c?'active':''}">${c}</button>`).join('')}</div><div class="v7-media-grid">${list.map(m=>v7MediaCard(m,!m.id.startsWith('stock-'))).join('')||'<p>Aucune image dans cette catégorie.</p>'}</div><div class="notify" style="margin-top:18px">${ic('info')}<div>En production : stockage cloud commun administré par Kidigital, licences vérifiées, attribution si requise, suppression et recherche par mots-clés. Les photos personnelles restent privées par défaut.</div></div>`}
 function v7MonthEvents(){return state.events.filter(e=>e.date?.slice(0,7)===v7AgendaMonth).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time))}
 function v7MonthName(){return new Intl.DateTimeFormat('fr-FR',{month:'long',year:'numeric'}).format(new Date(v7AgendaMonth+'-02T12:00:00'))}
 function v7Agenda(){let ev=v7MonthEvents();return `${pagehead('Studio créatif','Agenda du mois & flyers 🗓️','Transforme tes ateliers en une publication ou un flyer A4, avec les dates reprises automatiquement.',`<button class="btn secondary" data-nav="ateliers">Gérer mes ateliers</button>`)}<div class="v7-agenda-layout"><div class="card"><h3>Personnaliser mon agenda</h3><div class="field"><label>Mois</label><input id="v7Month" type="month" value="${esc(v7AgendaMonth)}"></div><div class="field"><label>Titre du visuel</label><input id="v7AgendaTitle" value="${esc(v7AgendaTitle)}"></div><div class="field"><label>Petite phrase</label><textarea id="v7AgendaNote" rows="2">${esc(v7AgendaNote)}</textarea></div><div class="field"><label>Format</label><div class="v7-choices">${[['post','Post Instagram'],['story','Story'],['flyer','Flyer A4']].map(([k,l])=>`<button class="${v7AgendaFormat===k?'chosen':''}" data-v7="agenda-format" data-val="${k}">${l}</button>`).join('')}</div></div><div class="field"><label>Ambiance</label><div class="v7-choices">${[['rose','Vieux rose'],['sauge','Sauge'],['prune','Prune']].map(([k,l])=>`<button class="${v7AgendaStyle===k?'chosen':''}" data-v7="agenda-style" data-val="${k}">${l}</button>`).join('')}</div></div><p class="fine">${ev.length} atelier${ev.length>1?'s':''} trouvé${ev.length>1?'s':''} en ${v7MonthName()}. ${ev.length>8?'Le visuel affiche les 8 premiers.':''}</p><button class="btn full" data-v7="download-agenda">${ic('download','s')} Télécharger ${v7AgendaFormat==='flyer'?'le flyer PNG A4':'le visuel PNG'}</button><button class="btn secondary full" style="margin-top:9px" data-v7="agenda-caption">Préparer la légende de l’agenda</button></div><div class="card v7-preview-wrap"><div class="eyebrow">APERÇU EN DIRECT</div><canvas id="v7AgendaCanvas" width="700" height="700" aria-label="Aperçu de l’agenda du mois"></canvas><p class="fine">Les publications et flyers sont générés localement. Aucun envoi automatique vers Instagram ou Facebook.</p></div></div>`}
@@ -710,9 +711,9 @@ function v7EventLinks(e){showModal('Site & avis · '+esc(e.title),'Ajoute des li
 const v7OldParent=parent;
 parent=function(){let h=v7OldParent();for(let e of state.events){let url=v7ValidUrl(e.website||state.profile.website),g=v7ValidUrl(e.google||state.profile.google);let needle=`<button class="btn" data-action="book" data-id="${e.id}"`;let buttons=`<div class="v7-parent-links">${url?`<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">En savoir plus sur l’atelier ↗</a>`:''}${g?`<a href="${esc(g)}" target="_blank" rel="noopener noreferrer">Avis Google ↗</a>`:''}</div>`;let i=h.indexOf(needle);if(i>=0)h=h.slice(0,i)+buttons+h.slice(i)}let end=h.lastIndexOf('</section>');return end>=0?h.slice(0,end)+v7ParentExtra()+h.slice(end):h+v7ParentExtra()};
 const v7OldRender=render;
-render=function(){v7ThemeApply();if(mode==='pro'&&['phototheque','agenda-visuel','profil','entraide'].includes(page)){renderChrome();document.getElementById('app').innerHTML=({phototheque:v7Phototheque,'agenda-visuel':v7Agenda,profil:v7Profile,entraide:v7Community}[page])();if(page==='agenda-visuel')v7DrawAgenda();return}v7OldRender();if(mode==='pro'&&page==='medias'){let h=document.querySelector('#app .headrow');if(h)h.insertAdjacentHTML('afterend',`<div class="notify" style="margin-bottom:18px">${ic('image')}<div>Besoin d’images prêtes à l’emploi ? <button class="btn secondary tiny" data-nav="phototheque">Découvrir la photothèque Kidigital</button></div></div>`)}if(mode==='pro'&&page==='studioia'){let panel=document.querySelector('.v3-panel');if(panel){let grid=v7MediaList().slice(0,12).map(m=>`<button type="button" class="v7-stock-btn" data-v7="use-stock" data-id="${esc(m.id)}" title="${esc(m.name)}"><img src="${esc(m.data)}" alt="${esc(m.name)}"></button>`).join('');panel.insertAdjacentHTML('beforeend',`<div class="v7-studio-library"><h4>Photothèque Kidigital</h4><p class="fine">Choisis une illustration partagée pour ton visuel.</p><div class="v7-studio-grid">${grid}</div><button class="btn secondary small full" data-nav="phototheque">Ouvrir la photothèque</button></div>`)}}if(mode==='pro'&&page==='marque'){let header=document.querySelector('#app .headrow');if(header)header.insertAdjacentHTML('afterend',`<div class="v7-theme-switch card"><div><strong>🎨 Tester l’interface en vieux rose</strong><p class="fine">Deux thèmes de démonstration. Les couleurs de ta marque restent indépendantes.</p></div><div class="v7-choices"><button data-v7="theme" data-val="rose" class="${state.v7Theme==='rose'?'chosen':''}"><i style="background:#b18791"></i> Vieux rose</button><button data-v7="theme" data-val="violet" class="${state.v7Theme==='violet'?'chosen':''}"><i style="background:#7964c3"></i> Lavande</button></div></div>`)}}
+render=function(){v7ThemeApply();if(mode==='pro'&&['phototheque','agenda-visuel','profil','entraide'].includes(page)){renderChrome();document.getElementById('app').innerHTML=({phototheque:v7Phototheque,'agenda-visuel':v7Agenda,profil:v7Profile,entraide:v7Community}[page])();if(page==='agenda-visuel')v7DrawAgenda();return}v7OldRender();if(mode==='pro'&&page==='medias'){let h=document.querySelector('#app .headrow');if(h)h.insertAdjacentHTML('afterend',`<div class="notify" style="margin-bottom:18px">${ic('image')}<div>Besoin d’images prêtes à l’emploi ? <button class="btn secondary tiny" data-nav="phototheque">Découvrir la photothèque Kidigital</button></div></div>`)}if(mode==='pro'&&page==='studioia'){let panel=document.querySelector('.v3-panel');if(panel){let grid=v7MediaList().slice(0,12).map(m=>`<button type="button" class="v7-stock-btn" data-v7="use-stock" data-id="${esc(m.id)}" title="${esc(m.name)}"><img src="${esc(m.data)}" alt="${esc(m.name)}"></button>`).join('');panel.insertAdjacentHTML('beforeend',`<div class="v7-studio-library"><h4>Photothèque Naïtéa</h4><p class="fine">Choisis une illustration partagée pour ton visuel.</p><div class="v7-studio-grid">${grid}</div><button class="btn secondary small full" data-nav="phototheque">Ouvrir la photothèque</button></div>`)}}if(mode==='pro'&&page==='marque'){let header=document.querySelector('#app .headrow');if(header)header.insertAdjacentHTML('afterend',`<div class="v7-theme-switch card"><div><strong>🎨 Tester l’interface en vieux rose</strong><p class="fine">Deux thèmes de démonstration. Les couleurs de ta marque restent indépendantes.</p></div><div class="v7-choices"><button data-v7="theme" data-val="rose" class="${state.v7Theme==='rose'?'chosen':''}"><i style="background:#b18791"></i> Vieux rose</button><button data-v7="theme" data-val="violet" class="${state.v7Theme==='violet'?'chosen':''}"><i style="background:#7964c3"></i> Lavande</button></div></div>`)}}
 const v7OldV3Media=v3MediaPanel;
-v3MediaPanel=function(){return v7OldV3Media()+`<div class="v7-studio-library"><h4>Photothèque Kidigital</h4><div class="v7-studio-grid">${v7MediaList().map(m=>`<button class="v7-stock-btn" data-v7="use-stock" data-id="${esc(m.id)}" title="${esc(m.name)}"><img src="${esc(m.data)}"></button>`).join('')}</div></div>`};
+v3MediaPanel=function(){return v7OldV3Media()+`<div class="v7-studio-library"><h4>Photothèque Naïtéa</h4><div class="v7-studio-grid">${v7MediaList().map(m=>`<button class="v7-stock-btn" data-v7="use-stock" data-id="${esc(m.id)}" title="${esc(m.name)}"><img src="${esc(m.data)}"></button>`).join('')}</div></div>`};
 function v7AgendaCaption(){let ev=v7MonthEvents();let txt=`🌷 L’agenda de ${v7MonthName()} est arrivé !\n\n${ev.map(e=>`📅 ${shortDate(e.date)} · ${e.title} à ${e.time} (${e.place})`).join('\n')||'Les prochaines dates arrivent bientôt.'}\n\n✨ ${v7AgendaNote}\n\n👉 Pour réserver votre place, contactez-moi ou consultez mon site : ${state.profile.website||'[lien à ajouter]'}\n\n#atelierbebe #parentalite #agenda`;showModal('Légende pour mon agenda','Copie cette légende pour tes réseaux sociaux.',`<textarea id="v7CaptionText" rows="12" style="width:100%">${esc(txt)}</textarea><button class="btn" data-v7="copy-caption">📋 Copier la légende</button>`)}
 async function v7AddStock(files){let category=document.getElementById('v7StockCategory')?.value||'Autre',license=document.getElementById('v7StockLicense')?.value||'Droits à vérifier';for(let file of [...files].slice(0,10)){try{let data=await loadCompressedImage(file,850);state.v7Stock.unshift({id:uid(),name:file.name.replace(/\.[^.]+$/,'').slice(0,65),data,category,license})}catch(e){toast('Image ignorée : '+file.name)}}state.v7Stock=state.v7Stock.slice(0,24);save();render();toast('Images ajoutées à la photothèque de démonstration')}
 const v7OldHandleForm=handleForm;
@@ -721,6 +722,1456 @@ document.addEventListener('click',ev=>{let b=ev.target.closest('[data-v7]');if(!
 document.addEventListener('change',async ev=>{let t=ev.target;if(t.id==='v7StockUpload'){ev.stopImmediatePropagation();await v7AddStock(t.files)}else if(t.id==='v7ProfilePhoto'&&t.files?.[0]){ev.stopImmediatePropagation();try{state.profile.photo=await loadCompressedImage(t.files[0],550);save();toast('Portrait ajouté, enregistre le formulaire pour terminer')}catch(e){toast('Impossible de lire cette photo')}}else if(t.id==='v7Month'){v7AgendaMonth=t.value;render()}},true);
 document.addEventListener('input',ev=>{let t=ev.target;if(t.id==='v7AgendaTitle'){v7AgendaTitle=t.value;v7DrawAgenda()}else if(t.id==='v7AgendaNote'){v7AgendaNote=t.value;v7DrawAgenda()}},true);
 v7ThemeApply();
+
+// Naïtéa V8 — workspace, local booking and portable demonstration links.
+const v8Demo =
+  '<div class="v8-demo" role="note">Démonstration · données fictives, réservations locales, aucun email envoyé ni paiement réel.</div>';
+state.v8 = {
+  notificationsRead: [],
+  appointments: [],
+  availability: [],
+  exceptions: [],
+  emails: [],
+  social: { facebook: "", instagram: "", whatsapp: "" },
+  designs: [],
+  ...state.v8,
+};
+let v8StudioTool = "ia",
+  v8AdvancedOpen = false;
+let v8Tab = "texte",
+  v8ProfileTab = "profil",
+  v8CommunityTab = "entraide",
+  v8CalView = "month",
+  v8CalDate = daysFromNow(0),
+  v8BookingOffer = "",
+  v8BookingDate = daysFromNow(1),
+  v8BookingSlot = "";
+const v8Date = (d) => new Date(d + "T12:00:00");
+const v8ISO = (d) =>
+  d.getFullYear() +
+  "-" +
+  String(d.getMonth() + 1).padStart(2, "0") +
+  "-" +
+  String(d.getDate()).padStart(2, "0");
+const v8Shift = (d, n) => {
+  let x = v8Date(d);
+  x.setDate(x.getDate() + n);
+  return v8ISO(x);
+};
+const v8Name = () =>
+  [state.profile.first, state.profile.last].filter(Boolean).join(" ") ||
+  "Votre accompagnante";
+const v8Field = (label, name, value = "", type = "text", extra = "") =>
+  `<label class="field"><span>${esc(label)}</span><input name="${name}" type="${type}" value="${esc(value)}" ${extra}></label>`;
+const v8Button = (action, label, extra = "", cls = "secondary") =>
+  `<button type="button" class="btn ${cls}" data-v8="${action}" ${extra}>${label}</button>`;
+function v8QueueEmail(to, subject, body) {
+  state.v8.emails.unshift({
+    id: uid(),
+    to,
+    subject,
+    body,
+    date: new Date().toISOString(),
+    status: "Préparé · non envoyé",
+  });
+  state.v8.emails = state.v8.emails.slice(0, 60);
+  save();
+}
+const v8Unread = () =>
+  state.logs.filter((l) => !state.v8.notificationsRead.includes(l.id)).length;
+function v8Notifications() {
+  showModal(
+    "Les dernières nouvelles",
+    "Centre de notifications · activité de démonstration",
+    `<div class="v8-toolbar">${v8Button("read-all", "Tout marquer comme lu")}<span>${v8Unread()} non lue(s)</span></div><div class="v8-news">${state.logs.map((l) => `<article class="${state.v8.notificationsRead.includes(l.id) ? "" : "unread"}"><span class="roundicon">${ic(l.type)}</span><div><strong>${esc(l.text)}</strong><p>${esc(l.date)}</p></div>${v8Button("read-one", state.v8.notificationsRead.includes(l.id) ? "Lu" : "Marquer lu", `data-id="${esc(l.id)}"`, "ghost small")}</article>`).join("") || "<p>Aucune nouvelle pour le moment.</p>"}</div>${v8Demo}`,
+  );
+}
+const v8OldChrome = renderChrome;
+renderChrome = function () {
+  v8OldChrome();
+  document.querySelector(".v8-parent-desktop-brand")?.remove();
+  if (mode === "parent")
+    document
+      .querySelector(".topbar")
+      .insertAdjacentHTML(
+        "afterbegin",
+        '<button type="button" class="brand naitea-brand v8-parent-desktop-brand" data-nav="dashboard" aria-label="Naïtéa — revenir à la vue d’ensemble"><img class="naitea-symbol" src="/assets/naitea-symbol.svg" width="48" height="40" alt=""><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></button>',
+      );
+  document.querySelectorAll(".naitea-brand").forEach((el) => {
+    let b = document.createElement("button");
+    b.type = "button";
+    b.className = el.className;
+    b.innerHTML = el.innerHTML;
+    b.dataset.nav = "dashboard";
+    b.setAttribute("aria-label", "Naïtéa — revenir à la vue d’ensemble");
+    el.replaceWith(b);
+  });
+  document
+    .querySelectorAll('[data-v8="notifications"]')
+    .forEach((n) => n.remove());
+  if (mode === "pro") {
+    for (let selector of [".topbar-right", "#mobilehead"]) {
+      let host = document.querySelector(selector);
+      host?.insertAdjacentHTML(
+        "afterbegin",
+        `<button class="v8-bell" data-v8="notifications" aria-label="Notifications, ${v8Unread()} non lues">${ic("bell")}<span>${v8Unread()}</span></button>`,
+      );
+    }
+  }
+};
+const v8Nav = [
+  ["dashboard", "home", "Vue d’ensemble"],
+  ["ateliers", "calendar", "Mes ateliers"],
+  ["offers", "heart", "Accompagnements"],
+  ["rendezvous", "clock", "Rendez-vous"],
+  ["familles", "users", "Mes familles"],
+  ["communication", "megaphone", "Communication"],
+  ["personnaliser", "settings", "Personnaliser mon profil"],
+  ["automations", "zap", "Mes automatisations"],
+  ["communaute", "message", "Communauté"],
+];
+naiteaNavigation = function () {
+  return `<nav aria-label="Navigation professionnelle"><div class="navtitle">MON ESPACE NAÏTÉA</div><div class="nav">${v8Nav.map(([id, i, t]) => `<button class="navbtn ${page === id || (id === "communication" && ["studioia", "retouche", "studio", "phototheque", "medias", "publications", "agenda-visuel"].includes(page)) || (id === "personnaliser" && ["profil", "marque", "reseaux", "importsite"].includes(page)) ? "active" : ""}" data-nav="${id}">${ic(i)}<span>${t}</span></button>`).join("")}</div></nav>`;
+};
+more = function () {
+  showModal(
+    "Mon espace Naïtéa",
+    "Toutes les rubriques",
+    `<div class="nav">${v8Nav.map(([id, i, t]) => `<button class="navbtn" data-nav="${id}">${ic(i)}<span>${t}</span></button>`).join("")}<a class="navbtn" href="/connexion.html">Connexion / Mon compte</a></div>`,
+  );
+};
+// Portable links contain only public workshop fields, never participant records.
+function v8Pack(e) {
+  const fields = [
+    "id",
+    "title",
+    "category",
+    "date",
+    "time",
+    "duration",
+    "place",
+    "capacity",
+    "price",
+    "description",
+    "emoji",
+    "color",
+  ];
+  let out = {};
+  for (let k of fields) out[k] = e[k];
+  if (e.cover?.startsWith("/assets/")) out.cover = e.cover;
+  return btoa(
+    String.fromCharCode(...new TextEncoder().encode(JSON.stringify(out))),
+  )
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
+}
+function v8SharedURL(e, embed = false) {
+  let u = new URL("/", location.origin);
+  u.searchParams.set(embed ? "embed" : "atelier", e.id);
+  u.searchParams.set("event", v8Pack(e));
+  return u.href;
+}
+v5EventURL = (e) => v8SharedURL(e);
+v5EmbedURL = (e) => v8SharedURL(e, true);
+function v8LoadShared() {
+  const q = new URLSearchParams(location.search),
+    packed = q.get("event");
+  let id = q.get("atelier") || q.get("embed");
+  if (!id && location.hash.startsWith("#atelier=")) {
+    try {
+      id = decodeURIComponent(location.hash.slice(8));
+    } catch {}
+  }
+  if (!id) return;
+  let error = "";
+  if (packed) {
+    try {
+      if (packed.length > 16000) throw Error();
+      let bytes = Uint8Array.from(
+        atob(packed.replaceAll("-", "+").replaceAll("_", "/")),
+        (c) => c.charCodeAt(0),
+      );
+      let e = JSON.parse(new TextDecoder().decode(bytes));
+      if (
+        e.id !== id ||
+        typeof e.title !== "string" ||
+        e.title.length > 160 ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(e.date) ||
+        !/^([01]\d|2[0-3]):[0-5]\d$/.test(e.time) ||
+        Number.isNaN(v8Date(e.date).getTime()) ||
+        v8ISO(v8Date(e.date)) !== e.date ||
+        !Number.isInteger(e.capacity) ||
+        e.capacity < 1 ||
+        e.capacity > 100 ||
+        !Number.isFinite(e.price) ||
+        e.price < 0
+      )
+        throw Error();
+      let clean = {
+        id: e.id,
+        title: e.title,
+        category: String(e.category || "Atelier").slice(0, 80),
+        date: e.date,
+        time: e.time,
+        duration: String(e.duration || ""),
+        place: String(e.place || "").slice(0, 180),
+        capacity: e.capacity,
+        price: e.price,
+        description: String(e.description || "").slice(0, 3000),
+        emoji: "🌷",
+        color: "pink",
+      };
+      if (
+        typeof e.cover === "string" &&
+        /^\/assets\/photos\/[\w-]+\.jpg$/.test(e.cover)
+      )
+        clean.cover = e.cover;
+      let old = state.events.findIndex((x) => x.id === id);
+      if (old >= 0) state.events[old] = clean;
+      else state.events.push(clean);
+    } catch {
+      error =
+        "Ce lien est incomplet ou invalide. Demandez un nouveau lien à votre accompagnante.";
+    }
+  }
+  return { id, embed: q.has("embed"), error };
+}
+let v8Shared = v8LoadShared();
+v5Share = function (e) {
+  const link = v5EventURL(e),
+    embed = v5EmbedURL(e);
+  const code = `<iframe src="${embed.replaceAll("&", "&amp;")}" title="Réserver un atelier Naïtéa" width="100%" height="900" style="border:0;border-radius:18px" loading="lazy"></iframe>`;
+  showModal(
+    "Partager cet atelier",
+    "Lien autonome et intégration pour la démonstration",
+    `<label class="field"><span>Lien public de démonstration</span><input id="v5ShareLink" value="${esc(link)}" readonly></label><button class="btn secondary" data-v5-copy="link">Copier le lien</button><a class="btn secondary" target="_blank" rel="noopener" href="${esc(link)}">Tester le lien</a><label class="field"><span>Code iframe pour votre site</span><textarea id="v5EmbedCode" rows="5" readonly>${esc(code)}</textarea></label><button class="btn secondary" data-v5-copy="embed">Copier l’iframe</button><p class="v8-demo">Ce lien transporte les informations publiques de l’atelier au moment du partage. Les modifications ultérieures nécessitent un nouveau lien. Les inscriptions et places ne sont pas synchronisées entre appareils. Les photos importées restent sur cet appareil ; les photos de la photothèque sont partageables.</p>`,
+  );
+};
+function v8SharedPage() {
+  let e = eventBy(v8Shared.id);
+  if (v8Shared.error || !e)
+    return `<div class="card empty"><h1>Atelier indisponible</h1><p>${esc(v8Shared.error || "Ce lien ne contient pas les informations de cet atelier. Demandez un nouveau lien de partage.")}</p><a href="/" class="btn">Découvrir Naïtéa</a></div>`;
+  return `<div class="v8-public-event">${v8Demo}<img src="${esc(e.cover || "/assets/photos/family-3.jpg")}" alt="Photo illustrative, famille de démonstration"><div class="card"><span class="tag">${esc(e.category)}</span><h1>${esc(e.title)}</h1><p>${esc(e.description)}</p><div class="v8-toolbar"><span>${fmtDate(e.date)} · ${esc(e.time)}</span><span>${esc(e.duration)}</span></div><p>${esc(e.place)}</p><p><strong>${money(e.price)} / duo</strong> · ${spots(e)} place(s) dans cette démo</p><button class="btn" data-action="book" data-id="${esc(e.id)}">${spots(e) ? "Réserver une place" : "Rejoindre la liste d’attente"}</button></div></div>`;
+}
+// Calendar: shared view of workshops and individual appointments.
+function v8Calendar() {
+  let d = v8Date(v8CalDate),
+    start,
+    end,
+    cells = [];
+  if (v8CalView === "month") {
+    start = new Date(d.getFullYear(), d.getMonth(), 1, 12);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    end = new Date(start);
+    end.setDate(end.getDate() + 42);
+  } else if (v8CalView === "week") {
+    start = v8Date(v8CalDate);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+    end = new Date(start);
+    end.setDate(end.getDate() + 7);
+  } else {
+    start = v8Date(v8CalDate);
+    end = new Date(start);
+    end.setDate(end.getDate() + 1);
+  }
+  for (let x = new Date(start); x < end; x.setDate(x.getDate() + 1)) {
+    let date = v8ISO(x),
+      items = [
+        ...state.events
+          .filter((e) => e.date === date)
+          .map((e) => ({
+            id: e.id,
+            title: e.title,
+            time: e.time,
+            type: "workshop",
+          })),
+        ...state.v8.appointments
+          .filter((a) => a.date === date && a.status === "confirmed")
+          .map((a) => ({
+            id: a.id,
+            title: a.title,
+            time: a.time,
+            type: "appointment",
+          })),
+      ].sort((a, b) => a.time.localeCompare(b.time));
+    cells.push(
+      `<div class="v8-cal-day ${date === daysFromNow(0) ? "today" : ""} ${x.getMonth() !== d.getMonth() ? "outside" : ""}"><div class="v8-cal-date">${v8CalView !== "month" ? x.toLocaleDateString("fr-FR", { weekday: "short" }) : ""} ${x.getDate()}</div>${items.map((e) => `<button class="v8-cal-item ${e.type}" data-v8="calendar-event" data-id="${esc(e.id)}" data-type="${e.type}"><strong>${esc(e.time)}</strong> ${esc(e.title)}</button>`).join("")}${!items.length && v8CalView === "day" ? '<p class="fine">Aucun événement ce jour.</p>' : ""}</div>`,
+    );
+  }
+  return `<section class="v8-calendar card"><div class="v8-toolbar"><div><span class="eyebrow">ATELIERS & RENDEZ-VOUS</span><h2>Mon calendrier</h2></div><div class="v8-segments">${[
+    ["month", "Mois"],
+    ["week", "Semaine"],
+    ["day", "Jour"],
+  ]
+    .map(([k, t]) =>
+      v8Button(
+        "calendar-view",
+        t,
+        `data-value="${k}" aria-pressed="${v8CalView === k}"`,
+      ),
+    )
+    .join(
+      "",
+    )}</div></div><div class="v8-toolbar">${v8Button("calendar-prev", "←", 'aria-label="Période précédente"')}<strong>${d.toLocaleDateString("fr-FR", v8CalView === "month" ? { month: "long", year: "numeric" } : { day: "numeric", month: "long", year: "numeric" })}</strong>${v8Button("calendar-next", "→", 'aria-label="Période suivante"')}${v8Button("calendar-today", "Aujourd’hui")}<input aria-label="Choisir une date du calendrier" id="v8CalendarDate" type="date" value="${v8CalDate}"></div><div class="v8-calendar-scroll"><div class="v8-cal-grid ${v8CalView}">${v8CalView === "month" ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((t) => `<div class="v8-cal-weekday">${t}</div>`).join("") : ""}${cells.join("")}</div></div><p class="fine">Rose : atelier collectif · Sauge : rendez-vous individuel · Données fictives</p></section>`;
+}
+// Availability rules are explicit; no fictional slots are silently enabled.
+function v8Minutes(t) {
+  let [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+const v8Time = (n) =>
+  String(Math.floor(n / 60)).padStart(2, "0") +
+  ":" +
+  String(n % 60).padStart(2, "0");
+function v8Slots(offerId, date) {
+  const paris = new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "Europe/Paris",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date()),
+    today = paris.slice(0, 10),
+    now = v8Minutes(paris.slice(11, 16));
+  if (
+    date < today ||
+    date > v8Shift(today, 90) ||
+    state.v8.exceptions.includes(date)
+  )
+    return [];
+  let day = v8Date(date).getDay(),
+    result = new Set();
+  for (let r of state.v8.availability.filter(
+    (r) => r.offerId === offerId && r.day === day,
+  )) {
+    for (
+      let n = v8Minutes(r.start);
+      n + r.duration <= v8Minutes(r.end);
+      n += r.duration + r.buffer
+    ) {
+      let end = n + r.duration;
+      let collision = state.v8.appointments.some(
+        (a) =>
+          a.date === date &&
+          a.status === "confirmed" &&
+          n < v8Minutes(a.time) + a.duration + (a.buffer || 0) &&
+          end + r.buffer > v8Minutes(a.time),
+      );
+      collision =
+        collision ||
+        state.events.some((e) => {
+          if (e.date !== date) return false;
+          let parts = String(e.duration).match(/(\d+)h(?:(\d+))?/);
+          let duration = parts
+            ? +parts[1] * 60 + (+parts[2] || 0)
+            : parseInt(e.duration) || 60;
+          return n < v8Minutes(e.time) + duration && end > v8Minutes(e.time);
+        });
+      let future = date !== today || n > now;
+      if (!collision && future)
+        result.add(
+          JSON.stringify({
+            time: v8Time(n),
+            duration: r.duration,
+            buffer: r.buffer,
+          }),
+        );
+    }
+  }
+  return [...result]
+    .map((s) => JSON.parse(s))
+    .sort((a, b) => a.time.localeCompare(b.time));
+}
+function v8Availability() {
+  return `${pagehead("MON AGENDA", "Mes rendez-vous", "Définis tes disponibilités et retrouve les réservations individuelles.", `<button class="btn" data-mode="parent">Voir côté parents</button>`)}${v8Demo}<div class="v8-two"><section class="card"><h2>Mes disponibilités</h2><p>Fuseau : Europe/Paris. Chaque règle se répète chaque semaine. Les créneaux déjà occupés sont retirés.</p><form id="v8Availability"><label class="field"><span>Accompagnement</span><select name="offerId">${state.offers.map((o) => `<option value="${esc(o.id)}">${esc(o.title)}</option>`).join("")}</select></label><div class="inputgrid"><label class="field"><span>Jour</span><select name="day">${["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map((t, i) => `<option value="${i}" ${i === 1 ? "selected" : ""}>${t}</option>`).join("")}</select></label>${v8Field("Durée de la séance (min)", "duration", 60, "number", 'min="15" max="180" step="15" required')}</div><div class="inputgrid">${v8Field("Début", "start", "09:00", "time", "required")}${v8Field("Fin", "end", "17:00", "time", "required")}</div>${v8Field("Pause entre les séances (min)", "buffer", 15, "number", 'min="0" max="120" step="5" required')}<button class="btn" type="submit">Ajouter cette disponibilité</button></form><div class="v8-rule-list">${state.v8.availability.map((r) => `<div><strong>${["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"][r.day]} · ${esc(r.start)}–${esc(r.end)}</strong><span>${esc(state.offers.find((o) => o.id === r.offerId)?.title || "Offre supprimée")} · ${r.duration} min · pause ${r.buffer} min</span>${v8Button("remove-rule", "Supprimer", `data-id="${esc(r.id)}"`, "ghost small")}</div>`).join("") || "<p>Aucune disponibilité publiée. Ajoute une règle pour permettre les réservations.</p>"}</div><h3>Dates d’indisponibilité</h3><form id="v8Exception" class="v8-toolbar">${v8Field("Fermer une journée", "date", daysFromNow(1), "date", "required")}<button class="btn secondary" type="submit">Bloquer</button></form>${state.v8.exceptions.map((d) => `<div class="v8-toolbar">${fmtDate(d)} ${v8Button("remove-exception", "Réouvrir", `data-value="${d}"`, "ghost small")}</div>`).join("")}</section><section class="card"><h2>Réservations individuelles</h2>${state.v8.appointments.map((a) => `<article class="v8-appointment"><span class="tag">${a.status === "confirmed" ? "Confirmé · démo" : "Annulé"}</span><h3>${esc(a.title)}</h3><p>${fmtDate(a.date)} à ${a.time} · ${a.duration} min</p><p>${esc(a.name)} · ${esc(a.email)}</p><p>${money(a.price)} · ${a.payment === "simulated" ? "Paiement simulé" : "Paiement sur place prévu"}</p>${a.status === "confirmed" ? v8Button("cancel-appointment", "Annuler le rendez-vous", `data-id="${esc(a.id)}"`, "ghost small") : ""}</article>`).join("") || "<p>Aucun rendez-vous réservé pour le moment.</p>"}</section></div>`;
+}
+function v8BookAppointment(id) {
+  v8BookingOffer = id;
+  v8BookingSlot = "";
+  v8BookingDate = daysFromNow(1);
+  v8BookingDialog();
+}
+function v8BookingDialog() {
+  let o = state.offers.find((o) => o.id === v8BookingOffer);
+  if (!o) return;
+  let slots = v8Slots(o.id, v8BookingDate);
+  showModal(
+    "Réserver une séance",
+    `${esc(o.title)} · ${money(o.price)} · Europe/Paris`,
+    `${v8Demo}<div class="v8-booking-steps">1. Choisir un créneau → 2. Vos coordonnées → 3. Confirmation</div><label class="field"><span>Date du rendez-vous</span><input id="v8BookingDate" type="date" min="${daysFromNow(0)}" max="${daysFromNow(90)}" value="${v8BookingDate}"></label><div class="v8-slots">${slots.map((s) => v8Button("choose-slot", `${s.time} · ${s.duration} min`, `data-value="${s.time}" aria-pressed="${v8BookingSlot === s.time}"`)).join("") || "<p>Aucun créneau disponible ce jour. Choisissez une autre date.</p>"}</div>${v8BookingSlot ? `<form id="v8BookAppointment"><p><strong>${fmtDate(v8BookingDate)} à ${v8BookingSlot}</strong></p>${v8Field("Votre nom (fictif)", "name", "", "text", 'required maxlength="100"')}${v8Field("Email (de test)", "email", "", "email", 'required maxlength="180"')}<label class="field"><span>Mode de règlement</span><select name="payment"><option value="simulated">Paiement en ligne simulé · ${money(o.price)}</option><option value="onsite">Paiement sur place prévu</option></select></label><label class="checkline"><input name="consent" type="checkbox" required> J’ai compris qu’il s’agit d’une réservation fictive, sans débit ni email réel.</label><button class="btn full" type="submit">Confirmer le rendez-vous de démonstration</button></form>` : ""}`,
+  );
+}
+function v8SocialLinks() {
+  let s = state.v8.social,
+    name = v8Name(),
+    links = [];
+  for (let key of ["facebook", "instagram"]) {
+    let u = v7ValidUrl(s[key]);
+    if (u && new URL(u).protocol === "https:")
+      links.push(
+        `<a class="btn secondary" href="${esc(u)}" target="_blank" rel="noopener noreferrer">${key === "facebook" ? "Facebook" : "Instagram"} ${ic("external", "s")}</a>`,
+      );
+  }
+  let phone = (s.whatsapp || "").replace(/[\s+().-]/g, "");
+  if (/^[1-9]\d{7,14}$/.test(phone)) {
+    let msg = `Bonjour ${name}, j’aimerais en savoir plus sur vos accompagnements. Pouvez-vous m’aider ?`;
+    links.push(
+      `<a class="btn secondary" href="https://wa.me/${phone}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener noreferrer">Discuter avec ${esc(state.profile.first || "votre accompagnante")} sur WhatsApp</a>`,
+    );
+  }
+  return `<div class="v8-social">${links.join("")}</div>`;
+}
+function v8Parents() {
+  let list = upcoming().filter(
+    (e) =>
+      (parentFilter === "Tous" || e.category === parentFilter) &&
+      `${e.title} ${e.place} ${e.category}`
+        .toLocaleLowerCase("fr")
+        .includes(parentSearch.toLocaleLowerCase("fr")),
+  );
+  return `<div class="v8-parent">${v8Demo}<section class="v8-parent-hero"><div><span class="eyebrow">UN ESPACE POUR GRANDIR ENSEMBLE</span><h1><span class="v8-family-title-full">Des rencontres douces.<br>Un soutien à votre rythme.</span><span class="v8-family-title-mobile">Du soutien,<br>à votre rythme.</span></h1><p>Ateliers parents-bébé ou accompagnement individuel : trouvez le moment qui vous ressemble.</p><div class="v8-toolbar"><a class="btn" href="#v8ParentWorkshops">Découvrir les ateliers</a><a class="btn secondary" href="#v8ParentAppointments">Réserver une séance</a></div></div><img src="/assets/photos/family-5.jpg" alt="Maman et bébé, photo illustrative Unsplash"></section><section class="card v8-parent-profile">${v7About()}${v8SocialLinks()}</section><section id="v8ParentWorkshops"><div class="sectionhead"><div><span class="eyebrow">PARTAGER UN MOMENT</span><h2>Les prochains ateliers</h2></div></div><form id="v8ParentSearch" class="v8-toolbar"><input aria-label="Rechercher un atelier ou un lieu" name="search" placeholder="Un atelier, un lieu…" value="${esc(parentSearch)}"><button class="btn secondary">Rechercher</button></form><div class="v8-chips">${["Tous", ...new Set(upcoming().map((e) => e.category))].map((t) => `<button class="btn secondary small" data-filter="${esc(t)}" aria-pressed="${parentFilter === t}">${esc(t)}</button>`).join("")}</div><div class="v8-parent-cards">${list.map((e) => `<article class="card"><img class="v8-parent-cover" src="${esc(e.cover || "/assets/photos/family-" + (e.color === "sage" || e.category === "Portage" ? "5" : "3") + ".jpg")}" alt="Illustration de l’atelier"><span class="tag">${esc(e.category)}</span><h3>${esc(e.title)}</h3><p>${esc(e.description)}</p><p>${fmtDate(e.date)} · ${esc(e.time)} · ${esc(e.duration)}</p><p>${esc(e.place)}</p><div class="v8-toolbar"><strong>${money(e.price)} / duo</strong><span>${spots(e)} place(s) · démo</span></div><button class="btn full" data-action="book" data-id="${esc(e.id)}">${spots(e) ? "Réserver cet atelier" : "Liste d’attente"}</button></article>`).join("") || '<div class="card">Aucun atelier ne correspond à votre recherche.</div>'}</div></section><section id="v8ParentAppointments"><div class="sectionhead"><div><span class="eyebrow">UN TEMPS RIEN QUE POUR VOUS</span><h2>Réserver un accompagnement individuel</h2></div></div><div class="v8-parent-cards">${state.offers.map((o) => `<article class="card"><span class="roundicon">${ic("heart")}</span><h3>${esc(o.title)}</h3><p>${esc(o.description)}</p><p><strong>${money(o.price)}</strong> · séance individuelle</p><p class="fine">Choisissez votre date puis un créneau disponible.</p>${v8Button("book-appointment", "Choisir un rendez-vous", `data-id="${esc(o.id)}"`, "full")}</article>`).join("")}</div></section><p class="v8-demo">Les photos illustrent la démonstration et ne représentent pas les clientes de cette professionnelle.</p></div>`;
+}
+// Category-aware benefits, explicitly a local writing assistant in this demo.
+function v8Benefits(e) {
+  let t = (e?.category + " " + e?.title).toLowerCase();
+  if (/massage|réflex/.test(t))
+    return "Pour bébé : un moment de détente, une découverte sensorielle douce et un contact rassurant.\nPour vous : apprendre des gestes adaptés, mieux observer les signaux de votre bébé et partager un temps de complicité.";
+  if (/sommeil/.test(t))
+    return "Pour votre enfant : des repères et des routines adaptés à son rythme.\nPour vous : mieux comprendre ses besoins, échanger sur vos questions et construire des pistes réalistes, sans promesse de nuits parfaites.";
+  if (/bain/.test(t))
+    return "Pour bébé : une expérience enveloppante et un temps de détente, dans le respect de ses réactions.\nPour vous : partager une parenthèse de proximité et découvrir un accompagnement doux du bain.";
+  if (/portage/.test(t))
+    return "Pour bébé : proximité et installation respectueuse de sa physiologie.\nPour vous : découvrir les réglages, gagner en confiance et choisir un portage adapté à votre quotidien.";
+  if (/post|cercle/.test(t))
+    return "Pour vous : un espace d’écoute pour partager votre vécu, rencontrer d’autres parents et trouver du soutien sans jugement.\nPour votre famille : des pistes concrètes pour traverser cette période à votre rythme.";
+  return "Pour votre famille : un temps d’échange bienveillant et des découvertes adaptées à vos besoins.\nPour vous : poser vos questions, partager votre expérience et repartir avec des repères concrets.";
+}
+const v8OriginalMarketing = marketingText;
+// marketingText is a const; its call sites are updated to this helper below.
+function v8Marketing(e, channel) {
+  return (
+    v8OriginalMarketing(e, channel) +
+    "\n\nLes bienfaits de cet atelier\n" +
+    v8Benefits(e) +
+    "\n\nChaque famille est différente : les effets varient et cet atelier ne remplace pas un avis médical."
+  );
+}
+function v8HubTabs(tabs, active, kind) {
+  return `<div class="v8-tabs" role="group" aria-label="Rubriques">${tabs.map(([id, t]) => v8Button(kind, t, `data-value="${id}" aria-pressed="${active === id}"`)).join("")}</div>`;
+}
+const v8CommTabs = [
+  ["texte", "Texte & bienfaits"],
+  ["studio", "Studio créatif"],
+  ["photos", "Photothèque"],
+  ["flyer", "Flyers"],
+  ["agenda", "Agenda visuel"],
+  ["publications", "Publications"],
+];
+function v8UnifiedStudio() {
+  return (
+    v8DesignerPage("studio") +
+    `<details class="v8-advanced" ${v8AdvancedOpen ? "open" : ""}><summary>Illustrations IA de démonstration & outils complémentaires</summary>${v8HubTabs(
+      [
+        ["ia", "Illustrations & calques"],
+        ["retouche", "Retouche avancée"],
+        ["classique", "Modèles classiques"],
+      ],
+      v8StudioTool,
+      "studio-tool",
+    )}<div>${v8StudioTool === "ia" ? v3Studio() : v8StudioTool === "retouche" ? v4Screen() : studio()}</div></details>`
+  );
+}
+function v8Communication() {
+  let content =
+    v8Tab === "texte"
+      ? communication()
+      : v8Tab === "studio"
+        ? v8UnifiedStudio()
+        : v8Tab === "photos"
+          ? v7Phototheque()
+          : v8Tab === "retouche"
+            ? v4Screen()
+            : v8Tab === "publications"
+              ? publications()
+              : v8Tab === "classique"
+                ? studio()
+                : v8DesignerPage(v8Tab);
+  return `${pagehead("CRÉER, PERSONNALISER, PARTAGER", "Mon espace communication", "Des textes aux visuels, tous tes outils réunis au même endroit.")}${v8HubTabs(v8CommTabs, v8Tab, "comm-tab")}<div class="v8-workspace">${content}</div>`;
+}
+function v8Profile() {
+  let content =
+    v8ProfileTab === "profil"
+      ? v7Profile()
+      : v8ProfileTab === "marque"
+        ? marque()
+        : v8ProfileTab === "reseaux"
+          ? `<section class="card"><h2>Mes réseaux publics</h2><p>Ces liens apparaissent sur ta page parents. Ils ouvrent un site externe ; aucune publication automatique n’est activée.</p><form id="v8Social">${v8Field("Lien Facebook (https://…)", "facebook", state.v8.social.facebook, "url")}${v8Field("Lien Instagram (https://…)", "instagram", state.v8.social.instagram, "url")}${v8Field("WhatsApp, numéro international (ex. +33…)", "whatsapp", state.v8.social.whatsapp, "tel")}<p>Le bouton WhatsApp prépare un message adressé à ${esc(v8Name())}. La famille choisit de l’envoyer.</p><button class="btn">Enregistrer mes réseaux</button></form></section>`
+          : v6ImportScreen();
+  return `${pagehead("MON IDENTITÉ", "Personnaliser mon profil", "Présentation publique, charte graphique, réseaux et import de site.")}${v8HubTabs(
+    [
+      ["profil", "Profil public"],
+      ["marque", "Ma charte"],
+      ["reseaux", "Réseaux sociaux"],
+      ["import", "Importer mon site"],
+    ],
+    v8ProfileTab,
+    "profile-tab",
+  )}<div class="v8-workspace">${content}</div>`;
+}
+function v8Community() {
+  return `${pagehead("ÉCHANGER & S’ENTOURER", "Ma communauté", "Retrouve les professionnelles et ton cercle.")}${v8HubTabs(
+    [
+      ["entraide", "Communauté pro"],
+      ["cercle", "Mon cercle"],
+    ],
+    v8CommunityTab,
+    "community-tab",
+  )}<div class="v8-workspace">${v8CommunityTab === "entraide" ? v7Community() : community()}</div>`;
+}
+function v8Outbox() {
+  return `<section class="card v8-outbox"><h2>Emails de confirmation & rappels</h2><p>Les modèles sont préparés après réservation. Ils restent dans cette boîte de démonstration : aucun destinataire n’est contacté.</p>${state.v8.emails.map((e) => `<article><strong>${esc(e.subject)}</strong><p>${esc(e.to)} · ${esc(e.status)}</p>${v8Button("email-preview", "Voir le modèle", `data-id="${e.id}"`, "secondary small")}</article>`).join("") || "<p>Aucun email préparé. Testez une inscription ou un rendez-vous.</p>"}</section>`;
+}
+// A shared free-form designer powers flyers and visual agendas, with distinct templates.
+let v8Design = state.v8.currentDesign || {
+    kind: "flyer",
+    format: "a4",
+    scope: "generic",
+    eventId: state.events[0]?.id || "",
+    month: daysFromNow(0).slice(0, 7),
+    bg: "#FFF7F1",
+    ink: "#5B3A48",
+    accent: "#B97682",
+    photo: "/assets/photos/family-5.jpg",
+    brightness: 100,
+    contrast: 100,
+    font: "Lora",
+    showLogo: true,
+    layers: [],
+  },
+  v8Selected = "",
+  v8Drag = null,
+  v8DesignHistory = [];
+const v8DesignSize = () =>
+  v8Design.format === "a4"
+    ? [1240, 1754]
+    : v8Design.format === "story"
+      ? [1080, 1920]
+      : [1080, 1080];
+function v8DesignSave() {
+  state.v8.currentDesign = structuredClone(v8Design);
+  state.v8.designDrafts = state.v8.designDrafts || {};
+  state.v8.designDrafts[v8Design.kind] = structuredClone(v8Design);
+  save();
+}
+function v8DesignSnapshot() {
+  v8DesignHistory.push(JSON.stringify(v8Design));
+  v8DesignHistory = v8DesignHistory.slice(-20);
+}
+function v8DesignTemplate(kind) {
+  v8DesignSnapshot();
+  v8Design.kind = kind;
+  let e = eventBy(v8Design.eventId) || state.events[0],
+    b = state.brand;
+  v8Design.bg = /^#[a-f\d]{6}$/i.test(b.secondary) ? b.secondary : "#FFF7F1";
+  v8Design.ink = /^#[a-f\d]{6}$/i.test(b.text) ? b.text : "#5B3A48";
+  v8Design.accent = /^#[a-f\d]{6}$/i.test(b.accent) ? b.accent : "#B97682";
+  let title, body;
+  if (kind === "agenda") {
+    title =
+      "Nos rendez-vous de " +
+      v8Date(v8Design.month + "-01").toLocaleDateString("fr-FR", {
+        month: "long",
+      });
+    body =
+      state.events
+        .filter((e) => e.date.slice(0, 7) === v8Design.month)
+        .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
+        .map((e) => `${shortDate(e.date)} · ${e.time}\n${e.title} · ${e.place}`)
+        .join("\n\n") || "Les prochaines rencontres arrivent bientôt.";
+  } else if (v8Design.scope === "event" && e) {
+    title = e.title;
+    body = `${fmtDate(e.date)} · ${e.time}\n${e.place}\n${money(e.price)} par duo\n\n${e.description}`;
+  } else {
+    title = state.brand.name || v8Name();
+    body =
+      state.profile.job +
+      "\n\n" +
+      state.offers.map((o) => `${o.title} · ${money(o.price)}`).join("\n\n") +
+      "\n\nAteliers collectifs : " +
+      upcoming()
+        .map((e) => e.title)
+        .join(" · ");
+  }
+  v8Design.layers = [
+    {
+      id: uid(),
+      type: "text",
+      text: kind === "agenda" ? "L’AGENDA DU MOIS" : "GRANDIR, BIEN ENTOURÉS.",
+      x: 8,
+      y: 7,
+      w: 84,
+      size: 20,
+      color: v8Design.ink,
+      font: "DM Sans",
+    },
+    {
+      id: uid(),
+      type: "text",
+      text: title,
+      x: 8,
+      y: 47,
+      w: 84,
+      size: 51,
+      color: v8Design.ink,
+      font: "Lora",
+    },
+    {
+      id: uid(),
+      type: "text",
+      text: body,
+      x: 8,
+      y: kind === "agenda" ? 58 : 63,
+      w: 84,
+      size: kind === "agenda" ? 20 : 26,
+      color: v8Design.ink,
+      font: "DM Sans",
+    },
+    {
+      id: uid(),
+      type: "text",
+      text:
+        state.profile.website ||
+        "Contactez " + (state.profile.first || "votre accompagnante"),
+      x: 8,
+      y: 93,
+      w: 84,
+      size: 21,
+      color: v8Design.ink,
+      font: "DM Sans",
+    },
+  ];
+  v8Selected = v8Design.layers[1].id;
+  v8DesignSave();
+}
+if (!v8Design.layers.length) v8DesignTemplate("flyer");
+function v8DesignerPage(kind) {
+  if (v8Design.kind !== kind) {
+    v8DesignSave();
+    let draft = state.v8.designDrafts?.[kind];
+    if (draft) v8Design = structuredClone(draft);
+    else v8DesignTemplate(kind);
+  }
+  let selected =
+      v8Design.layers.find((l) => l.id === v8Selected) || v8Design.layers[0],
+    size = v8DesignSize();
+  if (selected) v8Selected = selected.id;
+  let photos = v7MediaList();
+  return `<div class="v8-designer"><div class="v8-toolbar"><div><h2>${kind === "agenda" ? "Mon agenda visuel" : kind === "studio" ? "Mon studio visuel" : "Mon atelier de flyers"}</h2><p>${kind === "agenda" ? "Personnalise ton mois, les textes, les photos et la mise en page." : kind === "studio" ? "Textes, images, retouches et calques dans le même éditeur." : "Un flyer générique ou par événement, librement personnalisable."}</p></div><div class="v8-toolbar">${v8Button("design-undo", "↶ Annuler")}${v8Button("design-save", "Enregistrer")}${v8Button("design-export", "Télécharger PNG", "", "")}${v8Button("design-print", "Imprimer / PDF")}</div></div><div class="v8-designer-grid"><aside class="card v8-design-controls"><h3>Mon document</h3><label class="field"><span>Format</span><select data-design="format">${[
+    ["a4", "A4 portrait"],
+    ["square", "Post carré"],
+    ["story", "Story"],
+  ]
+    .map(
+      ([k, t]) =>
+        `<option value="${k}" ${v8Design.format === k ? "selected" : ""}>${t}</option>`,
+    )
+    .join(
+      "",
+    )}</select></label>${kind !== "agenda" ? `<label class="field"><span>Contenu du document</span><select data-design="scope"><option value="generic" ${v8Design.scope === "generic" ? "selected" : ""}>Toutes mes offres</option><option value="event" ${v8Design.scope === "event" ? "selected" : ""}>Un événement</option></select></label><label class="field"><span>Événement</span><select data-design="eventId">${state.events.map((e) => `<option value="${e.id}" ${v8Design.eventId === e.id ? "selected" : ""}>${esc(e.title)}</option>`).join("")}</select></label>` : `<label class="field"><span>Mois à présenter</span><input type="month" data-design="month" value="${v8Design.month}"></label>`}${v8Button("design-template", "Appliquer le modèle", "", "secondary full")}<p class="fine">Appliquer un modèle remplace les textes actuels. Annuler restaure la version précédente.</p><div class="inputgrid"><label class="field"><span>Fond</span><input type="color" data-design="bg" value="${v8Design.bg}"></label><label class="field"><span>Accent</span><input type="color" data-design="accent" value="${v8Design.accent}"></label></div><label class="checkline"><input type="checkbox" data-design="showLogo" ${v8Design.showLogo ? "checked" : ""}> Afficher mon logo</label><h3>Photos & retouches</h3><label class="btn secondary full">Importer une photo<input id="v8DesignPhoto" type="file" accept="image/png,image/jpeg,image/webp" hidden></label><div class="v8-photo-picker">${photos.map((m) => `<button data-v8="design-photo" data-id="${esc(m.id)}" aria-label="Utiliser ${esc(m.name)}"><img src="${esc(m.data)}" alt="${esc(m.name)}"></button>`).join("")}</div>${v8Button("design-remove-photo", "Retirer la photo", "", "ghost small")}<label class="field"><span>Luminosité</span><input data-design="brightness" type="range" min="50" max="150" value="${v8Design.brightness}"></label><label class="field"><span>Contraste</span><input data-design="contrast" type="range" min="50" max="150" value="${v8Design.contrast}"></label><p class="fine">Photos Unsplash et imports personnels. Les illustrations générées par modèles restent identifiées comme telles.</p></aside><div class="v8-design-preview"><span class="eyebrow">${size[0]} × ${size[1]} PX · GLISSEZ LES ÉLÉMENTS</span><div id="v8DesignStage" style="aspect-ratio:${size[0]}/${size[1]};background:${v8Design.bg}">${v8Design.photo ? `<img class="v8-design-bg" src="${esc(v8Design.photo)}" style="filter:brightness(${v8Design.brightness}%) contrast(${v8Design.contrast}%)" alt="Photo illustrative du document">` : ""}<div class="v8-design-accent" style="background:${v8Design.accent}"></div>${v8Design.showLogo && state.brand.logo ? `<img class="v8-design-logo" src="${esc(state.brand.logo)}" alt="Logo professionnel">` : ""}${v8Design.layers.map((l) => `<div tabindex="0" role="button" aria-label="Modifier ${esc(l.type === "text" ? l.text : "image")}" class="v8-design-layer ${l.id === selected?.id ? "selected" : ""}" data-design-layer="${l.id}" style="left:${l.x}%;top:${l.y}%;width:${l.w}%;color:${l.color};font-family:'${l.font}';font-size:${(l.size / size[0]) * 100}cqw">${l.type === "image" ? `<img src="${esc(l.src)}" alt="Photo ajoutée">` : esc(l.text).replaceAll("\n", "<br>")}</div>`).join("")}</div><p class="fine">Clique sur un texte pour l’éditer. Glisse pour déplacer, ou utilise les positions précises.</p></div><aside class="card v8-design-controls"><h3>Élément sélectionné</h3>${selected ? `<label class="field"><span>Calque</span><select id="v8SelectedLayer">${v8Design.layers.map((l) => `<option value="${l.id}" ${l.id === selected.id ? "selected" : ""}>${esc((l.text || "Image").slice(0, 40))}</option>`).join("")}</select></label>${selected.type === "text" ? `<label class="field"><span>Texte</span><textarea data-layer-edit="text" rows="7">${esc(selected.text)}</textarea></label><div class="inputgrid"><label class="field"><span>Taille</span><input data-layer-edit="size" type="number" min="12" max="120" value="${selected.size}"></label><label class="field"><span>Couleur</span><input data-layer-edit="color" type="color" value="${selected.color}"></label></div><label class="field"><span>Police</span><select data-layer-edit="font"><option ${selected.font === "Lora" ? "selected" : ""}>Lora</option><option ${selected.font === "DM Sans" ? "selected" : ""}>DM Sans</option></select></label>` : ""}<div class="inputgrid">${["x", "y", "w"].map((k) => `<label class="field"><span>${{ x: "Position X %", y: "Position Y %", w: "Largeur %" }[k]}</span><input type="number" data-layer-edit="${k}" min="0" max="100" value="${selected[k]}"></label>`).join("")}</div>${v8Button("design-delete", "Supprimer cet élément", "", "ghost small")}` : ""}${v8Button("design-add-text", "+ Ajouter un texte", "", "secondary full")}${v8Button("design-add-image", "+ Ajouter la photo comme élément", "", "secondary full")}<h3>Mes créations</h3>${state.v8.designs.map((d) => v8Button("design-load", esc(d.title), `data-id="${d.id}"`, "secondary full")).join("") || '<p class="fine">Enregistre ton premier document pour le retrouver ici.</p>'}</aside></div></div>`;
+}
+async function v8DesignCanvas() {
+  await document.fonts.load("700 40px Lora");
+  await document.fonts.load('400 30px "DM Sans"');
+  let [w, h] = v8DesignSize(),
+    can = document.createElement("canvas");
+  can.width = w;
+  can.height = h;
+  let ctx = can.getContext("2d");
+  ctx.fillStyle = v8Design.bg;
+  ctx.fillRect(0, 0, w, h);
+  let drawCover = (im, x, y, W, H) => {
+    let r = Math.max(W / im.width, H / im.height);
+    ctx.drawImage(
+      im,
+      x + (W - im.width * r) / 2,
+      y + (H - im.height * r) / 2,
+      im.width * r,
+      im.height * r,
+    );
+  };
+  if (v8Design.photo) {
+    let im = await v3Img(v8Design.photo);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, h * 0.1, w, h * 0.34);
+    ctx.clip();
+    ctx.filter = `brightness(${v8Design.brightness}%) contrast(${v8Design.contrast}%)`;
+    drawCover(im, 0, h * 0.1, w, h * 0.34);
+    ctx.restore();
+  }
+  ctx.fillStyle = v8Design.accent;
+  ctx.fillRect(w * 0.08, h * 0.445, w * 0.15, h * 0.006);
+  if (v8Design.showLogo && state.brand.logo) {
+    let im = await v3Img(state.brand.logo),
+      W = w * 0.14,
+      H = h * 0.07,
+      r = Math.min(W / im.width, H / im.height);
+    ctx.drawImage(im, w * 0.78, h * 0.02, im.width * r, im.height * r);
+  }
+  for (let l of v8Design.layers) {
+    if (l.type === "image") {
+      let im = await v3Img(l.src);
+      ctx.drawImage(
+        im,
+        (w * l.x) / 100,
+        (h * l.y) / 100,
+        (w * l.w) / 100,
+        (((w * l.w) / 100) * im.height) / im.width,
+      );
+      continue;
+    }
+    ctx.fillStyle = l.color;
+    ctx.font = `${l.font === "Lora" ? 700 : 400} ${l.size}px "${l.font}"`;
+    ctx.textBaseline = "top";
+    let lines = v3Wrapped(ctx, l.text, (w * l.w) / 100);
+    lines.forEach((line, i) =>
+      ctx.fillText(line, (w * l.x) / 100, (h * l.y) / 100 + i * l.size * 1.35),
+    );
+  }
+  return can;
+}
+async function v8DesignDownload(print = false) {
+  try {
+    let can = await v8DesignCanvas(),
+      data = can.toDataURL("image/png");
+    if (print) {
+      let win = window.open("", "_blank");
+      if (!win)
+        return toast("Autorise les fenêtres pour imprimer le document.");
+      win.document.write(
+        '<!doctype html><title>Document Naïtéa</title><style>@page{margin:0}body{margin:0}img{width:100%;display:block}</style><img alt="Création Naïtéa">',
+      );
+      let im = win.document.querySelector("img");
+      im.onload = () => {
+        win.focus();
+        win.print();
+      };
+      im.src = data;
+      win.document.close();
+    } else {
+      let a = document.createElement("a");
+      a.href = data;
+      a.download = `Naitea-${v8Design.kind}-${v8Design.format}.png`;
+      a.click();
+      toast("Document téléchargé");
+    }
+  } catch (e) {
+    toast("Impossible d’exporter : vérifie les images du document.");
+  }
+}
+// Existing event handlers and storage flows remain in place. This wrapper handles new forms.
+const v8PreviousHandle = handleForm;
+handleForm = function (form) {
+  let d = Object.fromEntries(new FormData(form));
+  if (form.id === "v8ParentSearch") {
+    parentSearch = String(d.search).trim();
+    render();
+    return;
+  }
+  if (form.id === "v8Social") {
+    for (let k of ["facebook", "instagram"]) {
+      if (d[k]) {
+        try {
+          let u = new URL(d[k]);
+          if (
+            u.protocol !== "https:" ||
+            !(
+              u.hostname === k + ".com" ||
+              u.hostname === "www." + k + ".com" ||
+              (k === "facebook" && u.hostname === "m.facebook.com")
+            )
+          )
+            throw Error();
+        } catch {
+          return toast("Utilise un lien HTTPS valide vers " + k + ".com");
+        }
+      }
+    }
+    let phone = String(d.whatsapp).replace(/[\s+().-]/g, "");
+    if (phone && !/^[1-9]\d{7,14}$/.test(phone))
+      return toast(
+        "WhatsApp : utilise un numéro international avec indicatif pays.",
+      );
+    state.v8.social = {
+      facebook: d.facebook,
+      instagram: d.instagram,
+      whatsapp: phone,
+    };
+    save();
+    render();
+    toast("Réseaux enregistrés");
+    return;
+  }
+  if (form.id === "v8Availability") {
+    let duration = +d.duration,
+      buffer = +d.buffer;
+    if (
+      !state.offers.some((o) => o.id === d.offerId) ||
+      !Number.isInteger(duration) ||
+      duration < 15 ||
+      duration > 180 ||
+      !Number.isInteger(buffer) ||
+      buffer < 0 ||
+      buffer > 120 ||
+      v8Minutes(d.end) - v8Minutes(d.start) < duration
+    )
+      return toast("La plage doit contenir au moins une séance complète.");
+    if (
+      state.v8.availability.some(
+        (r) =>
+          r.offerId === d.offerId &&
+          r.day === +d.day &&
+          v8Minutes(d.start) < v8Minutes(r.end) &&
+          v8Minutes(d.end) > v8Minutes(r.start),
+      )
+    )
+      return toast(
+        "Cette disponibilité chevauche déjà une règle pour cette offre.",
+      );
+    state.v8.availability.push({
+      id: uid(),
+      offerId: d.offerId,
+      day: +d.day,
+      start: d.start,
+      end: d.end,
+      duration,
+      buffer,
+    });
+    save();
+    render();
+    toast("Disponibilité ajoutée");
+    return;
+  }
+  if (form.id === "v8Exception") {
+    if (!state.v8.exceptions.includes(d.date)) state.v8.exceptions.push(d.date);
+    save();
+    render();
+    return;
+  }
+  if (form.id === "v8BookAppointment") {
+    let o = state.offers.find((o) => o.id === v8BookingOffer),
+      slot = v8Slots(o?.id, v8BookingDate).find(
+        (s) => s.time === v8BookingSlot,
+      );
+    if (!o || !slot) return v8BookingDialog();
+    if (!d.consent || !d.name?.trim() || !d.email?.trim())
+      return toast(
+        "Complète tes coordonnées et le consentement de démonstration.",
+      );
+    let a = {
+      id: uid(),
+      offerId: o.id,
+      title: o.title,
+      date: v8BookingDate,
+      time: slot.time,
+      duration: slot.duration,
+      buffer: slot.buffer,
+      name: d.name.trim(),
+      email: d.email.trim(),
+      price: o.price,
+      payment: d.payment,
+      status: "confirmed",
+    };
+    state.v8.appointments.push(a);
+    addlog(
+      "calendar",
+      `Nouveau rendez-vous : ${a.title} · ${a.name} · ${shortDate(a.date)} à ${a.time}`,
+    );
+    if (state.settings.confirmation) v8QueueEmail(
+      a.email,
+      "Confirmation de votre rendez-vous — " + a.title,
+      `Bonjour ${a.name},\n\nVotre rendez-vous « ${a.title} » est prévu le ${fmtDate(a.date)} à ${a.time} (Europe/Paris), pour ${a.duration} minutes.\nTarif : ${money(a.price)}. ${a.payment === "simulated" ? "Paiement simulé, aucun débit." : "Règlement sur place prévu."}\n\nConfirmation fictive de démonstration. Pour toute modification, contactez votre accompagnante.`,
+    );
+    if (state.settings.reminder) v8QueueEmail(
+      a.email,
+      "Rappel de rendez-vous — " + a.title,
+      `Modèle à programmer 24 h avant : votre rendez-vous est prévu le ${fmtDate(a.date)} à ${a.time}. Aucun envoi programmé dans cette démo.`,
+    );
+    save();
+    render();
+    showModal(
+      "Votre créneau est réservé dans la démo",
+      esc(a.title),
+      `<p>${fmtDate(a.date)} à ${a.time} · ${a.duration} minutes</p><p>${a.payment === "simulated" ? "Le paiement est simulé : aucun montant n’a été débité." : "Le règlement sur place est prévu."}</p><p>Le modèle de confirmation est disponible dans les automatisations de la professionnelle. Aucun email n’a été envoyé.</p>${v8Demo}`,
+    );
+    return;
+  }
+  let ids = new Set(state.signups.map((s) => s.id));
+  v8PreviousHandle(form);
+  for (let signup of state.signups.filter((s) => !ids.has(s.id))) {
+    let e = eventBy(signup.eventId);
+    if (state.settings.confirmation) v8QueueEmail(
+      signup.email,
+      signup.status === "waitlist"
+        ? "Demande de liste d’attente — " + e.title
+        : "Confirmation d’inscription — " + e.title,
+      `Bonjour ${signup.name},\n\n${signup.status === "waitlist" ? "Votre demande sur liste d’attente a été enregistrée." : "Votre inscription est confirmée dans la démonstration."}\n${e.title} · ${fmtDate(e.date)} à ${e.time}\n${e.place}\n\nAucun email envoyé ni paiement réel.`,
+    );
+    if (state.settings.reminder && signup.status === "confirmed") v8QueueEmail(
+      signup.email,
+      "Rappel de votre atelier — " + e.title,
+      `Modèle à programmer 48 h avant : ${e.title}, le ${fmtDate(e.date)} à ${e.time}, ${e.place}. Aucun envoi programmé dans cette démo.`,
+    );
+  }
+};
+const v8PreviousRender = render;
+const v8LegacyComm = {
+  studioia: "studio",
+  studio: "studio",
+  retouche: "studio",
+  phototheque: "photos",
+  medias: "photos",
+  publications: "publications",
+  "agenda-visuel": "agenda",
+};
+const v8LegacyProfile = {
+  profil: "profil",
+  marque: "marque",
+  reseaux: "reseaux",
+  importsite: "import",
+};
+let v8LastLog = state.logs[0]?.id;
+render = function () {
+  state.v8 = state.v8 || {
+    notificationsRead: [],
+    appointments: [],
+    availability: [],
+    exceptions: [],
+    emails: [],
+    social: { facebook: "", instagram: "", whatsapp: "" },
+    designs: [],
+  };
+  state.profile = state.profile || {
+    first: "Camille",
+    last: "Martin",
+    job: "Accompagnante périnatale",
+    city: "Lille",
+    bio: "Accompagnement des familles.",
+    photo: "",
+    website: "",
+    google: "",
+  };
+  state.v7Stock = state.v7Stock || [];
+  state.v7Topics = state.v7Topics || [];
+  if (v8Shared) {
+    document.body.classList.add("v8-shared");
+    document.body.classList.toggle("v8-embedded", v8Shared.embed);
+    document.getElementById("app").innerHTML = v8SharedPage();
+    return;
+  }
+  document.body.classList.remove("v8-shared", "v8-embedded");
+  if (mode === "parent") {
+    renderChrome();
+    document.body.classList.add("v8-parent-mode");
+    document.getElementById("app").innerHTML = v8Parents();
+    return;
+  }
+  document.body.classList.remove("v8-parent-mode");
+  if (v8LegacyComm[page] || page === "communication") {
+    if (v8LegacyComm[page]) {
+      v8Tab = v8LegacyComm[page];
+      if (page === "retouche") v8StudioTool = "retouche";
+      if (page === "studio") v8StudioTool = "classique";
+    }
+    renderChrome();
+    document.getElementById("app").innerHTML = v8Communication();
+    if (v8Tab === "studio") {
+      v3LayerSync();
+      v6StudioEnhance();
+      if (v8StudioTool === "retouche") v4Draw();
+      if (v8StudioTool === "classique") requestAnimationFrame(drawVisual);
+    }
+    if (v8Tab === "retouche") v4Draw();
+    if (v8Tab === "classique") requestAnimationFrame(drawVisual);
+  } else if (v8LegacyProfile[page] || page === "personnaliser") {
+    if (v8LegacyProfile[page]) v8ProfileTab = v8LegacyProfile[page];
+    renderChrome();
+    document.getElementById("app").innerHTML = v8Profile();
+  } else if (page === "rendezvous") {
+    renderChrome();
+    document.getElementById("app").innerHTML = v8Availability();
+  } else if (
+    page === "communaute" ||
+    page === "entraide" ||
+    page === "community"
+  ) {
+    if (page === "entraide") v8CommunityTab = "entraide";
+    if (page === "community") v8CommunityTab = "cercle";
+    renderChrome();
+    document.getElementById("app").innerHTML = v8Community();
+  } else {
+    v8PreviousRender();
+    if (page === "dashboard") {
+      let main = document.getElementById("app"),
+        hero = main.querySelector(".naitea-welcome");
+      hero?.insertAdjacentHTML("afterend", v8Calendar());
+      main
+        .querySelector(".dashboard-activity .sectionhead")
+        ?.insertAdjacentHTML(
+          "beforeend",
+          v8Button("notifications", "Tout voir", "", "ghost small"),
+        );
+    }
+    if (page === "automations")
+      document
+        .getElementById("app")
+        .insertAdjacentHTML("beforeend", v8Outbox());
+  }
+  document.querySelectorAll('#mobilebar [data-nav="studioia"]').forEach((b) => {
+    b.dataset.nav = "communication";
+    b.querySelector("span").textContent = "Créer";
+  });
+  if (v8LastLog && v8LastLog !== state.logs[0]?.id) {
+    toast("Nouvelle activité · retrouve-la dans les notifications");
+  }
+  v8LastLog = state.logs[0]?.id;
+};
+v4Render = function () {
+  v8Tab = "studio";
+  v8StudioTool = "retouche";
+  v8AdvancedOpen = true;
+  page = "retouche";
+  render();
+};
+let v8LegacyPhoto = "";
+const v8PreviousNavigate = navigate;
+navigate = function (to) {
+  if (to === "studioia" && v3.customPhoto && v3.customPhoto !== v8LegacyPhoto) {
+    v8LegacyPhoto = v3.customPhoto;
+    if (v8Design.kind !== "studio") {
+      v8DesignSave();
+      if (state.v8.designDrafts?.studio)
+        v8Design = structuredClone(state.v8.designDrafts.studio);
+      else v8DesignTemplate("studio");
+    }
+    v8Design.photo = v3.customPhoto;
+    v8DesignSave();
+  }
+  return v8PreviousNavigate(to);
+};
+document.addEventListener(
+  "toggle",
+  (event) => {
+    if (event.target.matches(".v8-advanced"))
+      v8AdvancedOpen = event.target.open;
+  },
+  true,
+);
+// New interactions are isolated from legacy handlers by capture, preserving their forms.
+document.addEventListener(
+  "click",
+  async (event) => {
+    let b = event.target.closest("[data-v8]");
+    if (!b) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    const k = b.dataset.v8,
+      id = b.dataset.id,
+      value = b.dataset.value;
+    if (k === "notifications") return v8Notifications();
+    if (k === "read-all") {
+      state.v8.notificationsRead = state.logs.map((l) => l.id);
+      save();
+      render();
+      v8Notifications();
+      return;
+    }
+    if (k === "read-one") {
+      if (!state.v8.notificationsRead.includes(id))
+        state.v8.notificationsRead.push(id);
+      save();
+      render();
+      v8Notifications();
+      return;
+    }
+    if (k === "studio-tool") {
+      v8AdvancedOpen = true;
+      v8StudioTool = value;
+      page =
+        value === "ia"
+          ? "studioia"
+          : value === "retouche"
+            ? "retouche"
+            : "studio";
+      v8Tab = "studio";
+      render();
+      document.querySelector(".v8-advanced").open = true;
+      if (value === "classique") drawVisual();
+      return;
+    }
+    if (k === "comm-tab") {
+      v8Tab = value;
+      page =
+        value === "studio"
+          ? "studioia"
+          : value === "retouche"
+            ? "retouche"
+            : value === "classique"
+              ? "studio"
+              : "communication";
+      render();
+      return;
+    }
+    if (k === "profile-tab") {
+      v8ProfileTab = value;
+      page = "personnaliser";
+      render();
+      return;
+    }
+    if (k === "community-tab") {
+      v8CommunityTab = value;
+      page = "communaute";
+      render();
+      return;
+    }
+    if (k === "calendar-view") {
+      v8CalView = value;
+      render();
+      return;
+    }
+    if (k.startsWith("calendar-")) {
+      if (k === "calendar-today") v8CalDate = daysFromNow(0);
+      else if (k === "calendar-event") {
+        if (b.dataset.type === "workshop") detail(id);
+        else {
+          let a = state.v8.appointments.find((a) => a.id === id);
+          showModal(
+            "Rendez-vous de démonstration",
+            esc(a.title),
+            `<p>${esc(a.name)} · ${fmtDate(a.date)} à ${a.time}</p>${v8Button("cancel-appointment", "Annuler le rendez-vous", `data-id="${a.id}"`)}${v8Demo}`,
+          );
+        }
+        return;
+      } else {
+        let n = k === "calendar-prev" ? -1 : 1;
+        if (v8CalView === "month") {
+          let d = v8Date(v8CalDate);
+          d.setDate(1);
+          d.setMonth(d.getMonth() + n);
+          v8CalDate = v8ISO(d);
+        } else
+          v8CalDate = v8Shift(v8CalDate, n * (v8CalView === "week" ? 7 : 1));
+      }
+      render();
+      return;
+    }
+    if (k === "remove-rule") {
+      state.v8.availability = state.v8.availability.filter((r) => r.id !== id);
+      save();
+      render();
+      return;
+    }
+    if (k === "remove-exception") {
+      state.v8.exceptions = state.v8.exceptions.filter((d) => d !== value);
+      save();
+      render();
+      return;
+    }
+    if (k === "book-appointment") return v8BookAppointment(id);
+    if (k === "choose-slot") {
+      v8BookingSlot = value;
+      v8BookingDialog();
+      return;
+    }
+    if (k === "cancel-appointment") {
+      let a = state.v8.appointments.find((a) => a.id === id);
+      if (a) {
+        a.status = "cancelled";
+        addlog("calendar", "Rendez-vous annulé : " + a.title);
+        v8QueueEmail(
+          a.email,
+          "Annulation de rendez-vous — " + a.title,
+          `Le rendez-vous du ${fmtDate(a.date)} à ${a.time} a été annulé dans la démonstration. Aucun remboursement réel n’est effectué.`,
+        );
+      }
+      closeModal();
+      save();
+      render();
+      return;
+    }
+    if (k === "email-preview") {
+      let e = state.v8.emails.find((e) => e.id === id);
+      showModal(
+        esc(e.subject),
+        "Modèle de démonstration — non envoyé",
+        `<p>Destinataire fictif : ${esc(e.to)}</p><pre class="v8-email">${esc(e.body)}</pre>`,
+      );
+      return;
+    }
+    if (k === "design-template") {
+      v8DesignTemplate(v8Tab);
+      render();
+      return;
+    }
+    if (k === "design-undo") {
+      if (v8DesignHistory.length) {
+        v8Design = JSON.parse(v8DesignHistory.pop());
+        v8DesignSave();
+        render();
+      }
+      return;
+    }
+    if (k === "design-export") return v8DesignDownload();
+    if (k === "design-print") return v8DesignDownload(true);
+    if (k === "design-save") {
+      let title =
+        v8Design.layers.find((l) => l.type === "text" && l.size > 30)?.text ||
+        "Ma création";
+      state.v8.designs.unshift({
+        id: uid(),
+        title: title.slice(0, 80),
+        data: structuredClone(v8Design),
+      });
+      state.v8.designs = state.v8.designs.slice(0, 12);
+      save();
+      render();
+      toast("Création enregistrée");
+      return;
+    }
+    if (k === "design-load") {
+      let d = state.v8.designs.find((d) => d.id === id);
+      if (d) {
+        v8DesignSnapshot();
+        v8Design = structuredClone(d.data);
+        v8Tab = v8Design.kind;
+        v8DesignSave();
+        render();
+      }
+      return;
+    }
+    if (k === "design-photo") {
+      let m = v7MediaList().find((m) => m.id === id);
+      if (m) {
+        v8DesignSnapshot();
+        v8Design.photo = m.data;
+        v8DesignSave();
+        render();
+      }
+      return;
+    }
+    if (k === "design-remove-photo") {
+      v8DesignSnapshot();
+      v8Design.photo = "";
+      v8DesignSave();
+      render();
+      return;
+    }
+    if (k === "design-add-text" || k === "design-add-image") {
+      v8DesignSnapshot();
+      if (k === "design-add-image" && !v8Design.photo)
+        return toast("Choisis d’abord une photo.");
+      let l =
+        k === "design-add-text"
+          ? {
+              id: uid(),
+              type: "text",
+              text: "Mon nouveau texte",
+              x: 12,
+              y: 50,
+              w: 76,
+              size: 32,
+              color: v8Design.ink,
+              font: "DM Sans",
+            }
+          : {
+              id: uid(),
+              type: "image",
+              src: v8Design.photo,
+              x: 10,
+              y: 20,
+              w: 40,
+            };
+      v8Design.layers.push(l);
+      v8Selected = l.id;
+      v8DesignSave();
+      render();
+      return;
+    }
+    if (k === "design-delete") {
+      v8DesignSnapshot();
+      v8Design.layers = v8Design.layers.filter((l) => l.id !== v8Selected);
+      v8Selected = v8Design.layers[0]?.id;
+      v8DesignSave();
+      render();
+      return;
+    }
+  },
+  true,
+);
+document.addEventListener(
+  "change",
+  async (event) => {
+    let t = event.target;
+    if (t.id === "v8CalendarDate") {
+      v8CalDate = t.value || daysFromNow(0);
+      render();
+    }
+    if (t.id === "v8BookingDate") {
+      v8BookingDate = t.value || daysFromNow(1);
+      v8BookingSlot = "";
+      v8BookingDialog();
+    }
+    if (t.id === "v8SelectedLayer") {
+      v8Selected = t.value;
+      render();
+    }
+    if (t.id === "v8DesignPhoto" && t.files?.[0]) {
+      try {
+        v8DesignSnapshot();
+        v8Design.photo = await loadCompressedImage(t.files[0], 1200);
+        v8DesignSave();
+        render();
+      } catch (e) {
+        toast("Image non prise en charge");
+      }
+    }
+    if (t.dataset.design) {
+      let key = t.dataset.design;
+      v8DesignSnapshot();
+      v8Design[key] =
+        t.type === "checkbox"
+          ? t.checked
+          : ["brightness", "contrast"].includes(key)
+            ? +t.value
+            : t.value;
+      v8DesignSave();
+      render();
+    }
+    if (t.dataset.layerEdit) {
+      let l =
+        v8Design.layers.find((l) => l.id === v8Selected) || v8Design.layers[0];
+      if (!l) return;
+      v8DesignSnapshot();
+      let k = t.dataset.layerEdit;
+      l[k] = ["x", "y", "w", "size"].includes(k)
+        ? Math.max(
+            k === "size" ? 12 : 0,
+            Math.min(k === "size" ? 120 : 100, +t.value),
+          )
+        : t.value;
+      v8DesignSave();
+      render();
+    }
+  },
+  true,
+);
+document.addEventListener(
+  "pointerdown",
+  (event) => {
+    let el = event.target.closest("[data-design-layer]");
+    if (!el) return;
+    let l = v8Design.layers.find((l) => l.id === el.dataset.designLayer),
+      stage = document.getElementById("v8DesignStage");
+    v8Selected = l.id;
+    v8DesignSnapshot();
+    v8Drag = {
+      id: l.id,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      x: l.x,
+      y: l.y,
+      rect: stage.getBoundingClientRect(),
+      el,
+    };
+    el.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  },
+  true,
+);
+document.addEventListener(
+  "pointermove",
+  (event) => {
+    if (!v8Drag) return;
+    let l = v8Design.layers.find((l) => l.id === v8Drag.id);
+    l.x = Math.max(
+      0,
+      Math.min(
+        95,
+        v8Drag.x + (100 * (event.clientX - v8Drag.startX)) / v8Drag.rect.width,
+      ),
+    );
+    l.y = Math.max(
+      0,
+      Math.min(
+        97,
+        v8Drag.y + (100 * (event.clientY - v8Drag.startY)) / v8Drag.rect.height,
+      ),
+    );
+    v8Drag.el.style.left = l.x + "%";
+    v8Drag.el.style.top = l.y + "%";
+  },
+  true,
+);
+document.addEventListener(
+  "pointerup",
+  () => {
+    if (!v8Drag) return;
+    v8Drag = null;
+    v8DesignSave();
+    render();
+  },
+  true,
+);
+document.addEventListener(
+  "keydown",
+  (event) => {
+    let el = event.target.closest("[data-design-layer]");
+    if (el && ["Enter", " "].includes(event.key)) {
+      event.preventDefault();
+      v8Selected = el.dataset.designLayer;
+      render();
+      document.querySelector('[data-layer-edit="text"]')?.focus();
+    }
+  },
+  true,
+);
+window.addEventListener("storage", (event) => {
+  if (event.key !== "kidigital-connect-v1" || !event.newValue) return;
+  try {
+    let next = JSON.parse(event.newValue);
+    if (next.v8) {
+      state = next;
+      render();
+    }
+  } catch {}
+});
+window.addEventListener("hashchange", () => {
+  v8Shared = v8LoadShared();
+  render();
+});
+// Add real illustrative photos to the existing photo library, keeping imports intact.
+for (const [i, name, category] of [
+  [1, "Bébé avec lunettes de soleil", "Maman & bébé"],
+  [2, "Jeux et découvertes", "Maman & bébé"],
+  [3, "Portrait de bébé", "Maman & bébé"],
+  [4, "Enfant en plein air", "Ateliers"],
+  [5, "Maman et bébé", "Maman & bébé"],
+  [6, "Famille au coucher du soleil", "Ateliers"],
+]) {
+  let id = "v8-photo-" + i;
+  if (!state.v7Stock.some((m) => m.id === id))
+    state.v7Stock.push({
+      id,
+      name,
+      data: "/assets/photos/family-" + i + ".jpg",
+      category,
+      license: "Photo illustrative Unsplash · voir SOURCES.md",
+    });
+}
 
 render();
 
