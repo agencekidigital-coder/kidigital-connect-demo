@@ -49,6 +49,15 @@ Dernière mise à jour : 17 novembre 2026.
 - La note et le nombre peuvent être saisis dans le profil après vérification, avec date du relevé et nom de l’établissement. Ne pas attribuer les avis de Kidigital au profil fictif Camille Martin.
 - Une synchronisation réelle nécessite un accès/API approprié et reste hors de la démonstration autorisée.
 
+## Préférence d’interface du 17 novembre 2026
+
+- Retirer les surtitres (« eyebrows »), les tirets cadratins, les emojis décoratifs, les slogans, les conseils génériques et les introductions qui répètent les titres.
+- Donner la priorité aux informations et aux actions : statistiques, calendrier, ateliers, formulaires et outils de création.
+- Garder la palette Naïtéa, Lora et DM Sans ; privilégier des cartes simples, des boutons sobres et une hiérarchie lisible sur ordinateur et mobile.
+- Garder les mentions utiles de démonstration, de consentement et de confidentialité. Ne pas transformer les contenus enregistrés, les brouillons ou les créations du studio lors du nettoyage de l’interface.
+- La passe allège également Communication, la page parents, la communauté et la connexion. Elle ne modifie ni Supabase ni Stripe.
+- Vérification dans Chromium : navigation des rubriques et des outils Communication, trois vues du calendrier, préparation d’email, aperçu de publication, nouvelle discussion et ouverture de réservation mensuelle. Aucun débordement constaté à 1440 et 390 pixels sur les vues contrôlées ; aucune erreur JavaScript.
+
 ## Limites à préserver dans les explications
 
 - La préparation d’un brouillon email ou social n’est pas un envoi ou une publication réelle. L’envoi effectif doit être effectué par l’utilisatrice dans son outil, ou faire l’objet d’une future intégration autorisée.
