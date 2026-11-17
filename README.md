@@ -1,4 +1,4 @@
-# Kidigital Connect — Démo V8
+# Naïtéa — démonstration professionnelle et familles
 
 Démo statique autonome de Kidigital Connect. `index.html` est le point d'entrée du site.
 
@@ -41,3 +41,7 @@ Cette branche ajoute, sans remplacer la démo V8 :
 - L'envoi d'e-mails Supabase par défaut est limité ; prévoir SMTP et protections anti-abus avant une ouverture publique.
 - Les politiques RLS de réservation ne permettent que la consultation par la professionnelle ; les écritures Stripe et les réservations devront être gérées côté serveur avec vérification d'autorisation.
 - Ne pas saisir de vraies données de familles ou d'enfants.
+
+## Suivi de Naïtéa
+
+La branche `feature/naitea-supabase-auth-foundation` contient la refonte Naïtéa et les parcours professionnels/familles de démonstration. Les décisions et demandes sont conservées dans [la mémoire du projet](docs/NAITEA-MEMOIRE-PROJET.md). Voir aussi [les ajustements du 17 novembre](docs/naitea-refinements-v9.md). Aucun envoi email, paiement ou publication sociale automatique n’est activé.
