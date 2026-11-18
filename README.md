@@ -45,3 +45,5 @@ Cette branche ajoute, sans remplacer la démo V8 :
 ## Suivi de Naïtéa
 
 La branche `feature/naitea-supabase-auth-foundation` contient la refonte Naïtéa et les parcours professionnels/familles de démonstration. Les décisions et demandes sont conservées dans [la mémoire du projet](docs/NAITEA-MEMOIRE-PROJET.md). Voir aussi [les ajustements du 17 novembre](docs/naitea-refinements-v9.md). Aucun envoi email, paiement ou publication sociale automatique n’est activé.
+
+Les [ajustements du 18 novembre](docs/naitea-refinements-v10.md) ajoutent les filtres familles, le profil réactif, le catalogue de polices corrigé, les imports transparents, les modèles, l’historique et la charte graphique. La synchronisation des avis Google est préparée et nécessite encore une configuration Places API autorisée.

@@ -1,6 +1,6 @@
 const path = require("node:path");
 const BASE_URL = process.env.BASE_URL || "http://localhost:4177";
-const artifacts = path.resolve("work/verification");
+const artifacts = process.env.ARTIFACT_DIR || path.resolve("work/verification");
 require("node:fs").mkdirSync(artifacts, { recursive: true });
 const { chromium } = require("playwright"),
   assert = require("node:assert/strict"),
@@ -27,7 +27,7 @@ const { chromium } = require("playwright"),
   await p.goto(BASE_URL, { waitUntil: "domcontentloaded" });
   const nav = (id) => p.locator(`#sidebar .navbtn[data-nav="${id}"]`).click();
   await nav("familles");
-  await p.locator('[data-v9="edit-family"]').first().click();
+  await p.locator('[data-v9="edit-family"][data-id="f1"]').click();
   await p.locator('#v9FamilyForm [name="name"]').fill("Emma Test Modifiée");
   await p.locator('#v9FamilyForm [name="phone"]').fill("0612345678");
   await p.locator('#v9FamilyForm button[type="submit"]').click();
@@ -53,6 +53,12 @@ const { chromium } = require("playwright"),
   );
   await p.locator('#v8Availability button[type="submit"]').click();
   assert.equal(await p.locator(".v8-rule-list>div").count(), 5);
+  await nav("personnaliser");
+  await p.locator('[data-v8="profile-tab"][data-value="reseaux"]').click();
+  await p.locator('#v8Social [name="instagram"]').fill("https://www.instagram.com/example");
+  await p.locator('#v8Social [name="facebook"]').fill("https://www.facebook.com/example");
+  await p.locator('#v8Social [name="whatsapp"]').fill("+33612345678");
+  await p.locator('#v8Social button').click();
   await p.locator('[data-mode="parent"]:visible').first().click();
   assert.equal(await p.locator(".v9-event-photo .tag").count(), 3);
   assert(await p.locator(".v9-profile-location").isVisible());
@@ -164,7 +170,7 @@ const { chromium } = require("playwright"),
   await image.focus();
   await p.keyboard.press(" ");
   assert.equal(await p.locator("[data-design-layer]").count(), count - 1);
-  await p.locator('[data-v8="design-undo"]').click();
+  await p.locator('[data-v10="undo"]').click();
   assert.equal(await p.locator("[data-design-layer]").count(), count);
   await p
     .locator("#v9ImageUpload")
@@ -176,14 +182,11 @@ const { chromium } = require("playwright"),
     () => document.querySelectorAll("[data-design-layer] img").length >= 4,
   );
   // Choose a catalog font and confirm same-origin font delivery.
-  text = p
-    .locator("[data-design-layer]")
-    .filter({ has: p.locator(".v9-inline-text") })
-    .first();
-  await text.click();
   await p.locator('[data-v8="design-add-text"]').click();
-  await p.locator("#v9FontSearch").fill("Montserrat");
-  await p.locator("#v9FontSearch").dispatchEvent("change");
+  await p.locator('[data-v10="font-picker"][data-target="layer"]').click();
+  await p.locator("#v10FontQuery").fill("Montserrat");
+  await p.locator('[data-v10="font-select"][data-family="Montserrat"]').click();
+  await p.locator(".v10-font-modal").waitFor({ state: "detached" });
   await p.waitForFunction(
     () =>
       [...document.fonts].some(

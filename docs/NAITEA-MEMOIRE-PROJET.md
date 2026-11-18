@@ -1,6 +1,6 @@
 # Naïtéa — mémoire du projet et décisions
 
-Dernière mise à jour : 17 novembre 2026.
+Dernière mise à jour : 18 novembre 2026.
 
 ## Cadre permanent
 
@@ -64,8 +64,23 @@ Dernière mise à jour : 17 novembre 2026.
 - Un annuaire de polices ne signifie pas que tous les fichiers sont préchargés. Les familles sont chargées à la demande via Naïtéa ; la disponibilité des glyphes dépend de la police.
 - Les mesures de confidentialité de la démo ne constituent pas une certification juridique de conformité RGPD. Le vrai SaaS nécessitera contrôles d’accès, stockage serveur, politiques de conservation et services de production revus séparément.
 
+## Ajustements du 18 novembre 2026
+
+- Familles : filtres par ateliers/accompagnements, choix d’une prestation, tri alphabétique et export des résultats. Les liens reposent sur les inscriptions, demandes et rendez-vous, avec identifiants locaux stables lors d’une correction d’email ; un centre d’intérêt seul n’est pas une inscription.
+- Remplacer le nom produit historique par Naïtéa dans l’interface, les textes générés, les brouillons existants et les noms de fichiers exportés. Conserver les clés de stockage historiques et les URL techniques pour éviter toute perte de données. Le nom réel de la fiche Google « Kidigital » reste une attribution de source.
+- Profil : aperçu réactif pendant la saisie, email et téléphone professionnel publics, bouton « Enregistrer et voir côté parents ». Les changements restent provisoires jusqu’à l’enregistrement.
+- Polices : remplacer le datalist du navigateur par un catalogue recherchable, avec chargement progressif de la liste et sélection indépendante de la recherche précédente. Catalogue commun au studio et à la charte, avec import de polices autorisées.
+- PNG/WebP : conserver le canal alpha à l’import et dans l’export. Une ancienne image déjà aplatie en JPEG doit être réimportée depuis l’original ; ses pixels transparents ne peuvent pas être reconstruits automatiquement.
+- Création : six modèles modifiables (Rencontre, Éditorial, Conseil, Présentation, Accompagnements, Agenda), formes/couleurs éditables, cadrage des photos, application de la charte professionnelle.
+- Importer un visuel prêt en PNG/JPEG/WebP depuis Publications ou le studio ; conserver ses proportions et ouvrir directement l’aperçu visuel + texte, sans ajouter de logo ou de décoration.
+- Historique du studio : boutons Revenir/Rétablir, Ctrl/Cmd Z et Ctrl/Cmd Maj Z. Les sélections seules ne consomment pas d’étape utile ; la saisie dans les champs garde son annulation native. Historique de session, limité à 50 états.
+- « Ma charte graphique » : logo, quatre couleurs, polices, pictogrammes importés et réutilisables dans le studio. Annulation des imports/suppressions de fichiers de charte pendant la session.
+- Avis Google : adaptateur officiel en lecture seule dans `api/google-reviews.js`, pour une fiche configurée côté serveur. Il demande uniquement les informations nécessaires, ne stocke pas les notes réelles dans localStorage et ne contient aucune clé dans le navigateur. Il reste **inactif sans configuration Google Places**. Ne pas annoncer une synchronisation réelle tant que cette configuration n’est pas faite et vérifiée.
+- La configuration future nécessite `GOOGLE_PLACES_API_KEY` et `GOOGLE_PLACES_PLACE_ID`, avec API/budget Google autorisés par l’administratrice. Aucune clé, facturation ou intégration de production n’a été activée pendant cette passe.
+
 ## Documents associés
 
 - `docs/naitea-dashboard-redesign.md` : diagnostic initial et premières passes.
 - `docs/naitea-workspace-v8.md` : parcours professionnels/familles et limites de démonstration.
 - `docs/naitea-refinements-v9.md` : détails et vérifications de la passe du 17 novembre.
+- `docs/naitea-refinements-v10.md` : corrections du 18 novembre, tests et activation optionnelle des avis Google.
