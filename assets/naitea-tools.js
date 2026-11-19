@@ -30,7 +30,7 @@
       offers: (state.offers || []).filter(row => offerIds.has(row.id)),
     };
   }
-  function filterFamilies(state, { query = "", type = "all", service = "", sort = "asc" } = {}) {
+  function filterFamilies(state, { query = "", type = "all", service = "", category = "", date = "", sort = "asc" } = {}) {
     const needle = query.trim().toLocaleLowerCase("fr");
     return (state.family || []).filter(f => {
       const links = familyLinks(f, state);
@@ -38,6 +38,9 @@
       if (type === "offer" && !links.offers.length) return false;
       if (type === "none" && (links.workshops.length || links.offers.length)) return false;
       if (service && ![...links.workshops.map(e => "workshop:" + e.id), ...links.offers.map(o => "offer:" + o.id)].includes(service)) return false;
+      const workshops = links.workshops.filter(e => !category || e.category === category);
+      if (category && !workshops.length) return false;
+      if (date && !workshops.some(e => e.date === date && (!service || service === "workshop:" + e.id))) return false;
       return [f.name, f.email, f.interest, ...links.workshops.map(e => e.title), ...links.offers.map(o => o.title)].join(" ").toLocaleLowerCase("fr").includes(needle);
     }).sort((a, b) => (sort === "desc" ? -1 : 1) * a.name.localeCompare(b.name, "fr", { sensitivity: "base" }));
   }
@@ -96,16 +99,16 @@
       image(0, 0, 100, 45);
       shape(6, 39, 88, 55, cream, 2);
       text(name, 11, 44, 78, 22);
-      text(title, 11, 51, 78, 58, heading);
-      text(details, 11, 72, 78, 25);
+      text(title, 11, 51, 78, 58, { ...heading, binding: "event.title" });
+      text(details, 11, 72, 78, 25, { binding: "event.details" });
       text(contact, 11, 86, 78, 21);
     } else if (id === "editorial") {
       shape(0, 0, 53, 100, cream);
       image(53, 0, 47, 100);
       text(name, 7, 8, 39, 24);
-      text(title, 7, 23, 40, 62, heading);
+      text(title, 7, 23, 40, 62, { ...heading, binding: "event.title" });
       shape(7, 61, 12, 0.7, accent);
-      text(details, 7, 67, 39, 25);
+      text(details, 7, 67, 39, 25, { binding: "event.details" });
       text(contact, 7, 90, 40, 18);
     } else if (id === "conseil") {
       shape(0, 0, 100, 100, cream);
@@ -153,5 +156,11 @@
     }
     return { kind, templateId: id, bg: cream, ink, accent, showLogo: false, showAccent: false, transparent: false, photo: "", brightness: 100, contrast: 100, layers };
   }
-  return { renameText, renameBrand, familyLinks, filterFamilies, DesignHistory, templates, buildTemplate };
+  function imagePlacement(layer, frameWidth, frameHeight, imageWidth, imageHeight) {
+    const zoom = Math.max(1, Math.min(5, +layer.cropZoom || 1));
+    const scale = (layer.fit === "contain" ? Math.min : Math.max)(frameWidth / imageWidth, frameHeight / imageHeight) * zoom;
+    const width = imageWidth * scale, height = imageHeight * scale;
+    return { width, height, x: (frameWidth - width) * (layer.positionX ?? 50) / 100 + (layer.cropX || 0) * frameWidth / 100, y: (frameHeight - height) * (layer.positionY ?? 50) / 100 + (layer.cropY || 0) * frameHeight / 100 };
+  }
+  return { renameText, renameBrand, familyLinks, filterFamilies, DesignHistory, templates, buildTemplate, imagePlacement };
 });

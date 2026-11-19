@@ -209,6 +209,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <link rel="stylesheet" href="/assets/refinements.css" />
 <link rel="stylesheet" href="/assets/interface.css" />
 <link rel="stylesheet" href="/assets/workspace-v10.css" />
+<link rel="stylesheet" href="/assets/workspace-v11.css" />
 </head>
 <body>
 <div class="shell">
@@ -222,6 +223,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <nav class="mobilebar" id="mobilebar"></nav>
 <div id="modalHost"></div><div id="toastHost"></div>
 <script src="/assets/naitea-tools.js"></script>
+<script src="/assets/rich-text.js"></script>
 <script>
 (function(){
 'use strict';
@@ -2043,6 +2045,7 @@ document.addEventListener(
     }
     if (t.dataset.design) {
       let key = t.dataset.design;
+      if (key === "eventId" && typeof v11ChangeEvent === "function") { v11ChangeEvent(t.value); return; }
       v8DesignSnapshot();
       v8Design[key] =
         t.type === "checkbox"
@@ -2059,9 +2062,10 @@ document.addEventListener(
       if (!l) return;
       v8DesignSnapshot();
       let k = t.dataset.layerEdit;
-      l[k] = ["x", "y", "w", "size"].includes(k)
+      if (k === "text" && typeof v11SetLayerText === "function") v11SetLayerText(l, t.value);
+      else l[k] = ["x", "y", "w", "size"].includes(k)
         ? Math.max(
-            k === "size" ? 12 : 0,
+            k === "size" ? 12 : (l.type === "image" && ["x", "y"].includes(k) ? -100 : 0),
             Math.min(k === "size" ? 480 : 100, +t.value),
           )
         : t.value;
@@ -2801,7 +2805,7 @@ function v9DeleteObject(id = v8Selected) {
 v8DesignCanvas = async function () {
   v9CommitText();
   for (const l of v8Design.layers.filter((l) => l.type === "text"))
-    await v9Font(l.font || "DM Sans", l.weight || 400);
+    for (const run of NaiteaRichText.runs(l)) await v9Font(run.font, run.weight);
   const [W, H] = v8DesignSize(),
     can = document.createElement("canvas");
   can.width = W;
@@ -2827,18 +2831,13 @@ v8DesignCanvas = async function () {
         y = (H * l.y) / 100,
         w = (W * l.w) / 100,
         h = (H * (l.h || 30)) / 100,
-        r = (l.fit === "contain" ? Math.min : Math.max)(w / im.width, h / im.height);
+        placement = NaiteaTools.imagePlacement(l, w, h, im.width, im.height);
       ctx.save();
-      ctx.beginPath();
-      ctx.rect(x, y, w, h);
-      ctx.clip();
+      if (l.frameClip !== false) { ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); }
       ctx.filter = `brightness(${v8Design.brightness}%) contrast(${v8Design.contrast}%)`;
       ctx.drawImage(
         im,
-        x + (w - im.width * r) * (l.positionX ?? 50) / 100,
-        y + (h - im.height * r) * (l.positionY ?? 50) / 100,
-        im.width * r,
-        im.height * r,
+        x + placement.x, y + placement.y, placement.width, placement.height,
       );
       ctx.restore();
     } else if (l.type === "shape") {
@@ -2847,12 +2846,7 @@ v8DesignCanvas = async function () {
       ctx.roundRect(W * l.x / 100, H * l.y / 100, W * l.w / 100, H * l.h / 100, W * (l.radius || 0) / 100);
       ctx.fill();
     } else {
-      ctx.fillStyle = l.color;
-      ctx.font = `${l.weight || 400} ${l.size}px "${l.font}"`;
-      ctx.textBaseline = "top";
-      v3Wrapped(ctx, l.text, (W * l.w) / 100).forEach((t, i) =>
-        ctx.fillText(t, (W * l.x) / 100, (H * l.y) / 100 + i * l.size * 1.35),
-      );
+      NaiteaRichText.draw(ctx, l, W * l.x / 100, H * l.y / 100, W * l.w / 100);
     }
   }
   return can;
@@ -3164,6 +3158,7 @@ document.addEventListener(
       const d = state.v9.publicationDrafts?.find((d) => d.id === id);
       if (d) {
         v8Design = structuredClone(d.design);
+        commEvent = d.design.eventId || d.eventId || commEvent;
         editorDraft = d.text;
         state.v9.communicationDraft = d.text;
         v8Tab = v8Design.kind;
@@ -3351,7 +3346,8 @@ document.addEventListener(
     if (t.classList.contains("v9-inline-text") && v9TextEditing) {
       const l = v8Design.layers.find((l) => l.id === v9TextEditing);
       if (l) {
-        l.text = t.innerText.replaceAll("\u00a0", " ");
+        if (typeof v11SyncTextNode === "function") v11SyncTextNode(t, l);
+        else l.text = t.innerText.replaceAll("\u00a0", " ");
         const textarea = document.querySelector('[data-layer-edit="text"]');
         if (textarea) textarea.value = l.text;
         v8DesignSave();
@@ -3392,8 +3388,8 @@ document.addEventListener(
         await v9Font(family, 400);
         const l = v8Design.layers.find((l) => l.id === v8Selected);
         if (l?.type === "text") {
-          l.font = family;
-          l.weight = 400;
+          if (typeof v11ApplyStyle === "function") v11ApplyStyle({ font: family, weight: 400 });
+          else { l.font = family; l.weight = 400; }
         }
         v8DesignSave();
         render();
@@ -3463,6 +3459,7 @@ document.addEventListener(
       w: l.w,
       h: l.h || 20,
       size: l.size || 24,
+      richRuns: l.type === "text" ? NaiteaRichText.runs(l) : null,
       rect: stage.getBoundingClientRect(),
       moved: false,
     };
@@ -3491,12 +3488,14 @@ document.addEventListener(
         g.element.style.height = l.h + "%";
       } else {
         l.size = Math.max(12, Math.min(480, (g.size * l.w) / g.w));
+        if (l.runs && g.richRuns) l.runs = g.richRuns.map(r => ({...r, size:r.size*l.size/g.size, letterSpacing:r.letterSpacing*l.size/g.size}));
         g.element.style.fontSize = (l.size / v8DesignSize()[0]) * 100 + "cqw";
       }
       g.element.style.width = l.w + "%";
+      if (l.type === "image" && typeof v11PositionImage === "function") v11PositionImage(g.element, l);
     } else {
-      l.x = Math.max(0, Math.min(100 - l.w, g.x + (100 * dx) / g.rect.width));
-      l.y = Math.max(0, Math.min(97, g.y + (100 * dy) / g.rect.height));
+      l.x = Math.max(l.type === "image" ? -100 : 0, Math.min(l.type === "image" ? 100 : 100 - l.w, g.x + (100 * dx) / g.rect.width));
+      l.y = Math.max(l.type === "image" ? -100 : 0, Math.min(97, g.y + (100 * dy) / g.rect.height));
       g.element.style.left = l.x + "%";
       g.element.style.top = l.y + "%";
     }
@@ -3588,7 +3587,7 @@ document.addEventListener(
 document.addEventListener(
   "focusout",
   (event) => {
-    if (event.target.classList.contains("v9-inline-text")) v9CommitText();
+    if (event.target.classList.contains("v9-inline-text") && !event.relatedTarget?.closest("#v11TextToolbar,.v11-color-modal,.v10-font-modal,[data-v10=font-picker],[data-v11-rich]")) v9CommitText();
   },
   true,
 );
@@ -3717,7 +3716,7 @@ v7About = function (internal = false, profile = state.profile) {
   const about = box.querySelector(".v7-about");
   const contacts = [];
   if (profile.email) contacts.push(`<a href="mailto:${encodeURIComponent(profile.email)}">${ic("mail", "s")} ${esc(profile.email)}</a>`);
-  if (profile.phone) contacts.push(`<a href="tel:${encodeURIComponent(profile.phone.replace(/[^\d+]/g, ""))}">${esc(profile.phone)}</a>`);
+  if (profile.phone) contacts.push(`<a href="tel:${encodeURIComponent(profile.phone.replace(/[^\d+]/g, ""))}">${ic("phone", "s")} ${esc(profile.phone)}</a>`);
   if (contacts.length) about?.querySelector(".v7-about-top")?.insertAdjacentHTML("afterend", `<div class="v10-public-contacts">${contacts.join("")}</div>`);
   return box.innerHTML;
 };
@@ -4016,8 +4015,8 @@ document.addEventListener("change", async event => {
   const t = event.target;
   try {
     if (["v10FamilyType", "v10FamilyService", "v10FamilySort"].includes(t.id)) {
-      if (t.id === "v10FamilyType") { v10FamilyFilter.type = t.value; v10FamilyFilter.service = ""; }
-      if (t.id === "v10FamilyService") v10FamilyFilter.service = t.value;
+      if (t.id === "v10FamilyType") { v10FamilyFilter.type = t.value; v10FamilyFilter.service = ""; v10FamilyFilter.category = ""; v10FamilyFilter.date = ""; }
+      if (t.id === "v10FamilyService") { v10FamilyFilter.service = t.value; v10FamilyFilter.date = ""; if(t.value.startsWith("offer:")) v10FamilyFilter.category = ""; }
       if (t.id === "v10FamilySort") v10FamilyFilter.sort = t.value;
       render(); return;
     }
@@ -4105,6 +4104,531 @@ fetch("/api/google-reviews?status=1", { cache: "no-store" }).then(r => r.ok ? r.
   v10GoogleStatus = data;
   if (data?.configured && document.getElementById("v10GoogleStatus")) document.getElementById("v10GoogleStatus").textContent = "Connexion Google Places disponible.";
 }).catch(() => {});
+
+// Selection formatting, frame cropping and public service information.
+const v11Rich = NaiteaRichText;
+ICONS.phone = '<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.7.7 2.5a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.5c.8.3 1.6.6 2.5.7a2 2 0 0 1 2.1 2.4Z"/>';
+let v11Selection = null, v11Cropping = "", v11CropGesture = null, v11Clipboard = null, v11ColorTarget = "";
+const v11Selected = () => v8Design.layers.find(l => l.id === v8Selected);
+function v11MigrateDecorations(design) {
+  if (design.showAccent === false) return;
+  design.layers.unshift({ id: uid(), type: "shape", x: 8, y: 44.5, w: 15, h: .6, fill: design.accent, radius: 0, label: "Trait décoratif" });
+  design.showAccent = false;
+}
+for (const design of [v8Design, ...Object.values(state.v8.designDrafts || {}), ...state.v8.designs.map(d => d.data)]) v11MigrateDecorations(design);
+const v11TemplateBase = v8DesignTemplate;
+v8DesignTemplate = function (kind) { v11TemplateBase(kind); v11MigrateDecorations(v8Design); v8DesignSave(); };
+v8DesignSave();
+function v11SetLayerText(layer, text) { Object.assign(layer, v11Rich.setText(layer, text)); }
+function v11SyncTextNode(node, layer) { Object.assign(layer, v11Rich.readDOM(node, layer)); }
+function v11RememberSelection() {
+  const node = document.querySelector('.v9-inline-text[contenteditable="true"]');
+  if (!node) return;
+  const offsets = v11Rich.selection(node);
+  if (offsets) v11Selection = { ...offsets, id: node.closest("[data-design-layer]").dataset.designLayer };
+  v11RefreshTextControls();
+}
+function v11ResumeText(id, offsets) {
+  const layer = v8Design.layers.find(l => l.id === id), node = document.querySelector(`[data-design-layer="${id}"] .v9-inline-text`);
+  if (!node || !layer) return;
+  v9Select(id); v9TextEditing = id;
+  node.contentEditable = "true";
+  node.setAttribute("role", "textbox"); node.setAttribute("aria-multiline", "true"); node.setAttribute("aria-label", "Texte du visuel");
+  node.closest(".v9-object").classList.add("editing");
+  v11Rich.writeDOM(node, layer);
+  node.focus({ preventScroll: true });
+  const saved = offsets || { start: 0, end: layer.text.length };
+  v11Rich.restore(node, saved); v11Selection = { ...saved, id };
+  v11RefreshTextControls();
+}
+v9EditText = function (id) {
+  const layer = v8Design.layers.find(l => l.id === id);
+  if (layer?.type !== "text") return;
+  if (v9TextEditing !== id) v8DesignSnapshot();
+  v11Cropping = "";
+  v11ResumeText(id);
+};
+v9CommitText = function () {
+  if (!v9TextEditing) return;
+  const node = document.querySelector(`[data-design-layer="${v9TextEditing}"] .v9-inline-text`), layer = v8Design.layers.find(l => l.id === v9TextEditing);
+  if (node && layer) {
+    const selected = v11Rich.selection(node);
+    if (selected) v11Selection = { ...selected, id: layer.id };
+    v11SyncTextNode(node, layer); node.contentEditable = "false"; node.closest(".v9-object").classList.remove("editing");
+  }
+  v9TextEditing = null; v8DesignSave();
+};
+function v11TextStyle() {
+  const layer = v11Selected();
+  if (layer?.type !== "text") return null;
+  return v11Rich.at(layer, v11Selection?.id === layer.id ? v11Selection.start : 0);
+}
+function v11ApplyStyle(patch) {
+  const layer = v11Selected();
+  if (layer?.type !== "text") return;
+  const selected = v11Selection?.id === layer.id && v11Selection.end > v11Selection.start ? { ...v11Selection } : null;
+  const node = document.querySelector(`[data-design-layer="${layer.id}"] .v9-inline-text`);
+  if (node && v9TextEditing === layer.id) v11SyncTextNode(node, layer);
+  v8DesignSnapshot();
+  Object.assign(layer, v11Rich.apply(layer, selected?.start || 0, selected?.end ?? layer.text.length, patch));
+  v8DesignSave();
+  for (const run of v11Rich.runs(layer)) v9Font(run.font, run.weight).catch(() => {});
+  if (selected && node) v11ResumeText(layer.id, selected);
+  else { v9TextEditing = null; v11Selection = null; render(); }
+  const input = document.querySelector('[data-layer-edit="text"]'); if (input) input.value = layer.text;
+}
+function v11RefreshTextControls() {
+  const current = v11TextStyle(); if (!current) return;
+  for (const [key, active] of [["bold", current.weight >= 600], ["italic", current.italic], ["underline", current.underline]]) document.querySelector(`[data-v11-format="${key}"]`)?.setAttribute("aria-pressed", String(active));
+  document.querySelectorAll('[data-v11-rich="size"]').forEach(n => { if (n !== document.activeElement) n.value = Math.round(current.size * 10) / 10; });
+  const button = document.querySelector('#v11TextToolbar [data-v11="color"]'); if (button) button.style.setProperty("--selected-color", current.color);
+}
+const v11ChooseFontBase = v10ChooseFont;
+v10ChooseFont = async function (family, button) {
+  if (v10FontTarget === "layer") {
+    button.disabled = true;
+    try { await v9Font(family, v11TextStyle()?.weight || 400); closeModal(); v11ApplyStyle({ font: family }); }
+    catch (error) { const status = document.getElementById("v10FontStatus"); if (status) status.textContent = error.message; button.disabled = false; }
+    return;
+  }
+  return v11ChooseFontBase(family, button);
+};
+const v11FontPickerBase = v9FontPicker;
+v9FontPicker = layer => v11FontPickerBase(layer).replace(/<label class="field"><span>Graisse<\/span>[\s\S]*?<\/label>/, "");
+function v11OpenColors(target) {
+  v11ColorTarget = target;
+  const layer = v11Selected();
+  const current = target === "text" ? v11TextStyle()?.color : target === "shape" ? layer?.fill : v8Design[target];
+  const colors = [...new Set([state.brand.accent, state.brand.secondary, state.brand.third, state.brand.text].filter(c => /^#[\da-f]{6}$/i.test(c)))];
+  showModal("Choisir une couleur", "", `<p class="v11-color-heading">Ma charte graphique</p><div class="v11-color-swatches">${colors.map(c => `<button type="button" data-v11="pick-color" data-color="${c}" style="--swatch:${c}" aria-label="Couleur ${c}" title="${c}"></button>`).join("")}</div><label class="field"><span>Autre couleur</span><input type="color" id="v11CustomColor" value="${v11Rich.color(current)}"></label><label class="field"><span>Code HEX</span><input id="v11ColorHex" value="${v11Rich.color(current)}" maxlength="7" pattern="#[0-9a-fA-F]{6}"></label><button type="button" class="btn" data-v11="apply-custom-color">Appliquer</button>`);
+  document.querySelector(".modal")?.classList.add("v11-color-modal");
+}
+function v11UseColor(value) {
+  if (!/^#[\da-f]{6}$/i.test(value || "")) return toast("Saisis un code couleur au format #AABBCC.");
+  closeModal();
+  if (v11ColorTarget === "text") return v11ApplyStyle({ color: value });
+  v8DesignSnapshot();
+  if (v11ColorTarget === "shape") { const layer = v11Selected(); if (layer) layer.fill = value; }
+  else v8Design[v11ColorTarget] = value;
+  v8DesignSave(); render();
+}
+function v11PositionImage(element, layer) {
+  const image = element.querySelector("img"); if (!image) return;
+  const update = () => {
+    if (!image.naturalWidth) return;
+    const [W, H] = v8DesignSize(), w = W * layer.w / 100, h = H * (layer.h || 30) / 100;
+    const p = v10Tools.imagePlacement(layer, w, h, image.naturalWidth, image.naturalHeight);
+    Object.assign(image.style, { position: "absolute", maxWidth: "none", width: p.width / w * 100 + "%", height: p.height / h * 100 + "%", left: p.x / w * 100 + "%", top: p.y / h * 100 + "%", objectFit: "fill", objectPosition: "50% 50%" });
+  };
+  image.onload = update; update();
+}
+function v11SyncEventCaption(event) {
+  if (!event || commEvent === event.id) return;
+  state.v11 ||= {};
+  state.v11.eventCaptions ||= {};
+  if (editorDraft && commEvent) state.v11.eventCaptions[commEvent + ":" + commChannel] = editorDraft;
+  commEvent = event.id;
+  editorDraft = state.v11.eventCaptions[event.id + ":" + commChannel] || v8Marketing(event, commChannel);
+  state.v9.communicationDraft = editorDraft;
+  save();
+}
+function v11ChangeEvent(id) {
+  const event = eventBy(id); if (!event) return;
+  v9CommitText(); v8DesignSnapshot();
+  const old = eventBy(v8Design.eventId);
+  v8Design.eventId = id; v8Design.scope = "event";
+  v11SyncEventCaption(event);
+  const details = `${fmtDate(event.date)} · ${event.time}\n${event.place}\n${event.duration || ""} · ${money(event.price)} par duo`;
+  const values = { "event.title": event.title, "event.details": details, "event.description": event.description || "", "event.price": money(event.price), "event.date": `${fmtDate(event.date)} · ${event.time}`, "event.place": event.place };
+  const textLayers = v8Design.layers.filter(l => l.type === "text");
+  if (!textLayers.some(l => l.binding?.startsWith("event."))) {
+    const heading = [...textLayers].sort((a, b) => b.size - a.size)[0];
+    if (heading) heading.binding = "event.title";
+    const body = [...textLayers].filter(l => l !== heading && (l.text.length > 45 || l.text.includes(old?.place || "\u0000"))).sort((a, b) => b.text.length - a.text.length)[0];
+    if (body) body.binding = "event.body";
+  }
+  values["event.body"] = details + "\n\n" + (event.description || "");
+  for (const layer of textLayers) if (values[layer.binding] !== undefined) v11SetLayerText(layer, values[layer.binding]);
+  v8DesignSave(); v11Selection = null; render();
+}
+function v11ObjectLabel(layer, index) { return layer.label || (layer.type === "text" ? layer.text.slice(0, 35) || "Texte vide" : layer.type === "shape" ? "Forme " + (index + 1) : "Photo " + (index + 1)); }
+const v11DesignerBase = v8DesignerPage;
+v8DesignerPage = function (kind) {
+  v11MigrateDecorations(v8Design);
+  const box = document.createElement("div"); box.innerHTML = v11DesignerBase(kind);
+  const stage = box.querySelector("#v8DesignStage"), selected = v11Selected(); if (!stage) return box.innerHTML;
+  for (const layer of v8Design.layers) {
+    const object = [...stage.querySelectorAll("[data-design-layer]")].find(n => n.dataset.designLayer === layer.id);
+    if (!object) continue;
+    object.dataset.objectType = layer.type;
+    if (layer.type === "text") v11Rich.writeDOM(object.querySelector(".v9-inline-text"), layer);
+    if (layer.type === "image") {
+      const image = object.querySelector("img");
+      const clip = document.createElement("div"); clip.className = "v11-image-clip"; clip.style.overflow = layer.frameClip === false ? "visible" : "hidden";
+      image.replaceWith(clip); clip.append(image);
+      if (v11Cropping === layer.id) object.classList.add("v11-cropping");
+    }
+  }
+  const preview = box.querySelector(".v8-design-preview");
+  if (selected?.type === "text") {
+    const toolbar = document.createElement("div"); toolbar.id = "v11TextToolbar"; toolbar.className = "v11-text-toolbar"; toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", "Mise en forme du texte");
+    toolbar.innerHTML = `<button type="button" class="v11-format-button" data-v11-format="bold" aria-label="Gras" title="Gras (Ctrl ou Cmd B)" aria-pressed="${(selected.weight || 400) >= 600}"><strong>G</strong></button><button type="button" class="v11-format-button" data-v11-format="italic" aria-label="Italique" title="Italique (Ctrl ou Cmd I)" aria-pressed="false"><em>I</em></button><button type="button" class="v11-format-button" data-v11-format="underline" aria-label="Souligner" title="Souligner (Ctrl ou Cmd U)" aria-pressed="false"><u>S</u></button><label class="v11-size-control"><span>Taille</span><input type="number" data-v11-rich="size" value="${selected.size}" min="8" max="480" aria-label="Taille du texte sélectionné"></label><button type="button" class="v11-color-button" data-v11="color" data-target="text" style="--selected-color:${selected.color}">Couleur</button><button type="button" class="btn secondary small" data-v9="edit-text">Modifier le texte</button>`;
+    preview.prepend(toolbar);
+    box.querySelectorAll('[data-layer-edit="size"]').forEach(n => { delete n.dataset.layerEdit; n.dataset.v11Rich = "size"; n.min = "8"; });
+    const right = box.querySelectorAll(".v8-design-controls")[1];
+    right?.insertAdjacentHTML("beforeend", `<label class="field"><span>Interligne</span><input type="number" data-v11-rich="lineHeight" min="0.8" max="3.5" step="0.05" value="${selected.lineHeight || 1.35}"></label><label class="field"><span>Espacement des lettres</span><input type="number" data-v11-rich="letterSpacing" min="-5" max="30" step="0.1" value="${selected.letterSpacing || 0}"></label>`);
+  }
+  for (const input of [...box.querySelectorAll('input[type="color"]')]) {
+    const target = input.dataset.layerEdit === "color" ? "text" : input.dataset.v10Shape === "fill" ? "shape" : input.dataset.design;
+    if (!target) continue;
+    const button = document.createElement("button"); button.type = "button"; button.className = "btn secondary v11-color-button"; button.dataset.v11 = "color"; button.dataset.target = target; button.style.setProperty("--selected-color", input.value); button.textContent = "Choisir"; input.replaceWith(button);
+  }
+  if (selected?.type === "image") {
+    const right = box.querySelectorAll(".v8-design-controls")[1];
+    right?.insertAdjacentHTML("afterbegin", `<section class="v11-crop-controls"><button type="button" class="btn secondary full" data-v11="crop-mode" aria-pressed="${v11Cropping === selected.id}">${v11Cropping === selected.id ? "Terminer le cadrage" : "Déplacer la photo dans le cadre"}</button><label class="field"><span>Zoom de la photo</span><input type="range" data-v11-crop="cropZoom" min="1" max="5" step="0.01" value="${selected.cropZoom || 1}"></label><button type="button" class="btn ghost small" data-v11="center-photo">Recentrer la photo</button><label class="checkline"><input type="checkbox" data-v11-crop="overflow" ${selected.frameClip === false ? "checked" : ""}> Laisser dépasser la photo du cadre</label></section>`);
+    box.querySelectorAll('[data-layer-edit="x"],[data-layer-edit="y"]').forEach(n => n.min = "-100");
+  }
+  box.querySelectorAll('[data-v11-crop],input[data-v10-shape="positionX"],input[data-v10-shape="positionY"]').forEach(n => n.setAttribute("aria-label", n.closest("label")?.querySelector("span")?.textContent || "Cadrage"));
+  box.querySelectorAll(".v8-design-controls")[1]?.insertAdjacentHTML("beforeend", `<details class="v11-object-list"><summary>Éléments du visuel</summary>${v8Design.layers.map((l, i) => `<button type="button" data-v11="select-object" data-id="${l.id}" class="${l.id === v8Selected ? "selected" : ""}">${esc(v11ObjectLabel(l, i))}<span>${l.type === "shape" ? "Forme" : l.type === "image" ? "Photo" : "Texte"}</span></button>`).join("")}</details>`);
+  box.querySelector(".v9-object-toolbar")?.insertAdjacentHTML("beforeend", '<button type="button" class="btn secondary small" data-v11="copy-object">Copier</button>');
+  return box.innerHTML;
+};
+
+function v11CopyObject(event) {
+  const layer = v11Selected(); if (!layer) return;
+  v11Clipboard = structuredClone(layer);
+  const payload = JSON.stringify({ type: "naitea-object", version: 1, layer: v11Clipboard });
+  if (event?.clipboardData) { event.clipboardData.setData("application/x-naitea-object", payload); event.clipboardData.setData("text/plain", payload); event.preventDefault(); }
+  else navigator.clipboard?.writeText(payload).then(() => toast("Élément copié. Utilise Ctrl ou Cmd V pour le coller.")).catch(() => toast("La copie système est indisponible. Sélectionne l’élément et utilise Ctrl ou Cmd C, ou Dupliquer."));
+}
+function v11PasteObject(source) {
+  if (!["text", "image", "shape"].includes(source?.type)) return;
+  if (source.type === "image" && !/^(data:image\/(png|jpeg|webp);base64,|\/assets\/)/.test(source.src || "")) return toast("Importe cette image depuis un fichier pour l’ajouter au visuel.");
+  v9CommitText(); v8DesignSnapshot();
+  const layer = { ...structuredClone(source), id: uid(), x: Math.max(-100, Math.min(95, (+source.x || 0) + 4)), y: Math.max(-100, Math.min(95, (+source.y || 0) + 4)), w: Math.max(2, Math.min(200, +source.w || 40)) };
+  if (layer.type === "text") { layer.text = String(layer.text || "").slice(0, 12000); layer.runs = v11Rich.runs(layer); }
+  v8Design.layers.push(layer); v8Selected = layer.id; v8DesignSave(); render(); document.querySelector(`[data-design-layer="${layer.id}"]`)?.focus({ preventScroll: true });
+}
+
+Object.assign(v10FamilyFilter, { category: "", date: "" });
+const v11FamiliesBase = familles;
+familles = function () {
+  const box = document.createElement("div"); box.innerHTML = v11FamiliesBase();
+  const disabled = ["offer", "none"].includes(v10FamilyFilter.type);
+  const categories = [...new Set(state.events.map(e => e.category))].sort((a, b) => a.localeCompare(b, "fr"));
+  const dates = [...new Set(state.events.filter(e => (!v10FamilyFilter.category || e.category === v10FamilyFilter.category) && (!v10FamilyFilter.service || v10FamilyFilter.service === "workshop:" + e.id)).map(e => e.date))].sort();
+  const filters = box.querySelector(".v10-family-filters"); filters?.classList.add("v11-family-filters");
+  filters?.lastElementChild?.insertAdjacentHTML("beforebegin", `<label class="field"><span>Type d’atelier</span><select id="v11FamilyCategory" ${disabled ? "disabled" : ""}><option value="">Tous les types</option>${categories.map(c => `<option value="${esc(c)}" ${v10FamilyFilter.category === c ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></label><label class="field"><span>Date de l’atelier</span><select id="v11FamilyDate" ${disabled ? "disabled" : ""}><option value="">Tous</option>${dates.map(d => `<option value="${d}" ${v10FamilyFilter.date === d ? "selected" : ""}>${fmtDate(d)}</option>`).join("")}</select></label>`);
+  box.querySelectorAll('#v10FamilyService option[value^="workshop:"]').forEach(n => { const e = eventBy(n.value.slice(9)); if (e) n.textContent += " · " + fmtDate(e.date); });
+  return box.innerHTML;
+};
+
+const v11RenderBase = render;
+render = function () {
+  v11RenderBase();
+  if (document.getElementById("v8DesignStage")) v11SyncEventCaption(eventBy(v8Design.eventId));
+  document.querySelectorAll("#v8DesignStage [data-design-layer]").forEach(n => { const layer = v8Design.layers.find(l => l.id === n.dataset.designLayer); if (layer?.type === "image") v11PositionImage(n, layer); if (layer?.type === "text") for (const run of v11Rich.runs(layer)) v9Font(run.font, run.weight).catch(() => {}); });
+  if (v11Selection?.id !== v8Selected) v11Selection = null;
+  v11RefreshTextControls();
+};
+document.addEventListener("selectionchange", v11RememberSelection);
+document.addEventListener("beforeinput", event => {
+  const node = event.target.closest('.v9-inline-text[contenteditable="true"]'); if (!node) return;
+  v8DesignSnapshot();
+  if (["insertParagraph", "insertLineBreak"].includes(event.inputType)) { event.preventDefault(); document.execCommand("insertText", false, "\n"); }
+});
+document.addEventListener("input", event => {
+  if (event.target.classList.contains("v9-inline-text")) v11RememberSelection();
+  if (event.target.id === "v11CustomColor") document.getElementById("v11ColorHex").value = event.target.value;
+}, true);
+document.addEventListener("pointerdown", event => {
+  if (event.target.closest("#v11TextToolbar button")) { event.preventDefault(); return; }
+  const object = event.target.closest("[data-design-layer]");
+  if (object && !event.target.closest('[contenteditable="true"]')) v11Selection = null;
+  if (!object || object.dataset.designLayer !== v11Cropping || event.target.closest("[data-v9-resize],button")) return;
+  const layer = v11Selected(); if (layer?.type !== "image") return;
+  v9Gesture = null; v8DesignSnapshot();
+  v11CropGesture = { id: layer.id, x: event.clientX, y: event.clientY, cropX: layer.cropX || 0, cropY: layer.cropY || 0, rect: object.getBoundingClientRect(), element: object };
+  object.setPointerCapture(event.pointerId); event.preventDefault(); event.stopImmediatePropagation();
+}, true);
+document.addEventListener("pointermove", event => {
+  const g = v11CropGesture; if (!g) return;
+  const layer = v8Design.layers.find(l => l.id === g.id); if (!layer) return;
+  layer.cropX = g.cropX + (event.clientX - g.x) / g.rect.width * 100;
+  layer.cropY = g.cropY + (event.clientY - g.y) / g.rect.height * 100;
+  v11PositionImage(g.element, layer);
+}, true);
+document.addEventListener("pointerup", () => { if (v11CropGesture) { v11CropGesture = null; v8DesignSave(); render(); } }, true);
+document.addEventListener("pointercancel", () => { v11CropGesture = null; }, true);
+document.addEventListener("copy", event => {
+  if (event.target.closest('input,textarea,[contenteditable="true"]') || !document.getElementById("v8DesignStage") || document.querySelector(".modal")) return;
+  v11CopyObject(event);
+});
+document.addEventListener("paste", event => {
+  if (event.target.closest('.v9-inline-text[contenteditable="true"]')) { event.preventDefault(); document.execCommand("insertText", false, event.clipboardData?.getData("text/plain") || ""); return; }
+  if (event.target.closest("input,textarea,[contenteditable]") || !document.getElementById("v8DesignStage") || document.querySelector(".modal")) return;
+  const raw = event.clipboardData?.getData("application/x-naitea-object") || event.clipboardData?.getData("text/plain") || "";
+  try { const data = JSON.parse(raw); if (data.type === "naitea-object" && data.version === 1) { event.preventDefault(); v11PasteObject(data.layer); return; } } catch {}
+  if (event.clipboardData?.files?.length) { event.preventDefault(); v9AddImages(event.clipboardData.files).catch(e => toast(e.message)); }
+}, true);
+document.addEventListener("keydown", event => {
+  const node = event.target.closest('.v9-inline-text[contenteditable="true"]');
+  if (!node || !(event.ctrlKey || event.metaKey)) return;
+  const key = event.key.toLowerCase();
+  if (["b", "i", "u"].includes(key)) { event.preventDefault(); const current = v11TextStyle(); v11ApplyStyle(key === "b" ? { weight: current.weight >= 600 ? 400 : 700 } : key === "i" ? { italic: !current.italic } : { underline: !current.underline }); }
+  if (key === "z") {
+    event.preventDefault(); const id = v9TextEditing, offsets = v11Selection && { ...v11Selection };
+    v10RestoreDesign(event.shiftKey); const layer = v8Design.layers.find(l => l.id === id);
+    if (layer) v11ResumeText(id, { start: Math.min(offsets?.start || 0, layer.text.length), end: Math.min(offsets?.end || 0, layer.text.length) });
+  }
+}, true);
+document.addEventListener("change", event => {
+  const t = event.target;
+  if (t.dataset.v11Rich) {
+    const layer = v11Selected(); if (layer?.type !== "text") return;
+    const key = t.dataset.v11Rich, value = +t.value;
+    if (!Number.isFinite(value)) return;
+    if (key === "lineHeight") { v9CommitText(); v8DesignSnapshot(); layer.lineHeight = Math.max(.8, Math.min(3.5, value)); v8DesignSave(); render(); }
+    else v11ApplyStyle({ [key]: value });
+  }
+  if (t.dataset.v11Crop) {
+    const layer = v11Selected(); if (layer?.type !== "image") return;
+    v8DesignSnapshot();
+    if (t.dataset.v11Crop === "overflow") layer.frameClip = !t.checked;
+    else layer[t.dataset.v11Crop] = +t.value;
+    v8DesignSave(); render();
+  }
+  if (t.id === "v11FamilyCategory") { v10FamilyFilter.category = t.value; v10FamilyFilter.service = ""; v10FamilyFilter.date = ""; render(); }
+  if (t.id === "v11FamilyDate") { v10FamilyFilter.date = t.value; render(); }
+}, true);
+document.addEventListener("click", event => {
+  const format = event.target.closest("[data-v11-format]");
+  if (format) { event.preventDefault(); const s = v11TextStyle(); if (!s) return; const key = format.dataset.v11Format; v11ApplyStyle(key === "bold" ? { weight: s.weight >= 600 ? 400 : 700 } : { [key]: !s[key] }); return; }
+  const b = event.target.closest("[data-v11]"); if (!b) return;
+  if (!["color", "pick-color", "apply-custom-color", "select-object", "copy-object", "crop-mode", "center-photo"].includes(b.dataset.v11)) return;
+  event.preventDefault(); event.stopImmediatePropagation();
+  const action = b.dataset.v11;
+  if (action === "color") return v11OpenColors(b.dataset.target);
+  if (action === "pick-color") return v11UseColor(b.dataset.color);
+  if (action === "apply-custom-color") return v11UseColor(document.getElementById("v11ColorHex").value);
+  if (action === "select-object") { v9CommitText(); v8Selected = b.dataset.id; v11Selection = null; render(); document.querySelector(`[data-design-layer="${v8Selected}"]`)?.focus({ preventScroll: true }); return; }
+  if (action === "copy-object") return v11CopyObject();
+  if (action === "crop-mode") { v11Cropping = v11Cropping === v8Selected ? "" : v8Selected; render(); return; }
+  if (action === "center-photo") { const layer = v11Selected(); if (layer?.type !== "image") return; v8DesignSnapshot(); Object.assign(layer, { cropX: 0, cropY: 0, cropZoom: 1, positionX: 50, positionY: 50 }); v8DesignSave(); render(); }
+}, true);
+
+// Per-modality details are saved with the service and displayed to parents.
+const v11OfferFormBase = v6OfferForm;
+v6OfferForm = function (offer) {
+  const box = document.createElement("div"); box.innerHTML = v11OfferFormBase(offer);
+  const details = offer?.modalityDetails || {}, home = details.home || {}, fees = home.fees || {}, video = details.video || {}, office = details.office || {};
+  const modality = box.querySelector('[name="modality"]')?.closest(".field");
+  modality?.insertAdjacentHTML("afterend", `<section class="v11-modality-panel" data-modality-panel="À domicile"><h3>À domicile</h3><label class="field"><span>Zone d’intervention</span><input name="homeZone" maxlength="200" required value="${esc(home.zone || (offer?.modalities?.includes("À domicile") ? offer.location : "") || "")}" placeholder="Ex. 15 km autour d’Annecy"></label><label class="checkline"><input type="checkbox" name="travelFees" ${fees.enabled ? "checked" : ""}> Frais kilométriques ou de déplacement</label><div class="v11-fees-fields"><div class="inputgrid"><label class="field"><span>Tarif par km (€)</span><input type="number" min="0" step="0.01" name="feePerKm" value="${fees.perKm || ""}"></label><label class="field"><span>Forfait fixe (€)</span><input type="number" min="0" step="0.01" name="feeFixed" value="${fees.fixed || ""}"></label></div><label class="field"><span>Distance incluse (km, facultatif)</span><input type="number" min="0" step="1" name="feeIncludedKm" value="${fees.includedKm || ""}"></label><p class="fine">Les frais sont indiqués aux familles avant réservation. Le montant du trajet est à convenir ; aucun débit supplémentaire n’est calculé automatiquement.</p></div></section>
+  <section class="v11-modality-panel" data-modality-panel="En visio"><h3>En visio</h3><label class="field"><span>Outil de visioconférence</span><select name="videoPlatform">${["Zoom", "Google Meet", "Microsoft Teams", "WhatsApp", "Autre"].map(v => `<option ${video.platform === v ? "selected" : ""}>${v}</option>`).join("")}</select></label><label class="field v11-other-video"><span>Nom de l’outil</span><input name="videoOther" value="${esc(video.other || "")}" maxlength="100"></label><p class="fine">Le lien de connexion sera à communiquer aux parents. Ne renseigne pas de mot de passe public.</p></section>
+  <section class="v11-modality-panel" data-modality-panel="En cabinet"><h3>En cabinet</h3><label class="field"><span>Adresse du cabinet</span><textarea name="officeAddress" required maxlength="300" rows="3" placeholder="Nom du cabinet, rue, code postal et ville">${esc(office.address || (offer?.modalities?.includes("En cabinet") ? offer.location : "") || "")}</textarea></label></section>
+  <section class="v11-modality-panel" data-modality-panel="Par téléphone"><h3>Par téléphone</h3><label class="field"><span>Numéro professionnel (facultatif)</span><input name="offerPhone" type="tel" value="${esc(details.phone?.number || state.profile.phone || "")}" maxlength="30"></label></section>`);
+  const location = box.querySelector('[name="location"]'); if (location) { location.closest(".field").hidden = true; location.type = "hidden"; }
+  return box.innerHTML;
+};
+function v11UpdateModalityFields() {
+  const form = document.getElementById("v6OfferForm"); if (!form) return;
+  const active = [...form.querySelectorAll('[name="modality"]:checked')].map(n => n.value);
+  form.querySelectorAll("[data-modality-panel]").forEach(panel => {
+    const enabled = active.includes(panel.dataset.modalityPanel); panel.hidden = !enabled;
+    panel.querySelectorAll("input,textarea,select").forEach(n => n.disabled = !enabled);
+  });
+  const fees = form.querySelector(".v11-fees-fields"), feesEnabled = active.includes("À domicile") && form.elements.travelFees.checked;
+  fees.hidden = !feesEnabled; fees.querySelectorAll("input").forEach(n => n.disabled = !feesEnabled);
+  const other = form.querySelector(".v11-other-video"), otherEnabled = active.includes("En visio") && form.elements.videoPlatform.value === "Autre";
+  other.hidden = !otherEnabled; other.querySelector("input").disabled = !otherEnabled; other.querySelector("input").required = otherEnabled;
+}
+function v11OfferDetails(offer) {
+  const d = offer.modalityDetails || {}, modes = offer.modalities || [], lines = [];
+  if (modes.includes("À domicile")) {
+    const fees = d.home?.fees;
+    let text = "À domicile" + (d.home?.zone ? " : " + d.home.zone : "");
+    if (fees?.enabled) {
+      const money = n => new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", maximumFractionDigits: 2 }).format(n);
+      const items = [];
+      if (fees.perKm) items.push(money(fees.perKm) + "/km" + (fees.includedKm ? " au-delà de " + fees.includedKm + " km inclus" : ""));
+      if (fees.fixed) items.push("forfait de " + money(fees.fixed));
+      text += ". Déplacement : " + items.join(" + ") + ", à confirmer avant la séance.";
+    }
+    lines.push(text);
+  }
+  if (modes.includes("En visio")) lines.push("En visio" + (d.video?.platform ? " : " + (d.video.platform === "Autre" ? d.video.other : d.video.platform) : ""));
+  if (modes.includes("En cabinet")) lines.push("En cabinet" + (d.office?.address ? " : " + d.office.address : ""));
+  if (modes.includes("Par téléphone")) lines.push("Par téléphone" + (d.phone?.number ? " : " + d.phone.number : ""));
+  return lines.length ? `<div class="v11-offer-details">${lines.map(t => `<p>${esc(t)}</p>`).join("")}</div>` : "";
+}
+const v11OffersBase = offers;
+offers = function () {
+  const box = document.createElement("div"); box.innerHTML = v11OffersBase();
+  box.querySelectorAll('[data-v6="edit-offer"]').forEach(b => { const offer = state.offers.find(o => o.id === b.dataset.id); if (offer) b.closest(".card").querySelector(".v6-image-actions")?.insertAdjacentHTML("beforebegin", v11OfferDetails(offer)); });
+  return box.innerHTML;
+};
+const v11ParentsBase = v8Parents;
+v8Parents = function () {
+  const box = document.createElement("div"); box.innerHTML = v11ParentsBase();
+  box.querySelectorAll('[data-v8="book-appointment"]').forEach(b => { const offer = state.offers.find(o => o.id === b.dataset.id); if (offer) b.insertAdjacentHTML("beforebegin", v11OfferDetails(offer)); });
+  return box.innerHTML;
+};
+
+const v11Weekdays = [[1, "Lundi"], [2, "Mardi"], [3, "Mercredi"], [4, "Jeudi"], [5, "Vendredi"], [6, "Samedi"], [0, "Dimanche"]];
+state.profile.openingHours = state.profile.openingHours || [];
+let v11HoursDeleted = null;
+function v11DaysLabel(days) {
+  if ([1, 2, 3, 4, 5].every(d => days.includes(d)) && days.length === 5) return "Du lundi au vendredi";
+  if (days.length === 7) return "Tous les jours";
+  return v11Weekdays.filter(([d]) => days.includes(d)).map(([, t]) => t).join(", ");
+}
+function v11HoursPublic(profile) {
+  const rows = profile.openingHours || []; if (!rows.length) return "";
+  return `<section class="v11-public-hours"><h3>Horaires et lieux</h3>${rows.map(r => `<p><strong>${esc(v11DaysLabel(r.days))}</strong><br>${r.byAppointment ? "Sur rendez-vous" : esc(r.start + " à " + r.end)} · ${esc(r.mode)}${r.location ? " · " + esc(r.location) : ""}</p>`).join("")}</section>`;
+}
+const v11AboutBase = v7About;
+v7About = function (internal = false, profile = state.profile) {
+  const box = document.createElement("div"); box.innerHTML = v11AboutBase(internal, profile);
+  box.querySelector(".v7-about")?.insertAdjacentHTML("beforeend", v11HoursPublic(profile));
+  return box.innerHTML;
+};
+const v11ProfileBase = v7Profile;
+v7Profile = function () {
+  const box = document.createElement("div"); box.innerHTML = v11ProfileBase();
+  const rows = state.profile.openingHours || [];
+  box.insertAdjacentHTML("beforeend", `<section class="card v11-opening-hours"><div class="v8-toolbar"><h2>Horaires et lieux</h2>${v11HoursDeleted ? '<button type="button" class="btn secondary small" data-v11="undo-hours">Revenir</button>' : ""}</div><p>Ces horaires apparaissent sur ta fiche. Les créneaux réservables se règlent dans Rendez-vous.</p><div class="v11-hours-list">${rows.map(r => `<article><p><strong>${esc(v11DaysLabel(r.days))}</strong><br>${r.byAppointment ? "Sur rendez-vous" : esc(r.start + " à " + r.end)} · ${esc(r.mode)}${r.location ? " · " + esc(r.location) : ""}</p><button type="button" class="btn ghost small" data-v11="delete-hours" data-id="${r.id}" aria-label="Supprimer cette plage horaire">${ic("trash", "s")}</button></article>`).join("")}</div><form id="v11OpeningHoursForm"><fieldset class="v11-hours-days"><legend>Jours</legend>${v11Weekdays.map(([d, t]) => `<label><input type="checkbox" name="days" value="${d}" ${d >= 1 && d <= 5 ? "checked" : ""}>${t}</label>`).join("")}</fieldset><div class="inputgrid"><label class="field"><span>De</span><input type="time" name="start" value="09:00" required></label><label class="field"><span>À</span><input type="time" name="end" value="18:00" required></label></div><label class="checkline"><input type="checkbox" name="byAppointment"> Sur rendez-vous, sans horaires fixes</label><label class="field"><span>Modalité</span><select name="mode">${["À domicile", "En cabinet", "En visio", "Par téléphone"].map(m => `<option>${m}</option>`).join("")}</select></label><label class="field"><span id="v11HoursLocationLabel">Zone d’intervention</span><input name="location" maxlength="300" placeholder="Ex. 15 km autour d’Annecy"></label><button type="submit" class="btn">Ajouter cette plage</button></form></section>`);
+  box.querySelector(".v10-google-connect")?.insertAdjacentHTML("beforeend", `<details class="v11-google-help"><summary>Qui active cette connexion et comment ?</summary><p>La responsable technique de Naïtéa configure l’accès Google Places. Chaque professionnelle fournit la fiche de son établissement ; les familles n’ont aucune configuration à faire.</p><ol><li>La responsable du projet Google Cloud active Places API (New), autorise la facturation et définit les quotas.</li><li>Elle crée une clé serveur restreinte à Places API et relève l’identifiant de l’établissement avec l’outil <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer">Place ID</a>.</li><li>La développeuse ou le développeur ajoute <code>GOOGLE_PLACES_API_KEY</code> et <code>GOOGLE_PLACES_PLACE_ID</code> dans les variables serveur du projet Vercel, pour l’environnement de prévisualisation autorisé, puis redéploie cet aperçu.</li><li>La professionnelle vérifie le nom de l’établissement avec « Actualiser depuis Google », puis active l’affichage automatique.</li></ol><p>La clé reste dans les réglages serveur. Ne la colle pas dans un message ou dans la fiche publique. Le lien Google fourni correspond à Kidigital ; il faut confirmer l’établissement avant d’afficher ses avis.</p><p class="fine">Cette démo configure une fiche. En production, Naïtéa devra associer chaque compte professionnel à sa propre fiche Google.</p></details>`);
+  return box.innerHTML;
+};
+function v11UpdateHoursFields() {
+  const form = document.getElementById("v11OpeningHoursForm"); if (!form) return;
+  const free = form.elements.byAppointment.checked;
+  for (const key of ["start", "end"]) { form.elements[key].disabled = free; form.elements[key].required = !free; }
+  const mode = form.elements.mode.value;
+  document.getElementById("v11HoursLocationLabel").textContent = mode === "En cabinet" ? "Adresse du cabinet" : mode === "En visio" ? "Outil de visio" : mode === "Par téléphone" ? "Numéro professionnel (facultatif)" : "Zone d’intervention";
+  form.elements.location.placeholder = mode === "En cabinet" ? "Rue, code postal et ville" : mode === "En visio" ? "Ex. Zoom ou Google Meet" : mode === "Par téléphone" ? "+33…" : "Ex. 15 km autour d’Annecy";
+  form.elements.location.required = mode === "En cabinet";
+}
+const v11ModalBase = showModal;
+showModal = function (...args) { v11ModalBase(...args); v11UpdateModalityFields(); };
+const v11HandleBase = handleForm;
+handleForm = function (form) {
+  if (form.id === "v6OfferForm") {
+    const data = new FormData(form), modes = data.getAll("modality");
+    const value = name => String(form.elements[name]?.value || "").trim();
+    if (!value("title")) return toast("Renseigne le nom de l’accompagnement.");
+    if (modes.includes("À domicile") && !value("homeZone")) return toast("Précise la zone d’intervention à domicile.");
+    if (modes.includes("En cabinet") && !value("officeAddress")) return toast("Précise l’adresse du cabinet.");
+    if (modes.includes("En visio") && value("videoPlatform") === "Autre" && !value("videoOther")) return toast("Précise l’outil de visio.");
+    const feesEnabled = modes.includes("À domicile") && form.elements.travelFees.checked;
+    const perKm = +value("feePerKm") || 0, fixed = +value("feeFixed") || 0, includedKm = +value("feeIncludedKm") || 0;
+    if (feesEnabled && (perKm < 0 || fixed < 0 || includedKm < 0 || !Number.isFinite(perKm + fixed + includedKm) || (!perKm && !fixed))) return toast("Indique un tarif par km ou un forfait de déplacement positif.");
+    const details = {};
+    if (modes.includes("À domicile")) details.home = { zone: value("homeZone"), fees: { enabled: feesEnabled, perKm, fixed, includedKm } };
+    if (modes.includes("En visio")) details.video = { platform: value("videoPlatform"), other: value("videoOther") };
+    if (modes.includes("En cabinet")) details.office = { address: value("officeAddress") };
+    if (modes.includes("Par téléphone")) details.phone = { number: value("offerPhone") };
+    const id = value("offerId"), previous = new Set(state.offers.map(o => o.id));
+    form.elements.location.value = details.home?.zone || details.office?.address || (details.video ? "En visio : " + (details.video.other || details.video.platform) : "");
+    v11HandleBase(form);
+    const offer = id ? state.offers.find(o => o.id === id) : state.offers.find(o => !previous.has(o.id));
+    if (offer) { offer.modalityDetails = details; save(); render(); }
+    return;
+  }
+  if (form.id === "v11OpeningHoursForm") {
+    const d = Object.fromEntries(new FormData(form)), days = [...new FormData(form).getAll("days")].map(Number);
+    if (!days.length) return toast("Sélectionne au moins un jour.");
+    if (!d.byAppointment && (!d.start || !d.end || d.start >= d.end)) return toast("L’heure de fin doit suivre l’heure de début.");
+    if (d.mode === "En cabinet" && !d.location.trim()) return toast("Indique l’adresse du cabinet.");
+    (state.profile.openingHours ||= []).push({ id: uid(), days, start: d.start || "", end: d.end || "", byAppointment: !!d.byAppointment, mode: d.mode, location: d.location.trim() });
+    save(); render(); toast("Horaires ajoutés à la fiche parents."); return;
+  }
+  return v11HandleBase(form);
+};
+const v11RenderHoursBase = render;
+render = function () { v11RenderHoursBase(); v11UpdateHoursFields(); };
+document.addEventListener("change", event => {
+  if (event.target.closest("#v6OfferForm")) v11UpdateModalityFields();
+  if (event.target.closest("#v11OpeningHoursForm")) v11UpdateHoursFields();
+}, true);
+document.addEventListener("click", event => {
+  const button = event.target.closest('[data-v11="delete-hours"],[data-v11="undo-hours"]'); if (!button) return;
+  if (button.dataset.v11 === "delete-hours") { v11HoursDeleted = structuredClone(state.profile.openingHours); state.profile.openingHours = state.profile.openingHours.filter(r => r.id !== button.dataset.id); }
+  else { state.profile.openingHours = v11HoursDeleted || []; v11HoursDeleted = null; }
+  save(); render();
+}, true);
+
+// Prepare the media before the share click so transient user activation is kept.
+const v11PreviewBase = v9Preview;
+v9Preview = async function () {
+  await v11PreviewBase();
+  if (!v9Publication || !document.querySelector(".v9-publication-preview")) return;
+  const publication = v9Publication;
+  const buttons = [...document.querySelectorAll('[data-v9="share-social"]')]; buttons.forEach(b => b.disabled = true);
+  try {
+    const original = await v3Img(publication.image), ratio = original.width / original.height;
+    const canvas = document.createElement("canvas");
+    canvas.width = 1080;
+    canvas.height = v8Design.format === "story" ? 1920 : Math.round(1080 / Math.max(.8, Math.min(1.91, ratio)));
+    const ctx = canvas.getContext("2d"); ctx.fillStyle = v8Design.bg || "#FFF7F1"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const scale = Math.min(canvas.width / original.width, canvas.height / original.height);
+    ctx.drawImage(original, (canvas.width - original.width * scale) / 2, (canvas.height - original.height * scale) / 2, original.width * scale, original.height * scale);
+    publication.shareBlob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", .95));
+    publication.shareImage = canvas.toDataURL("image/jpeg", .95);
+    publication.shareSize = `${canvas.width} × ${canvas.height}`;
+    document.querySelector(".v9-publication-preview")?.insertAdjacentHTML("afterend", '<div class="v8-toolbar"><button type="button" class="btn secondary small" data-v11="copy-preview-caption">Copier le texte de la publication</button><span class="fine" id="v11PreviewCopyStatus" role="status">Sur mobile, colle la légende dans Instagram après le partage de la photo.</span></div>');
+    document.querySelector(".v9-share-buttons")?.insertAdjacentHTML("beforebegin", `<p class="fine v11-share-format">Pour Instagram, un JPEG ${publication.shareSize} est préparé. La composition est conservée ; les marges et les zones transparentes reprennent le fond du document.</p>`);
+  } catch { toast("Le JPEG de partage n’a pas pu être préparé. Réessaie l’aperçu."); }
+  finally { buttons.forEach(b => b.disabled = !publication.shareBlob); }
+};
+async function v11NativeShare(channel) {
+  const p = v9Publication;
+  const file = new File([p.shareBlob], `Naitea-${channel}.jpg`, { type: "image/jpeg" });
+  let supported = false;
+  try { supported = !!navigator.share && !!navigator.canShare?.({ files: [file] }); } catch {}
+  if (!supported) return false;
+  try {
+    await navigator.share(channel === "instagram" ? { files: [file] } : { files: [file], text: p.text, title: "Publication Naïtéa" });
+    toast("Visuel transmis au menu de partage. Valide la publication dans l’application choisie.");
+    return true;
+  } catch (error) {
+    if (error.name === "AbortError") return true;
+    return false;
+  }
+}
+v9ShareSocial = async function (channel) {
+  if (!document.getElementById("v9ShareConfirmed")?.checked) return toast("Confirme la vérification du visuel et du texte.");
+  if (!v9Publication?.shareBlob) return toast("Le visuel de partage est en cours de préparation.");
+  v9Publication.text = document.getElementById("v9PublicationText").value;
+  if (await v11NativeShare(channel)) return;
+  const name = channel === "facebook" ? "Facebook" : "Instagram";
+  v9Download(`Naitea-${channel}.jpg`, v9Publication.shareBlob, "image/jpeg");
+  showModal("Publier sur " + name, "", `<div class="v11-social-ready"><img src="${v9Publication.shareImage}" alt="Visuel JPEG prêt pour ${name}"><div><h3>Ton visuel et ton texte sont prêts</h3><ol><li>Récupère le fichier <strong>Naitea-${channel}.jpg</strong> dans tes téléchargements.</li><li>Copie le texte ci-dessous.</li><li>Dans ${name}, choisis <strong>Créer${channel === "instagram" ? " puis Publication" : " une publication"}</strong>, importe le JPEG et colle le texte.</li></ol><p>Sur ordinateur, l’import du visuel et la validation finale se font dans ${name}.</p><div class="v8-toolbar"><button type="button" class="btn secondary" data-v11="download-social" data-channel="${channel}">Télécharger le visuel</button><a class="btn" href="https://www.${channel === "facebook" ? "facebook" : "instagram"}.com/" target="_blank" rel="noopener noreferrer">Ouvrir ${name}</a></div></div></div><label class="field"><span>Texte à publier</span><textarea id="v11SocialCaption" rows="7">${esc(v9Publication.text)}</textarea></label><button type="button" class="btn secondary" data-v11="copy-caption">Copier le texte</button><p id="v11ShareStatus" class="fine" role="status">Aucune publication automatique n’a été effectuée.</p>`);
+  document.querySelector(".modal")?.classList.add("v11-social-modal");
+};
+document.addEventListener("click", async event => {
+  const button = event.target.closest('[data-v11="download-social"],[data-v11="copy-caption"]'); if (!button) return;
+  if (button.dataset.v11 === "download-social") return v9Download(`Naitea-${button.dataset.channel}.jpg`, v9Publication.shareBlob, "image/jpeg");
+  const field = document.getElementById("v11SocialCaption");
+  v9Publication.text = field.value;
+  try { await navigator.clipboard.writeText(field.value); document.getElementById("v11ShareStatus").textContent = "Texte copié. Tu peux le coller dans ta publication."; }
+  catch {
+    field.focus(); field.select();
+    const copied = document.execCommand("copy");
+    document.getElementById("v11ShareStatus").textContent = copied ? "Texte copié." : "Texte sélectionné. Utilise Ctrl ou Cmd C pour le copier.";
+  }
+}, true);
+document.addEventListener("click", async event => {
+  const button = event.target.closest('[data-v11="copy-preview-caption"]'); if (!button) return;
+  const field = document.getElementById("v9PublicationText"); if (!field) return;
+  const status = document.getElementById("v11PreviewCopyStatus");
+  try { await navigator.clipboard.writeText(field.value); status.textContent = "Texte copié. Tu pourras le coller dans Instagram."; }
+  catch { field.focus(); field.select(); status.textContent = document.execCommand("copy") ? "Texte copié." : "Texte sélectionné. Utilise Ctrl ou Cmd C pour le copier."; }
+}, true);
+document.addEventListener("dblclick", event => {
+  const object = event.target.closest("[data-design-layer]");
+  if (object && v8Design.layers.find(l => l.id === object.dataset.designLayer)?.type === "image") { v11Cropping = object.dataset.designLayer; v8Selected = v11Cropping; render(); }
+}, true);
 
 render();
 

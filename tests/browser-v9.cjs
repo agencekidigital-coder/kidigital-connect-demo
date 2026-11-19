@@ -139,7 +139,7 @@ const { chromium } = require("playwright"),
     .first();
   await text.focus();
   await p.keyboard.press("Enter");
-  const inline = p.locator('.v9-inline-text[contenteditable="plaintext-only"]');
+  const inline = p.locator('.v9-inline-text[contenteditable="true"]');
   await inline.fill("Mon texte direct sur le visuel");
   await p.keyboard.press("Escape");
   assert(

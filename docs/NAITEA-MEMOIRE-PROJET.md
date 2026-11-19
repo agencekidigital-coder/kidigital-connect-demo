@@ -1,6 +1,6 @@
 # Naïtéa — mémoire du projet et décisions
 
-Dernière mise à jour : 18 novembre 2026.
+Dernière mise à jour : 19 novembre 2026.
 
 ## Cadre permanent
 
@@ -84,3 +84,20 @@ Dernière mise à jour : 18 novembre 2026.
 - `docs/naitea-workspace-v8.md` : parcours professionnels/familles et limites de démonstration.
 - `docs/naitea-refinements-v9.md` : détails et vérifications de la passe du 17 novembre.
 - `docs/naitea-refinements-v10.md` : corrections du 18 novembre, tests et activation optionnelle des avis Google.
+- `docs/naitea-refinements-v11.md` : texte enrichi, cadrage, partage, modalités, horaires et filtre par date.
+
+## Ajustements du 19 novembre 2026
+
+- Personnaliser une partie ou une ligne dans un même bloc texte : gras, italique, souligné, police, taille, couleur et espacement des lettres. Interligne réglable pour le bloc. Stocker des segments structurés et conserver les styles dans le PNG exporté, sans enregistrer de HTML brut.
+- Barre de mise en forme G/I/S ; supprimer le contrôle « Graisse » et sa liste. Conserver la sélection quand on utilise la barre ou le catalogue de polices.
+- Le changement d’événement actualise les informations du visuel et le texte de publication associé. Conserver les textes personnalisés par événement ; l’annulation et le rétablissement doivent garder visuel et légende cohérents.
+- Transformer les anciens traits décoratifs en formes sélectionnables et supprimables. Un panneau « Éléments du visuel » permet d’atteindre les petites formes.
+- Les images conservent leurs proportions lors du redimensionnement du cadre ; déplacement dans le cadre, zoom, recentrage et débordement optionnel. La prévisualisation et l’export suivent les mêmes coordonnées.
+- Ctrl/Cmd C et V pour les objets du studio, en conservant les styles ; copie normale dans les champs. Palette de la professionnelle proposée pour les couleurs des textes, formes et fonds.
+- Partage Instagram : JPEG compatible préparé avant le clic ; transfert du fichier seul via le menu natif pour les appareils compatibles, copie de la légende séparée. Sur ordinateur, téléchargement du JPEG, copie du texte et ouverture d’Instagram avec étapes explicites. Ne pas annoncer une publication automatique ni prétendre qu’un simple lien web importe le fichier dans Instagram.
+- Ajouter le pictogramme téléphone sur la fiche parents.
+- Accompagnements : détails par modalité. Domicile = zone + frais facultatifs (€/km, forfait, distance incluse) ; visio = outil ; cabinet = adresse ; téléphone = numéro facultatif. Afficher ces informations côté parents. Aucun calcul de trajet ni débit automatique des frais.
+- Horaires et lieux publics par groupes de jours, heures fixes ou sur rendez-vous, modalité et lieu. Ces horaires de présentation restent distincts des disponibilités réservables.
+- Familles : type d’atelier puis date ou « Tous », filtrés sur les inscriptions liées au même atelier. L’export suit la sélection.
+- Google Places : activation côté administration technique Naïtéa. La responsable du compte Google Cloud autorise l’API et la facturation ; l’administratrice/développeuse configure les variables serveur Vercel. Les professionnelles fournissent uniquement leur fiche ; ne jamais demander de coller une clé dans la conversation. Aucune activation ni clé ajoutée pendant cette passe.
+- Les modèles Canva de l’utilisatrice seront intégrés ultérieurement, après réception. **Rappel créé à sa demande pour le 26 novembre 2026 à 13 h 34, Europe/Paris**, après son choix explicite « Dans une semaine ».
