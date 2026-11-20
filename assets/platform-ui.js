@@ -4,7 +4,8 @@
     create(deps) {
       const T = root.NaiteaPlatformTools, B = root.BerceauTools, { esc, ic } = deps;
       const state = deps.getState;
-      let bookingDraft = {}, draftKey = '', connection = { configured: false, connected: false }, googleReviews = [], selectedLocation = '', busy = false, workshopAI = false;
+      let bookingDraft = {}, draftKey = '', connection = { configured: false, connected: false }, googleReviews = [], selectedLocation = '', loadedReviewLocation = '', busy = false, workshopAI = false;
+      const googleReplyDrafts = new Map();
       const local = () => state().berceau;
       // Upgrade only unchanged stock offers from older local demos. User-defined modes stay intact.
       const seed = state().offers.find(o => o.id === 'o1' && o.title === 'Accompagnement post-partum' && o.description === 'Présence et soutien à domicile pour traverser les premières semaines sereinement.' && !o.modalities);
@@ -242,14 +243,17 @@
         if (!selectedLocation && !document.getElementById('naiteaGoogleLocation') && document.getElementById('naiteaGoogleLocations')) await loadLocations();
         selectedLocation = document.getElementById('naiteaGoogleLocation')?.value || selectedLocation;
         if (!selectedLocation) return paintGoogleStatus('Choisis ton établissement puis actualise les avis.');
-        const result = await api('reviews', { location: selectedLocation }); googleReviews = result.reviews;
+        const requestedLocation = selectedLocation, result = await api('reviews', { location: requestedLocation });
+        if (requestedLocation !== selectedLocation) return;
+        googleReviews.forEach((r, n) => { const input = document.getElementById('naiteaGoogleReply' + n); if (input) googleReplyDrafts.set(loadedReviewLocation + ':' + r.id, input.value); });
+        googleReviews = result.reviews; loadedReviewLocation = requestedLocation;
         local().googleLocation = selectedLocation;
         const previous = local().googleReviewIds, ids = googleReviews.map(r => r.id);
         if (previous && ids.some(id => !previous.includes(id))) state().logs.unshift({ id: deps.uid(), type: 'star', text: 'De nouveaux avis Google attendent une réponse.', date: 'À l’instant · Google Business Profile' });
         local().googleReviewIds = ids;
         deps.setGoogleSummary(result);
         const inbox = document.getElementById('naiteaGoogleReviews');
-        if (inbox) inbox.innerHTML = `<div class="naitea-review-summary"><strong>${Number(result.averageRating || 0).toFixed(1)}/5</strong><span> · ${result.totalReviewCount} avis Google</span></div><h3>${googleReviews.length} avis sans réponse</h3>${googleReviews.map((r, n) => `<article class="naitea-google-review"><p>${'★'.repeat(r.rating)} · ${esc(r.author || 'Client Google')}</p><p class="naitea-review-text">${esc(r.comment || 'Avis sans commentaire')}</p><label class="field"><span>Ta réponse publique</span><textarea id="naiteaGoogleReply${n}" rows="4" maxlength="4000"></textarea></label><div class="naitea-choice-row">${button('draft-google-reply', 'Préparer une réponse', `data-index="${n}"`)}${button('publish-google-reply', 'Publier sur Google', `data-index="${n}"`)}</div><p class="fine" role="status" id="naiteaGoogleReplyStatus${n}"></p></article>`).join('') || '<p>Tous les avis récupérés ont déjà une réponse.</p>'}`;
+        if (inbox) inbox.innerHTML = `<div class="naitea-review-summary"><strong>${Number(result.averageRating || 0).toFixed(1)}/5</strong><span> · ${result.totalReviewCount} avis Google</span></div><h3>${googleReviews.length} avis sans réponse</h3>${googleReviews.map((r, n) => `<article class="naitea-google-review"><p>${'★'.repeat(r.rating)} · ${esc(r.author || 'Client Google')}</p><p class="naitea-review-text">${esc(r.comment || 'Avis sans commentaire')}</p><label class="field"><span>Ta réponse publique</span><textarea id="naiteaGoogleReply${n}" rows="4" maxlength="4000">${esc(googleReplyDrafts.get(requestedLocation + ':' + r.id) || '')}</textarea></label><div class="naitea-choice-row">${button('draft-google-reply', 'Préparer une réponse', `data-index="${n}"`)}${button('publish-google-reply', 'Publier sur Google', `data-index="${n}"`)}</div><p class="fine" role="status" id="naiteaGoogleReplyStatus${n}"></p></article>`).join('') || '<p>Tous les avis récupérés ont déjà une réponse.</p>'}`;
         paintGoogleStatus('Avis actualisés depuis ton établissement Google. Une validation est demandée avant chaque publication.');
       }
       function calendarManage() {
@@ -268,10 +272,10 @@
         if (form.id === 'naiteaChatForm') { const q = form.elements.question.value.trim(); if (q) { answerChat(q); form.reset(); } return true; }
         if (form.id === 'naiteaChatSettings') { local().chatEnabled = form.elements.enabled.checked; if (deps.save()) { deps.render(); deps.toast('Affichage de l’assistant enregistré.'); } return true; }
         if (form.id === 'naiteaGooglePublish') {
-          const index = +form.elements.reviewIndex.value, review = googleReviews[index], reply = form.elements.reply.value.trim();
-          if (!form.elements.confirm.checked || !review || !reply) return true;
+          const reviewId = form.elements.reviewId.value, reviewLocation = form.elements.reviewLocation.value, reply = form.elements.reply.value.trim();
+          if (!form.elements.confirm.checked || !reviewId || !reviewLocation || !reply) return true;
           const submit = form.querySelector('button[type="submit"]'); submit.disabled = true;
-          try { await api('reply', { location: selectedLocation, review: review.id, reply, confirmed: true }); deps.closeModal(); await loadReviews(); deps.toast('Réponse publiée sur Google.'); } catch (e) { form.querySelector('[role="status"]').textContent = e.message; } finally { submit.disabled = false; } return true;
+          try { await api('reply', { location: reviewLocation, review: reviewId, reply, confirmed: true }); googleReplyDrafts.delete(reviewLocation + ':' + reviewId); deps.closeModal(); await loadReviews(); deps.toast('Réponse publiée sur Google.'); } catch (e) { form.querySelector('[role="status"]').textContent = e.message; } finally { submit.disabled = false; } return true;
         }
         if (form.id === 'naiteaCalendarForm') {
           const { event, payload } = calendarDraft(), status = document.getElementById('naiteaCalendarStatus');
@@ -336,7 +340,7 @@
           if (action === 'disconnect-google') { await api('disconnect', {}); connection.connected = false; googleReviews = []; document.getElementById('naiteaGoogleReviews').innerHTML = ''; document.getElementById('naiteaGoogleLocations').innerHTML = ''; paintGoogleStatus(); return; }
           if (action === 'load-google-reviews') { if (busy) return; busy = true; b.disabled = true; await loadReviews(); return; }
           if (action === 'draft-google-reply') { const r = googleReviews[+b.dataset.index]; document.getElementById('naiteaGoogleReply' + b.dataset.index).value = B.localReviewReply({ rating: r.rating }); document.getElementById('naiteaGoogleReplyStatus' + b.dataset.index).textContent = 'Base de réponse locale à personnaliser. Aucun texte envoyé à une IA ni publié.'; return; }
-          if (action === 'publish-google-reply') { const i = +b.dataset.index, r = googleReviews[i], reply = document.getElementById('naiteaGoogleReply' + i).value.trim(); if (!reply) throw Error('Prépare et relis ta réponse avant publication.'); deps.showModal('Publier cette réponse sur Google ?', '', `<form id="naiteaGooglePublish"><input type="hidden" name="reviewIndex" value="${i}"><p>${esc(r.comment || 'Avis sans commentaire')}</p><label class="field"><span>Réponse publique</span><textarea name="reply" rows="6" required maxlength="4000">${esc(reply)}</textarea></label><label class="checkline"><input name="confirm" type="checkbox" required> J’ai relu ce texte. Je confirme sa publication réelle sur ma fiche Google.</label><button class="btn" type="submit">Publier la réponse</button><p role="status" class="fine"></p></form>`); return; }
+          if (action === 'publish-google-reply') { const i = +b.dataset.index, r = googleReviews[i], reply = document.getElementById('naiteaGoogleReply' + i).value.trim(); if (!reply) throw Error('Prépare et relis ta réponse avant publication.'); deps.showModal('Publier cette réponse sur Google ?', '', `<form id="naiteaGooglePublish"><input type="hidden" name="reviewId" value="${esc(r.id)}"><input type="hidden" name="reviewLocation" value="${esc(loadedReviewLocation)}"><p>${esc(r.comment || 'Avis sans commentaire')}</p><label class="field"><span>Réponse publique</span><textarea name="reply" rows="6" required maxlength="4000">${esc(reply)}</textarea></label><label class="checkline"><input name="confirm" type="checkbox" required> J’ai relu ce texte. Je confirme sa publication réelle sur ma fiche Google.</label><button class="btn" type="submit">Publier la réponse</button><p role="status" class="fine"></p></form>`); return; }
           if (action === 'calendar-manage') return calendarManage();
           if (action === 'calendar-preview') return calendarPreview();
           if (action === 'calendar-ics') { const { event, payload } = calendarDraft(), entry = B.calendarEntry(event, 'workshop'); entry.description = payload.description; const content = B.calendarICS([entry]).replace('BEGIN:VEVENT\r\n', 'BEGIN:VEVENT\r\nCLASS:PRIVATE\r\n'); deps.download('Naitea-atelier-inscrits-prive.ics', content, 'text/calendar;charset=utf-8'); return; }
@@ -347,7 +351,7 @@
       fetch('/api/workshop-description', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(r => { workshopAI = r?.configured === true; }).catch(() => {});
       selectedLocation = local().googleLocation || '';
       // Poll only while this view is open. No claim of unattended background delivery.
-      setInterval(() => { if (connection.connected && selectedLocation && !document.hidden && deps.mode() === 'pro' && !busy) { busy = true; loadReviews().catch(e => paintGoogleStatus(e.message)).finally(() => busy = false); } }, 300000);
+      setInterval(() => { if (connection.connected && selectedLocation && !document.hidden && deps.mode() === 'pro' && !busy && !document.getElementById('naiteaGooglePublish') && ![...document.querySelectorAll('.naitea-google-review textarea')].some(n => n.value.trim() || n === document.activeElement)) { busy = true; loadReviews().catch(e => paintGoogleStatus(e.message)).finally(() => busy = false); } }, 300000);
       importGiftShop();
       return { eventForm, decorateBooking, decorateGift, before, after, afterRender, submit, giftShopMode, giftShop, giftCard, downloadGift, icon };
     },

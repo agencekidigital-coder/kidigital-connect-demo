@@ -34,6 +34,8 @@ L’adaptateur `api/workshop-description.js` utilise la même frontière authent
 
 58 tests unitaires : documents fiscaux de démonstration, calculs en centimes, absence de double TVA, original/avoir, données privées dans les liens, champs conditionnels, catégories, OAuth/tokens, pagination et confirmations Google.
 
+Un parcours Google avec API fictive vérifie aussi la conservation des brouillons quand de nouveaux avis changent leur ordre, la pause de l’actualisation pendant la rédaction/confirmation et la publication liée à l’identifiant stable de l’avis relu. Ce test ne publie rien sur Google.
+
 Parcours Chromium 1500 px et 390 px : personnalisation de bon, prestation sur le bon, PDF, boutique partagée vers un autre navigateur, atelier physique/visio, publics/âge, réservation domicile/visio, téléphone obligatoire, contact/email préparé, chatbot, horaires, export privé des inscrits et absence de banque officielle dans le studio. Les parcours antérieurs de réservation, rappels, facture/avoir, profil et édition créative sont conservés. Les services non configurés retournent un état explicite et ne réalisent aucune écriture externe.
 
 Lancer : `NODE_USE_ENV_PROXY=1 node tests/serve-demo.cjs` (port 4182 par défaut), puis `BASE_URL=http://localhost:4182 node tests/browser-platform.cjs`. L’option proxy concerne seulement l’environnement de développement lorsqu’un proxy est fourni. Production Vercel : fonctions Node 24 et pages statiques, aucun build d’application requis.
