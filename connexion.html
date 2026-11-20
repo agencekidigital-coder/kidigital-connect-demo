@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#FEF8ED">
+<meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="/assets/berceau/logos/naitea-symbole-berceau.png">
 <title>Connexion | Naïtéa</title>
 <style>
@@ -87,20 +88,20 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 </form>
 </section>
 <section id="accountPanel" hidden>
-<h1>Ton compte Naïtéa 🌸</h1>
-<p class="intro">L'authentification fonctionne. Les données de la démo ne sont pas encore synchronisées avec ce compte.</p>
+<h1>Mon compte Naïtea</h1>
+<p class="intro">Votre compte est créé. Les données de démonstration restent enregistrées dans ce navigateur.</p>
 <div class="account"><strong>Connectée en tant que</strong><span id="accountEmail"></span></div>
 <p><a class="secondary" href="/">Ouvrir la démo actuelle</a></p>
 <button class="primary" type="button" id="logoutBtn">Se déconnecter</button>
 </section>
-<div id="status" class="status" role="status" aria-live="polite">Connexion à Supabase en cours…</div>
-<p class="note">Version de test : ne saisis aucune donnée réelle concernant des familles ou des enfants. Les paiements Stripe ne sont pas encore actifs.</p>
-<div class="footer"><a href="/">← Retour à la démo</a></div>
+<div id="status" class="status" role="status" aria-live="polite">Chargement du formulaire…</div>
+<p class="note">Version de test : ne saisissez aucune donnée réelle concernant des familles ou des enfants. Les paiements sont simulés.</p>
+<div class="footer"><a id="backLink" href="/">Retour à la démo</a></div>
 </div>
 </main>
 <script type="module">
 let client = null;
-let mode = 'login';
+let mode = new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login';
 let recoveryMode = false;
 const $ = (id) => document.getElementById(id);
 function status(message, type) {
@@ -109,15 +110,19 @@ function status(message, type) {
 }
 function selectMode(next) {
   mode = next;
+  document.querySelector('#authPanel h1').textContent = mode === 'signup' ? 'Créer mon compte professionnel' : 'Connexion';
+  document.querySelector('#authPanel .intro').textContent = mode === 'signup' ? 'Utilisez votre email professionnel pour découvrir Naïtea avec un compte de test.' : 'Retrouvez votre espace professionnel Naïtea.';
+  document.title = mode === 'signup' ? 'Créer mon compte professionnel | Naïtea' : 'Connexion | Naïtea';
   $('loginTab').setAttribute('aria-selected', String(mode === 'login'));
   $('signupTab').setAttribute('aria-selected', String(mode === 'signup'));
   $('nameGroup').hidden = mode !== 'signup';
   $('forgotRow').hidden = mode !== 'login';
   $('forgotPanel').hidden = true;
+  $('authForm').hidden = false;
   $('fullName').required = mode === 'signup';
   $('password').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
   $('submitBtn').textContent = mode === 'signup' ? 'Créer mon compte' : 'Se connecter';
-  status('Les comptes sont gérés par Supabase Auth. Cette démo ne partage pas encore les données entre appareils.');
+  status(mode === 'signup' ? 'Choisissez un mot de passe de 12 caractères minimum.' : 'Renseignez votre email et votre mot de passe.');
 }
 async function showAccount() {
   if (recoveryMode) return;
@@ -131,15 +136,17 @@ async function showAccount() {
   }
 }
 async function init() {
+  selectMode(mode);
+  if (new URLSearchParams(location.search).get('from') === 'landing') { $('backLink').href = '/decouvrir'; $('backLink').textContent = 'Retour à Naïtea'; }
   try {
     const response = await fetch('/api/public-config', { cache: 'no-store' });
-    if (!response.ok) throw new Error('Configuration indisponible. Vérifie les variables Vercel et le déploiement.');
+    if (!response.ok) throw new Error('La création de compte est momentanément indisponible. Vous pouvez explorer la démo et réessayer plus tard.');
     const config = await response.json();
-    if (!config.url || !config.publishableKey) throw new Error('Configuration publique incomplète.');
+    if (!config.url || !config.publishableKey) throw new Error('Le service de connexion est momentanément indisponible.');
     const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     client = sdk.createClient(config.url, config.publishableKey);
     $('submitBtn').disabled = false;
-    selectMode('login');
+    selectMode(mode);
     if (window.location.hash.includes('type=recovery')) {
       // Le SDK traite automatiquement le jeton reçu dans l'URL.
       // Ne pas afficher l'espace connecté tant que la récupération est en cours.

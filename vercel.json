@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/decouvrir", "destination": "/api/landing" },
+    { "source": "/decouvrir/", "destination": "/api/landing" },
+    { "source": "/robots.txt", "destination": "/api/landing?format=robots" },
+    { "source": "/sitemap.xml", "destination": "/api/landing?format=sitemap" }
+  ],
+  "functions": {
+    "api/landing.js": { "includeFiles": "marketing/landing.html" }
+  },
+  "images": {
+    "sizes": [64, 128, 256, 384, 640, 960, 1280, 1600],
+    "localPatterns": [
+      { "pathname": "^/assets/landing/.*$", "search": "" },
+      { "pathname": "^/assets/berceau/transparent/.*$", "search": "" },
+      { "pathname": "^/assets/photos/.*$", "search": "" }
+    ],
+    "remotePatterns": [],
+    "minimumCacheTTL": 86400,
+    "qualities": [80],
+    "formats": ["image/webp"],
+    "dangerouslyAllowSVG": false,
+    "contentDispositionType": "inline"
+  }
+}

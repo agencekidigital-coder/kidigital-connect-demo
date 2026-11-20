@@ -149,3 +149,11 @@ Dernière mise à jour : 20 novembre 2026.
 - Bon à usage unique : facture selon régime, sans deuxième TVA à l’utilisation ; complément seul facturé. Bon à usages multiples : reçu sans TVA à l’émission, traitement lors de la prestation. Franchise : mention CIBS actuelle. Ne pas présenter les documents locaux/simulés comme des factures fiscalement valables ni un service de facturation électronique activé.
 - Le rappel du 26 novembre à 13 h 34 Europe/Paris inclut maintenant les modèles Canva de publications, flyers et cartes cadeaux.
 - Voir `docs/naitea-platform-v12.md`, `docs/naitea-workshop-research.md` et `docs/naitea-invoices.md`. Aucune fusion main ni mise en production, aucune modification Supabase/Stripe.
+
+## Landing professionnelle du 20 novembre 2026
+
+- Demande : créer une landing marketing avec une promesse immédiatement compréhensible, des textes concis et les mots clés périnatalité, parentalité et petite enfance. Pas d’eyebrow, de tiret cadratin, de remplissage ou de témoignage inventé.
+- L’utilisatrice a choisi **Créer un compte professionnel** pour l’action principale. Les boutons ouvrent le formulaire existant directement en mode inscription ; la démo reste accessible en second choix.
+- `/decouvrir` porte la landing ; `/` conserve la plateforme pendant sa vérification. Charte Berceau officielle, pictogrammes transparents, photos locales avec licences et captures réelles de la démonstration.
+- SEO rendu côté serveur, métadonnées de partage, données structurées, sitemap. Les previews restent noindex, l’indexation est préparée pour une future publication approuvée.
+- Aucun service de paiement/email activé, aucune donnée réelle de famille ni compte créé pendant les tests. Supabase et Stripe inchangés. Voir `docs/naitea-landing.md`.
