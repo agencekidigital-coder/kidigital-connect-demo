@@ -49,3 +49,5 @@ La branche `feature/naitea-supabase-auth-foundation` contient la refonte Naïté
 Les [ajustements du 18 novembre](docs/naitea-refinements-v10.md) ajoutent les filtres familles, le profil réactif, le catalogue de polices corrigé, les imports transparents, les modèles, l’historique et la charte graphique. La synchronisation des avis Google est préparée et nécessite encore une configuration Places API autorisée.
 
 Les [ajustements du 19 novembre](docs/naitea-refinements-v11.md) ajoutent la mise en forme d’une sélection de texte, le cadrage des images, le copier-coller, les informations d’événement actualisées, le partage JPEG, les modalités détaillées, les horaires publics et le filtre par date d’atelier.
+
+L’[audit Materneo du 20 novembre](docs/naitea-materneo-benchmark.md) compare les fonctionnalités publiques et précise le positionnement de Naïtéa. Cette passe enrichit les fiches professionnelles : spécialités, publics, langues, formations déclarées, galerie, FAQ, informations pratiques, filtre des accompagnements, favoris et contact de démonstration. L’URL `/?vue=parents` ouvre directement cet aperçu.

@@ -101,3 +101,16 @@ Dernière mise à jour : 19 novembre 2026.
 - Familles : type d’atelier puis date ou « Tous », filtrés sur les inscriptions liées au même atelier. L’export suit la sélection.
 - Google Places : activation côté administration technique Naïtéa. La responsable du compte Google Cloud autorise l’API et la facturation ; l’administratrice/développeuse configure les variables serveur Vercel. Les professionnelles fournissent uniquement leur fiche ; ne jamais demander de coller une clé dans la conversation. Aucune activation ni clé ajoutée pendant cette passe.
 - Les modèles Canva de l’utilisatrice seront intégrés ultérieurement, après réception. **Rappel créé à sa demande pour le 26 novembre 2026 à 13 h 34, Europe/Paris**, après son choix explicite « Dans une semaine ».
+
+## Audit concurrentiel et fiches du 20 novembre 2026
+
+- Materneo étudié sur ses pages publiques : annuaire, deux fiches, agenda, offres, charte et Village. Voir `docs/naitea-materneo-benchmark.md` pour les sources, limites et axes différenciants.
+- Materneo annonce déjà un agenda intégré en option, Stripe, rappels email, synchronisation Google et communauté. Ne pas présenter ces fonctions comme exclusives à Naïtéa. Aucun compte payant ni envoi réel testé chez la concurrente.
+- Positionnement recommandé : relier les offres, les familles et la communication dans l’espace de travail des professionnelles. Le studio, la charte réutilisable, les filtres familles et les scénarios métier sont les principales différences à rendre exploitables ; l’annuaire public et le référencement sont des forces actuelles de Materneo.
+- Fiche professionnelle enrichie : navigation, spécialités/publics/langues, approche, formations déclarées sans faux badge, informations pratiques, jusqu’à 12 photos avec droits et descriptions, FAQ, liens complémentaires, favoris locaux et recherche des accompagnements par texte/modalité.
+- Prochaine disponibilité calculée à partir des règles existantes. Calendrier mensuel et réservations précédentes conservés. Les horaires publics restent distincts des créneaux réservables.
+- Contact de démonstration : message fictif enregistré dans le navigateur et affiché dans le profil professionnel, notification locale, aucun email ni abonnement marketing automatique. Aucun champ de santé.
+- Le lien `/?vue=parents` ouvre le profil fictif. Les modifications locales ne sont pas partagées entre appareils ; le dialogue de partage l’indique explicitement.
+- Les coordonnées, réseaux, Google et horaires gardent leurs formulaires. Le nouveau contenu se règle dans Profil public > Le contenu de ma fiche, avec aperçu et enregistrement explicite.
+- Le travail de naming/logo Malamae reste une exploration graphique. La plateforme conserve Naïtéa dans cette passe.
+- Aucun changement des données Supabase, aucune configuration Stripe, aucun déploiement de production ni fusion dans main.

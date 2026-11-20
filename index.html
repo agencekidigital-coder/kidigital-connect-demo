@@ -210,6 +210,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <link rel="stylesheet" href="/assets/interface.css" />
 <link rel="stylesheet" href="/assets/workspace-v10.css" />
 <link rel="stylesheet" href="/assets/workspace-v11.css" />
+<link rel="stylesheet" href="/assets/professional-profile.css" />
 </head>
 <body>
 <div class="shell">
@@ -224,6 +225,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <div id="modalHost"></div><div id="toastHost"></div>
 <script src="/assets/naitea-tools.js"></script>
 <script src="/assets/rich-text.js"></script>
+<script src="/assets/professional-profile.js"></script>
 <script>
 (function(){
 'use strict';
@@ -3618,10 +3620,10 @@ function simplifyInterface(root=document){
  root.querySelectorAll('.taglabel').forEach(n=>{if(n.nextElementSibling?.matches('h1,h2,h3'))n.remove();else{n.classList.remove('taglabel');n.classList.add('section-label')}});
  root.querySelectorAll('.v8-designer>.v8-toolbar>div:first-child>p,.v9-publication-drafts>p:first-of-type,.v9-website-missing,.v9-social-unset,#v8ParentAppointments .roundicon').forEach(n=>n.remove());
  root.querySelectorAll('.v9-reviews>div>p').forEach(n=>{if(n.textContent.includes('après vérification'))n.remove()});
- const exclusions='script,style,svg,textarea,input,select,option,pre,[contenteditable],#v8DesignStage,#v3Stage,.v9-stars,.v9-email,.v7-topic h3,.v7-topic p,.v7-reply,.eventtitle,.v8-parent-profile .v7-about>p';
+ const exclusions='script,style,svg,textarea,input,select,option,pre,[contenteditable],#v8DesignStage,#v3Stage,.v9-stars,.v9-email,.v7-topic h3,.v7-topic p,.v7-reply,.eventtitle,.v8-parent-profile .v7-about>p,.v12-professional-page,.v12-inbox,#v12DetailsPreview,.v12-lightbox';
  const nodes=[];const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);while(walker.nextNode())nodes.push(walker.currentNode);for(const node of nodes){if(node.parentElement?.closest(exclusions))continue;const value=interfaceLabel(node.nodeValue);if(value!==node.nodeValue)node.nodeValue=value}
- root.querySelectorAll('[aria-label],[placeholder],[title]').forEach(node=>{if(node.closest('#v8DesignStage,#v3Stage'))return;for(const key of ['aria-label','placeholder','title'])if(node.hasAttribute(key))node.setAttribute(key,interfaceLabel(node.getAttribute(key)).trim())});
- root.querySelectorAll('h1,h2').forEach(n=>{if(n.closest('#v8DesignStage,#v3Stage'))return;const text=n.textContent.trim();if(interfaceTitles[text])n.textContent=interfaceTitles[text]});
+ root.querySelectorAll('[aria-label],[placeholder],[title]').forEach(node=>{if(node.closest('#v8DesignStage,#v3Stage,.v12-professional-page,.v12-inbox,#v12DetailsPreview,.v12-lightbox'))return;for(const key of ['aria-label','placeholder','title'])if(node.hasAttribute(key))node.setAttribute(key,interfaceLabel(node.getAttribute(key)).trim())});
+ root.querySelectorAll('h1,h2').forEach(n=>{if(n.closest('#v8DesignStage,#v3Stage,.v12-professional-page,.v12-inbox,#v12DetailsPreview'))return;const text=n.textContent.trim();if(interfaceTitles[text])n.textContent=interfaceTitles[text]});
  root.querySelectorAll('.roundicon,.eventemoji,.v9-social-icons,.workspace-actions').forEach(n=>{if(!n.textContent.trim()&&!n.querySelector('svg,img,button,a'))n.remove()});
 }
 const simplePagehead=pagehead;
@@ -4630,6 +4632,27 @@ document.addEventListener("dblclick", event => {
   if (object && v8Design.layers.find(l => l.id === object.dataset.designLayer)?.type === "image") { v11Cropping = object.dataset.designLayer; v8Selected = v11Cropping; render(); }
 }, true);
 
+// Enrich the professional page without changing the existing booking/storage flows.
+const professionalPage = NaiteaProfessionalProfile.create({
+  getState: () => state, save, render: () => render(), esc, ic, money, fmtDate,
+  parentsBase: v8Parents, profileBase: v7Profile, social: () => v8SocialLinks(),
+  hours: profile => v11HoursPublic(profile), nextDate: id => v9NextAvailable(id),
+  slots: (id, date) => v8Slots(id, date), demo: v8Demo, toast, uid,
+  showModal, loadImage: loadCompressedImage,
+  websiteURL: v7ValidUrl,
+});
+v8Parents = () => professionalPage.parents();
+v7Profile = () => professionalPage.editor();
+const professionalPageHandleBase = handleForm;
+handleForm = function (form) {
+  if (professionalPage.submit(form)) return;
+  return professionalPageHandleBase(form);
+};
+const professionalPageRenderBase = render;
+render = function () { professionalPageRenderBase(); professionalPage.afterRender(); };
+if (new URLSearchParams(location.search).get("vue") === "parents" && !v8Shared) {
+  mode = "parent"; page = "parent";
+}
 render();
 
 // La démo reste en localStorage : nous personnalisons uniquement le prénom.
