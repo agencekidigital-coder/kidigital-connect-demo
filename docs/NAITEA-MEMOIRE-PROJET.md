@@ -12,6 +12,15 @@ Dernière mise à jour : 20 novembre 2026.
 - Toujours identifier les données et actions de démonstration ; ne pas les présenter comme réelles.
 - Identité actuelle depuis le 20 novembre : **Berceau**, fichiers officiels fournis sur Drive. Pourpre `#590425`, corail `#BF5B45`, moutarde `#D89328`, ivoire `#FEF8ED`. Naitea Titres SemiBold pour les titres et Source Sans 3 pour l’interface. Logo Berceau avec deux parents et un bébé, 24 pictogrammes 3D. Cette demande remplace la palette Naïtéa initiale et les choix Lora/DM Sans de l’interface. Conserver les créations personnalisées déjà enregistrées.
 
+## Stories et facturation du 20 novembre 2026
+
+- Deux séries de trois stories pour recruter les testeuses : Berceau Naïtea et version personnelle neutre, en « je », signée **Laureen · Kidigital**, sans logo ni nom Naïtea. Mettre en avant les bénéfices métier, pas seulement des captures. Ne pas inventer tarif, gratuité ou places limitées.
+- Supports et PNG détourés (logo + agenda, familles, atelier) : `/workspace/artifacts/naitea-stories-v2/`. Les 24 pictogrammes originaux du SaaS ne sont pas tous détourés ; les originaux restent préservés.
+- Nouvel onglet **Facturation** : PDF et email préparés après nouvel achat payé dans la démonstration ; atelier/séance = facture fictive, bon cadeau = justificatif. Règlement sur place confirmé séparément ; gratuité et liste d’attente sans facture. Identifiants anti-doublons, numéros `DEMO-`, instantané vendeur/acheteur et centimes.
+- Avoir intégral après confirmation, document d’origine conservé. Aucun remboursement réel. Email avec pièce jointe PDF disponible mais jamais envoyé. Ne pas mélanger la facture de la professionnelle pour sa famille avec l’abonnement SaaS.
+- Identité légale, adresse complète, TVA, mentions, numérotation/stockage serveur, paiements vérifiés et fournisseur d’email restent à préparer avant usage réel. Les PDF sont marqués sans valeur fiscale. Source Sans 3 intégrée aux PDF pour conserver les accents et la lisibilité.
+- Détails et tests : `docs/naitea-billing-demo.md`. Supabase et Stripe restent inchangés ; aucune fusion dans main ni production.
+
 ## Nouveaux parcours Berceau du 20 novembre 2026
 
 - Sources, licences et détails dans `assets/berceau/SOURCES.md` et `docs/naitea-berceau-workflows.md`.

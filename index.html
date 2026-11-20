@@ -231,6 +231,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <script src="/assets/professional-profile.js"></script>
 <script src="/assets/berceau-tools.js"></script>
 <script src="/assets/berceau-brand.js"></script>
+<script src="/assets/billing-fonts.js"></script>
+<script src="/assets/billing-demo.js"></script>
+<link rel="stylesheet" href="/assets/billing-demo.css">
 <script src="/assets/berceau-workspace.js"></script>
 <script src="/assets/review-assistant.js"></script>
 <script>
@@ -4727,6 +4730,28 @@ render = function () {
     document.getElementById("app").innerHTML = berceauWorkspace.giftPage();
   } else berceauRenderBase();
   berceauBrand.afterRender(); berceauWorkspace.afterRender(); reviewAssistant.afterRender();
+};
+const billingDemo = NaiteaBilling.create({
+  getState: () => state, restoreState: snapshot => { state = snapshot; }, esc, save, toast, spots,
+  demo: v8Demo, render: () => render(), showModal: (...args) => showModal(...args), download: v9Download,
+});
+v8Nav.splice(4, 0, ["facturation", "book", "Facturation"]);
+const billingShowModalBase = showModal;
+showModal = function (...args) { billingShowModalBase(...args); billingDemo.decorateBooking(); };
+const billingHandleBase = handleForm;
+handleForm = function (form) {
+  if (billingDemo.submit(form)) return;
+  const purchase = billingDemo.beforePurchase(form);
+  const result = billingHandleBase(form);
+  billingDemo.afterPurchase(purchase);
+  return result;
+};
+const billingRenderBase = render;
+render = function () {
+  if (mode === "pro" && page === "facturation" && !v8Shared) {
+    document.body.classList.remove("v8-parent-mode"); renderChrome();
+    document.getElementById("app").innerHTML = billingDemo.page();
+  } else billingRenderBase();
 };
 if (new URLSearchParams(location.search).get("vue") === "parents" && !v8Shared) {
   mode = "parent"; page = "parent";
