@@ -9,9 +9,6 @@
       const old = getState().brand;
       const untouchedDemo = old.name === 'Le Cocon de Camille' && old.titleFont === 'Playfair Display' && old.bodyFont === 'Nunito' && old.accent === '#8f79bc' && old.secondary === '#f4c7d6' && old.text === '#402f57' && !old.logo && !old.photo && !(old.customFonts || []).length && !(old.pictograms || []).length && !(getState().v9.customFonts || []).some(font => font.family !== 'Naitea Titres');
       if (untouchedDemo) applyBrand();
-      function libraryHTML() {
-        return `<details class="card berceau-library"><summary>Les 24 pictogrammes Berceau</summary><p>Choisis un pictogramme pour l’ajouter au visuel, puis déplace-le et redimensionne-le.</p><div class="berceau-picto-grid">${tools.pictograms.map(p => `<button type="button" data-berceau-picto="${p.id}"><img src="${p.src}" alt="" loading="lazy">${p.label}</button>`).join('')}</div></details>`;
-      }
       function selections(field) {
         const input = document.querySelector(`#v12ProfileDetails [name="${field}"]`);
         return input ? root.NaiteaProfessionalProfile.list(input.value, 20) : [];
@@ -58,9 +55,6 @@
         original.before(target, editor); original.remove();
       }
       function afterRender() {
-        const kit = document.querySelector('.v10-brand');
-        if (kit && !document.getElementById('berceauOfficialKit')) kit.insertAdjacentHTML('afterbegin', `<section id="berceauOfficialKit" class="card berceau-kit-card"><img class="berceau-kit-logo" src="/assets/berceau/logos/naitea-logo-trema-ea.png" alt="Naïtea, identité Berceau"><h2>La charte Berceau</h2><p>Le logo et les pictogrammes officiels sont disponibles. Tu peux garder ta propre identité ou appliquer cette palette et ses polices à tes prochaines créations.</p><div class="berceau-brand-palette">${Object.entries(tools.palette).map(([key, color]) => `<span><i style="--color:${color}"></i>${key} ${color}</span>`).join('')}</div><button type="button" class="btn secondary" data-berceau-brand="apply">Utiliser cette palette et ces polices</button></section>`);
-        if (document.getElementById('v8DesignStage') && !document.querySelector('.berceau-library')) document.querySelector('.v8-workspace')?.insertAdjacentHTML('beforeend', libraryHTML());
         document.querySelectorAll('.dashboard-metrics .metric').forEach(card => {
           if (card.querySelector('.berceau-metric-icon')) return;
           const label = card.querySelector('.metrichead')?.textContent.toLowerCase() || '';
@@ -116,10 +110,6 @@
         }
         const removeQualification = event.target.closest('[data-berceau-remove-qualification]');
         if (removeQualification) { removeQualification.closest('.berceau-qualification-row').remove(); syncQualifications(); return; }
-        const apply = event.target.closest('[data-berceau-brand]');
-        if (apply) { deps.snapshotBrand(); applyBrand(); deps.save(); deps.render(); deps.toast('Palette et polices Berceau appliquées à tes prochaines créations.'); return; }
-        const picture = event.target.closest('[data-berceau-picto]');
-        if (picture) { const p = tools.pictograms.find(p => p.id === picture.dataset.berceauPicto); if (p) deps.addImage(p.src); return; }
         const add = event.target.closest('[data-berceau-add-keyword]');
         if (add) { const field = add.dataset.berceauAddKeyword, picker = add.closest('fieldset'), value = picker.querySelector('input[type="search"]').value.trim(); updateKeywords(field, [...new Set([...selections(field), value])]); picker.querySelector('input[type="search"]').value = ''; paintPicker(field); return; }
         const remove = event.target.closest('[data-berceau-remove-keyword]');

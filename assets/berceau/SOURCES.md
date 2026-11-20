@@ -21,3 +21,9 @@ Source Sans 3, police d’interface indiquée par la charte, est distribuée loc
 - `typographie/SourceSans3-OFL.txt`
 
 Ne pas attribuer les photographies de démonstration aux clientes de la professionnelle. Leurs sources restent dans `assets/photos/SOURCES.md`.
+
+## Dérivés transparents du 20 novembre 2026
+
+Le logo et les 24 pictogrammes employés par l’interface sont désormais les PNG de `transparent/`, détourés avec l’outil de génération/édition d’images à partir des fichiers officiels. Le vrai canal alpha a été contrôlé sur chaque fichier. Les originaux dans `logos/` et `pictogrammes/` restent inchangés.
+
+Les trois premiers pictogrammes et le logo avaient été préparés pour les stories ; les 21 autres ont été détourés dans cette passe. Les fichiers de génération originaux sont conservés dans `/workspace/generated_images/`. Aucun pictogramme officiel n’est proposé dans les bibliothèques de création des professionnelles ; leurs propres imports restent disponibles.

@@ -143,7 +143,7 @@ let browser, p;
   for (const day of [1, 2, 3, 4, 5]) await p.locator('#v11OpeningHoursForm [name="days"][value="' + day + '"]').uncheck();
   await p.locator('#v11OpeningHoursForm [name="days"][value="6"]').check(); await p.locator('#v11OpeningHoursForm [name="mode"]').selectOption('En cabinet');
   await p.locator('#v11OpeningHoursForm [name="location"]').fill('10 rue Exemple, Annecy'); await p.locator('#v11OpeningHoursForm button[type="submit"]').click();
-  await p.locator('.v11-google-help summary').click(); assert((await p.locator('.v11-google-help').innerText()).includes('responsable technique de Naïtéa'));
+  assert.equal(await p.locator('.v11-google-help').count(), 0); assert(await p.locator('#naiteaGoogleConnection').isVisible());
   await p.locator('[data-mode="parent"]:visible').first().click();
   const publicText = await p.locator('.v8-parent').innerText(); assert(publicText.includes('0,55') && publicText.includes('Google Meet') && publicText.includes('10 rue Exemple'));
   assert((await p.locator('.v11-public-hours').innerText()).includes('Du lundi au vendredi'));

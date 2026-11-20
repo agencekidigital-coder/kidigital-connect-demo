@@ -232,10 +232,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <script src="/assets/berceau-tools.js"></script>
 <script src="/assets/berceau-brand.js"></script>
 <script src="/assets/billing-fonts.js"></script>
+<script src="/assets/billing-legal.js"></script>
 <script src="/assets/billing-demo.js"></script>
 <link rel="stylesheet" href="/assets/billing-demo.css">
 <script src="/assets/berceau-workspace.js"></script>
 <script src="/assets/review-assistant.js"></script>
+<script src="/assets/platform-tools.js"></script>
+<script src="/assets/platform-ui.js"></script>
+<link rel="stylesheet" href="/assets/platform.css">
 <script>
 (function(){
 'use strict';
@@ -263,9 +267,13 @@ const defaults={
  history:[],emailCount:0,selectedEvent:'e1',completed:[],
 };
 let berceauExistingWorkspace = false;
-let state;try{const raw=localStorage.getItem('kidigital-connect-v1');berceauExistingWorkspace=!!raw;state=raw?{...structuredClone(defaults),...JSON.parse(raw)}:structuredClone(defaults)}catch(e){state=JSON.parse(JSON.stringify(defaults))}
+// Embedded public gift previews have an isolated local workspace.
+const giftPreviewMode = new URLSearchParams(location.search).get('boutique-cadeaux') === '1';
+const giftPreviewHash = Array.from(location.hash).reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261).toString(16);
+const naiteaStorageKey = giftPreviewMode ? 'naitea-gift-preview-' + giftPreviewHash : 'kidigital-connect-v1';
+let state;try{const raw=localStorage.getItem(naiteaStorageKey);berceauExistingWorkspace=!!raw;state=raw?{...structuredClone(defaults),...JSON.parse(raw)}:structuredClone(defaults)}catch(e){state=JSON.parse(JSON.stringify(defaults))}
 let naiteaStorageWarning=false;
-const save=()=>{try{localStorage.setItem('kidigital-connect-v1',JSON.stringify(state));return true}catch(e){if(!naiteaStorageWarning){naiteaStorageWarning=true;queueMicrotask(()=>toast('Enregistrement local impossible : télécharge ton visuel avant de fermer cet onglet.'))}return false}};
+const save=()=>{try{localStorage.setItem(naiteaStorageKey,JSON.stringify(state));return true}catch(e){if(!naiteaStorageWarning){naiteaStorageWarning=true;queueMicrotask(()=>toast('Enregistrement local impossible : télécharge ton visuel avant de fermer cet onglet.'))}return false}};
 let page='dashboard',mode='pro',eventTab='upcoming',familyQuery='',parentFilter='Tous',parentSearch='',commChannel='instagram',commEvent='e1',editorDraft='',modalName='',panelEvent=null;
 
 const brandDefaults={third:'#dcebe4',titleFont:'Playfair Display',bodyFont:'Nunito',name:'Le Cocon de Camille',accent:'#8f79bc',secondary:'#f4c7d6',text:'#402f57',font:'rounded',logo:'',photo:''};
@@ -296,9 +304,9 @@ function naiteaNavigation(){
  const group=(title,items)=>`<details class="navgroup" ${items.some(x=>x[0]===page)?'open':''}><summary>${title}<span>＋</span></summary><div class="nav">${items.map(button).join('')}</div></details>`;
  return `<nav aria-label="Navigation professionnelle"><div class="navtitle">MON ACTIVITÉ</div><div class="nav">${nav.filter(x=>primary.includes(x[0])).map(button).join('')}</div>${group('Créer & communiquer',nav.filter(x=>creation.includes(x[0])))}${group('Développer mon activité',nav.filter(x=>!primary.includes(x[0])&&!creation.includes(x[0])))}</nav>`;
 }
-function renderChrome(){document.body.classList.toggle('naitea-pro-dashboard',mode==='pro'&&page==='dashboard');document.getElementById('sidebar').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/berceau/logos/naitea-logo-trema-ea.png" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div>${naiteaNavigation()}<div class="sidebottom"><div class="tipcard"><strong>🌷 Le conseil du jour</strong><p>Un atelier bien rempli, c'est souvent le début d'une jolie relation.</p><button data-action="marketing">Booster mes ateliers →</button></div><button class="btn ghost small full" style="margin-top:13px" data-action="reset">${ic('refresh','s')} Réinitialiser la démo</button></div>`;
+function renderChrome(){document.body.classList.toggle('naitea-pro-dashboard',mode==='pro'&&page==='dashboard');document.getElementById('sidebar').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/berceau/transparent/naitea-logo.png" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div>${naiteaNavigation()}<div class="sidebottom"><div class="tipcard"><strong>🌷 Le conseil du jour</strong><p>Un atelier bien rempli, c'est souvent le début d'une jolie relation.</p><button data-action="marketing">Booster mes ateliers →</button></div><button class="btn ghost small full" style="margin-top:13px" data-action="reset">${ic('refresh','s')} Réinitialiser la démo</button></div>`;
 const modeHTML=`<button class="${mode==='pro'?'selected':''}" data-mode="pro">${ic('heart','s')} Pro</button><button class="${mode==='parent'?'selected':''}" data-mode="parent">${ic('users','s')} Parents</button>`;
-document.getElementById('modeDesktop').innerHTML=modeHTML;document.getElementById('mobilehead').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/berceau/logos/naitea-logo-trema-ea.png" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div><div class="mode">${modeHTML}</div>`;
+document.getElementById('modeDesktop').innerHTML=modeHTML;document.getElementById('mobilehead').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/berceau/transparent/naitea-logo.png" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div><div class="mode">${modeHTML}</div>`;
 let mobiles=mode==='parent'?[['parent','search','Découvrir'],['dashboard','home','Espace pro']]:[['dashboard','home','Accueil'],['ateliers','calendar','Ateliers'],['studioia','wand','Studio IA'],['familles','users','Familles'],['more','menu','Plus']];
 document.getElementById('mobilebar').innerHTML=mobiles.map(([id,icon,label])=>`<button class="${page===id?'active':''}" data-nav="${id}">${ic(icon)}<span>${label}</span></button>`).join('')}
 function pagehead(kicker,title,subtitle,action=''){return `<div class="headrow"><h1 class="h1">${title}</h1>${action}</div>`}
@@ -811,7 +819,7 @@ renderChrome = function () {
       .querySelector(".topbar")
       .insertAdjacentHTML(
         "afterbegin",
-        '<button type="button" class="brand naitea-brand v8-parent-desktop-brand" data-nav="dashboard" aria-label="Naïtéa : revenir à la vue d’ensemble"><img class="naitea-symbol" src="/assets/berceau/logos/naitea-logo-trema-ea.png" width="48" height="40" alt=""><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></button>',
+        '<button type="button" class="brand naitea-brand v8-parent-desktop-brand" data-nav="dashboard" aria-label="Naïtéa : revenir à la vue d’ensemble"><img class="naitea-symbol" src="/assets/berceau/transparent/naitea-logo.png" width="48" height="40" alt=""><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></button>',
       );
   document.querySelectorAll(".naitea-brand").forEach((el) => {
     let b = document.createElement("button");
@@ -2160,7 +2168,7 @@ document.addEventListener(
   true,
 );
 window.addEventListener("storage", (event) => {
-  if (event.key !== "kidigital-connect-v1" || !event.newValue) return;
+  if (event.key !== naiteaStorageKey || !event.newValue) return;
   try {
     let next = JSON.parse(event.newValue);
     if (next.v8) {
@@ -4510,7 +4518,6 @@ v7Profile = function () {
   const box = document.createElement("div"); box.innerHTML = v11ProfileBase();
   const rows = state.profile.openingHours || [];
   box.insertAdjacentHTML("beforeend", `<section class="card v11-opening-hours"><div class="v8-toolbar"><h2>Horaires et lieux</h2>${v11HoursDeleted ? '<button type="button" class="btn secondary small" data-v11="undo-hours">Revenir</button>' : ""}</div><p>Ces horaires apparaissent sur ta fiche. Les créneaux réservables se règlent dans Rendez-vous.</p><div class="v11-hours-list">${rows.map(r => `<article><p><strong>${esc(v11DaysLabel(r.days))}</strong><br>${r.byAppointment ? "Sur rendez-vous" : esc(r.start + " à " + r.end)} · ${esc(r.mode)}${r.location ? " · " + esc(r.location) : ""}</p><button type="button" class="btn ghost small" data-v11="delete-hours" data-id="${r.id}" aria-label="Supprimer cette plage horaire">${ic("trash", "s")}</button></article>`).join("")}</div><form id="v11OpeningHoursForm"><fieldset class="v11-hours-days"><legend>Jours</legend>${v11Weekdays.map(([d, t]) => `<label><input type="checkbox" name="days" value="${d}" ${d >= 1 && d <= 5 ? "checked" : ""}>${t}</label>`).join("")}</fieldset><div class="inputgrid"><label class="field"><span>De</span><input type="time" name="start" value="09:00" required></label><label class="field"><span>À</span><input type="time" name="end" value="18:00" required></label></div><label class="checkline"><input type="checkbox" name="byAppointment"> Sur rendez-vous, sans horaires fixes</label><label class="field"><span>Modalité</span><select name="mode">${["À domicile", "En cabinet", "En visio", "Par téléphone"].map(m => `<option>${m}</option>`).join("")}</select></label><label class="field"><span id="v11HoursLocationLabel">Zone d’intervention</span><input name="location" maxlength="300" placeholder="Ex. 15 km autour d’Annecy"></label><button type="submit" class="btn">Ajouter cette plage</button></form></section>`);
-  box.querySelector(".v10-google-connect")?.insertAdjacentHTML("beforeend", `<details class="v11-google-help"><summary>Qui active cette connexion et comment ?</summary><p>La responsable technique de Naïtéa configure l’accès Google Places. Chaque professionnelle fournit la fiche de son établissement ; les familles n’ont aucune configuration à faire.</p><ol><li>La responsable du projet Google Cloud active Places API (New), autorise la facturation et définit les quotas.</li><li>Elle crée une clé serveur restreinte à Places API et relève l’identifiant de l’établissement avec l’outil <a href="https://developers.google.com/maps/documentation/places/web-service/place-id" target="_blank" rel="noopener noreferrer">Place ID</a>.</li><li>La développeuse ou le développeur ajoute <code>GOOGLE_PLACES_API_KEY</code> et <code>GOOGLE_PLACES_PLACE_ID</code> dans les variables serveur du projet Vercel, pour l’environnement de prévisualisation autorisé, puis redéploie cet aperçu.</li><li>La professionnelle vérifie le nom de l’établissement avec « Actualiser depuis Google », puis active l’affichage automatique.</li></ol><p>La clé reste dans les réglages serveur. Ne la colle pas dans un message ou dans la fiche publique. Le lien Google fourni correspond à Kidigital ; il faut confirmer l’établissement avant d’afficher ses avis.</p><p class="fine">Cette démo configure une fiche. En production, Naïtéa devra associer chaque compte professionnel à sa propre fiche Google.</p></details>`);
   return box.innerHTML;
 };
 function v11UpdateHoursFields() {
@@ -4694,7 +4701,8 @@ const berceauBrand = BerceauBrand.create({
 const berceauWorkspace = BerceauWorkspace.create({
   getState: () => state, restoreState: snapshot => { state = snapshot; }, tools: BerceauTools,
   save, render: () => render(), esc, money, ic, fmtDate, demo: v8Demo, toast, uid,
-  showModal, closeModal, mode: () => mode, page: () => page, spots,
+  showModal: (...args) => showModal(...args), closeModal, mode: () => mode, page: () => page, spots,
+  customGiftDownload: gift => platform.downloadGift(gift),
   setParent: () => setMode("parent"), download: v9Download,
   currentBooking: () => ({ offerId: v8BookingOffer, date: v8BookingDate, time: v8BookingSlot }),
 });
@@ -4753,9 +4761,48 @@ render = function () {
     document.getElementById("app").innerHTML = billingDemo.page();
   } else billingRenderBase();
 };
+const platform = NaiteaPlatform.create({
+  getState: () => state, esc, ic, save, toast, uid, money, demo: v8Demo,
+  render: () => render(), mode: () => mode, page: () => page,
+  showModal: (...args) => showModal(...args), closeModal, download: v9Download,
+  loadImage: loadCompressedImage, openGift: () => berceauWorkspace.openPurchase(),
+  setGoogleSummary: result => {
+    v10GoogleLive = { rating: result.averageRating, count: result.totalReviewCount, business: result.title, url: NaiteaProfessionalProfile.safeURL(result.mapsURL), attributions: [] };
+    state.v9.googleReview = { ...state.v9.googleReview, mode: 'google', provider: 'google-business-profile', rating: result.averageRating, count: result.totalReviewCount, business: result.title, url: v10GoogleLive.url, verifiedAt: new Date().toISOString() };
+    v10GoogleError = ''; save();
+  },
+  currentBooking: () => ({ offerId: v8BookingOffer, date: v8BookingDate, time: v8BookingSlot }),
+  getAccessToken: async () => { if (!berceauAuthClient) return ''; const { data } = await berceauAuthClient.auth.getSession(); return data.session?.access_token || ''; },
+});
+const platformEventFormBase = v5EventForm;
+if (state.v9.googleReview.provider === 'google-business-profile') {
+  const r = state.v9.googleReview;
+  v10GoogleLive = { rating: r.rating, count: r.count, business: r.business, url: NaiteaProfessionalProfile.safeURL(r.url), attributions: [] };
+}
+v5EventForm = event => platform.eventForm(platformEventFormBase(event), event);
+const platformShowModalBase = showModal;
+showModal = function (...args) { platformShowModalBase(...args); platform.decorateBooking(); platform.decorateGift(); };
+const platformHandleBase = handleForm;
+handleForm = async function (form) {
+  try {
+    if (await platform.submit(form)) return;
+    const pending = platform.before(form);
+    const result = platformHandleBase(form);
+    platform.after(pending);
+    return result;
+  } catch (error) { toast(error.message || 'Vérifie les informations du formulaire.'); }
+};
+const platformRenderBase = render;
+render = function () {
+  if (platform.giftShopMode()) {
+    document.body.classList.add('naitea-gift-shop-mode');
+    document.getElementById('app').innerHTML = platform.giftShop();
+  } else { platformRenderBase(); platform.afterRender(); }
+};
 if (new URLSearchParams(location.search).get("vue") === "parents" && !v8Shared) {
   mode = "parent"; page = "parent";
 }
+if (new URLSearchParams(location.search).has('google') && !giftPreviewMode) { mode = 'pro'; page = 'personnaliser'; v8ProfileTab = 'profil'; }
 if (!berceauExistingWorkspace && state.brand.titleFont === "Naitea Titres") v10ApplyTemplate("rencontre", "studio");
 render();
 

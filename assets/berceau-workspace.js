@@ -39,7 +39,7 @@
         if (result.changed) { local().gifts = result.gifts; deps.save(); }
       }
       function giftBanner() {
-        return `<section id="berceauGifts" class="berceau-gift-banner"><img src="/assets/berceau/pictogrammes/parents/prendre-soin-de-soi.webp" alt=""><div><h2>Offrir un bon cadeau</h2><p>Un montant ou un accompagnement à offrir. La famille choisit ensuite le moment qui lui convient.</p><div class="berceau-toolbar"><button type="button" class="btn" data-berceau="buy-gift">Offrir un bon cadeau</button><button type="button" class="btn secondary" data-berceau="check-gift">J’ai un bon cadeau</button></div><p class="fine">Achat et utilisation simulés, sans débit réel.</p></div></section>`;
+        return `<section id="berceauGifts" class="berceau-gift-banner"><img src="/assets/berceau/transparent/prendre-soin-de-soi.png" alt=""><div><h2>Offrir un bon cadeau</h2><p>Un montant ou un accompagnement à offrir. La famille choisit ensuite le moment qui lui convient.</p><div class="berceau-toolbar"><button type="button" class="btn" data-berceau="buy-gift">Offrir un bon cadeau</button><button type="button" class="btn secondary" data-berceau="check-gift">J’ai un bon cadeau</button></div><p class="fine">Achat et utilisation simulés, sans débit réel.</p></div></section>`;
       }
       function giftPage() {
         reconcileGifts();
@@ -62,14 +62,15 @@
       }
       function showGift(gift) {
         if (!gift) return;
-        deps.showModal('Votre bon cadeau de démonstration', '', `<div class="berceau-gift-card"><img src="/assets/berceau/logos/naitea-logo-trema-ea.png" alt="Naïtea"><h3>Un moment pour ${esc(gift.recipient)}</h3><strong>${euro(gift.valueCents)}</strong>${gift.message ? `<p>${esc(gift.message)}</p>` : ''}<p class="berceau-gift-code">${esc(gift.code)}</p><p>Solde disponible : ${euro(gift.balanceCents)}<br>Valable jusqu’au ${new Date(gift.expiresAt).toLocaleDateString('fr-FR')}</p></div><p>Lors de la réservation, renseignez ce code dans « Utiliser un bon cadeau ». Le bon et son solde restent dans ce navigateur.</p><div class="berceau-toolbar"><button class="btn" type="button" data-berceau="download-gift" data-code="${gift.code}">Télécharger le bon</button><button class="btn secondary" type="button" data-berceau="copy-code" data-code="${gift.code}">Copier le code</button><button class="btn secondary" type="button" data-berceau="use-gift" data-code="${gift.code}">Utiliser ce bon</button></div><p class="fine">Aucun débit réel. Le modèle de confirmation reste dans les automatisations ; aucun email n’a été envoyé.</p>`);
+        deps.showModal('Votre bon cadeau de démonstration', '', `<div class="berceau-gift-card"><img src="/assets/berceau/transparent/naitea-logo.png" alt="Naïtea"><h3>Un moment pour ${esc(gift.recipient)}</h3><strong>${euro(gift.valueCents)}</strong>${gift.message ? `<p>${esc(gift.message)}</p>` : ''}<p class="berceau-gift-code">${esc(gift.code)}</p><p>Solde disponible : ${euro(gift.balanceCents)}<br>Valable jusqu’au ${new Date(gift.expiresAt).toLocaleDateString('fr-FR')}</p></div><p>Lors de la réservation, renseignez ce code dans « Utiliser un bon cadeau ». Le bon et son solde restent dans ce navigateur.</p><div class="berceau-toolbar"><button class="btn" type="button" data-berceau="download-gift" data-code="${gift.code}">Télécharger le bon</button><button class="btn secondary" type="button" data-berceau="copy-code" data-code="${gift.code}">Copier le code</button><button class="btn secondary" type="button" data-berceau="use-gift" data-code="${gift.code}">Utiliser ce bon</button></div><p class="fine">Aucun débit réel. Le modèle de confirmation reste dans les automatisations ; aucun email n’a été envoyé.</p>`);
         document.querySelector('.modal')?.classList.add('berceau-gift-modal');
       }
       async function downloadGift(gift) {
+        if (deps.customGiftDownload) return deps.customGiftDownload(gift);
         await document.fonts.load('600 60px "Naitea Titres"'); await document.fonts.load('400 30px "Source Sans 3"');
         const canvas = document.createElement('canvas'); canvas.width = 1600; canvas.height = 1040;
         const ctx = canvas.getContext('2d'); ctx.fillStyle = '#FEF8ED'; ctx.fillRect(0, 0, 1600, 1040); ctx.strokeStyle = '#D89328'; ctx.lineWidth = 5; ctx.strokeRect(38, 38, 1524, 964);
-        const logo = new Image(); logo.src = '/assets/berceau/logos/naitea-logo-trema-ea.png'; await logo.decode(); ctx.drawImage(logo, 115, 95, 340, 83);
+        const logo = new Image(); logo.src = '/assets/berceau/transparent/naitea-logo.png'; await logo.decode(); ctx.drawImage(logo, 115, 95, 340, 83);
         ctx.fillStyle = '#590425'; ctx.font = '600 78px "Naitea Titres"'; ctx.fillText('Un moment pour ' + gift.recipient.slice(0, 32), 115, 310, 1350);
         ctx.font = '600 94px "Source Sans 3"'; ctx.fillText(euro(gift.valueCents), 115, 445);
         ctx.font = '400 33px "Source Sans 3"'; let y = 520, line = '';
@@ -203,6 +204,10 @@
           let gift;
           try { gift = tools.issueGift({ ...data, code: 'DEMO-' + Array.from(random, b => b.toString(16).padStart(2, '0')).join('').toUpperCase(), valueCents, offerId, settings: cfg, now: new Date() }); }
           catch (error) { deps.toast(error.message); return true; }
+          gift.offerTitle = state().offers.find(o => o.id === gift.offerId)?.title || '';
+          gift.design = root.NaiteaPlatformTools.giftDesign(local().giftDesign, state().brand);
+          gift.professional = [state().profile.first, state().profile.last].filter(Boolean).join(' ');
+          gift.phone = data.phone || '';
           const previous = structuredClone(state()); local().gifts.unshift(gift);
           state().logs.unshift({ id: deps.uid(), type: 'gift', text: 'Nouveau bon cadeau de démonstration : ' + euro(gift.valueCents), date: 'À l’instant · paiement simulé' });
           state().v8.emails.unshift({ id: deps.uid(), to: gift.buyerEmail, subject: 'Votre bon cadeau Naïtea, démonstration', body: `Bon fictif pour ${gift.recipient}. Valeur : ${euro(gift.valueCents)}. Code : ${gift.code}. Valable jusqu’au ${new Date(gift.expiresAt).toLocaleDateString('fr-FR')}. Aucun paiement ni email réel. Ce code fonctionne uniquement dans le navigateur de démonstration qui l’a créé.`, date: new Date().toISOString(), status: 'Préparé, non envoyé' });
@@ -256,7 +261,7 @@
         if (action === 'download-reservation') { const row = (button.dataset.kind === 'offer' ? state().v8.appointments : state().signups).find(r => r.id === button.dataset.id); if (row) deps.download('Naitea-rendez-vous-demo.ics', tools.calendarICS([entryFor(row, button.dataset.kind)]), 'text/calendar;charset=utf-8'); return; }
         if (action === 'reminder-preview') { const row = local().reminders.find(r => r.key === button.dataset.key); if (row) deps.showModal('Aperçu du rappel ' + (row.channel === 'sms' ? 'SMS' : 'email'), '', `<p>Prévu pour ${dateTime(row.scheduledAt)} · ${esc(row.destination)}</p><label class="field"><span>Texte de démonstration, non envoyé</span><textarea rows="5" readonly>${esc(row.body)}</textarea></label>`); }
       }, true);
-      return { giftPage, afterRender, decorateBooking, beforeBooking, afterBooking, submit, syncReminders };
+      return { giftPage, openPurchase, afterRender, decorateBooking, beforeBooking, afterBooking, submit, syncReminders };
     },
   };
 })(globalThis);

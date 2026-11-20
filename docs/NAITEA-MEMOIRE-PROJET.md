@@ -134,3 +134,18 @@ Dernière mise à jour : 20 novembre 2026.
 - Les coordonnées, réseaux, Google et horaires gardent leurs formulaires. Le nouveau contenu se règle dans Profil public > Le contenu de ma fiche, avec aperçu et enregistrement explicite.
 - Le travail de naming/logo Malamae reste une exploration graphique. La plateforme conserve Naïtéa dans cette passe.
 - Aucun changement des données Supabase, aucune configuration Stripe, aucun déploiement de production ni fusion dans main.
+
+## Nouvelle passe plateforme et factures du 20 novembre 2026
+
+- La charte actuelle est Berceau, fournie par l’utilisatrice : pourpre/corail/moutarde/ivoire et typographies du kit officiel. Elle remplace l’ancienne palette de travail rose/sauge. Logo et 24 pictogrammes détourés ; usage renforcé dans les interfaces pro/familles.
+- Les pictogrammes Naïtea ne sont plus proposés aux professionnelles dans leur studio ou leur charte. Elles importent leurs propres éléments. Conserver leurs anciens visuels et personnalisations.
+- Bons cadeaux personnalisables, modèles Épuré/Arche/Photo, lien et iframe d’une boutique ou d’une prestation. Le bon doit identifier clairement l’accompagnement et la professionnelle. Liens publics sans familles/codes émis/tokens, espace d’aperçu isolé.
+- Exiger prénom + nom et téléphone pour les réservations/inscriptions. La famille choisit une modalité disponible ; à domicile, elle fournit son adresse personnelle privée. Cette demande remplace l’ancien téléphone facultatif.
+- Ateliers : 71 catégories documentées plus choix libre, dont danse/chant prénatals et cercles futures/jeunes mamans/jeunes parents ; publics, tranche d’âge, modalité, adresse ou outil visio, description assistée selon le titre avec les bienfaits après le programme.
+- Contacts orientés vers l’email de la professionnelle, tout en conservant une copie locale dans cette démo. Chatbot pratique désactivable, pas de santé ni de stockage des échanges. Horaires/lieux au début du contenu de profil.
+- Google Business Profile, distinct de Google Places, pour les avis sans réponse et la publication après validation ; OAuth/PKCE, tokens serveur chiffrés, actualisation pendant l’ouverture de l’espace. Pas d’activation réelle : client OAuth/autorisation Google absents du projet. Supprimer les instructions d’installation technique du produit ; garder la documentation technique dans le dépôt.
+- Agenda : liste privée des inscrits, invitations distinctes et confirmées, protection contre le partage de la liste de coordonnées. Aucun envoi Google réel pendant les tests.
+- Demande ajoutée après réinitialisation : le justificatif de bon cadeau doit avoir une présentation de facture et les mentions françaises adaptées. Nouveau modèle A4 avec identité légale, coordonnées, numérotation, dates, prestation, HT/TVA/totaux, paiement et mentions. Configurer le régime par pro ; ne jamais inventer SIREN/SIRET ou régime de TVA.
+- Bon à usage unique : facture selon régime, sans deuxième TVA à l’utilisation ; complément seul facturé. Bon à usages multiples : reçu sans TVA à l’émission, traitement lors de la prestation. Franchise : mention CIBS actuelle. Ne pas présenter les documents locaux/simulés comme des factures fiscalement valables ni un service de facturation électronique activé.
+- Le rappel du 26 novembre à 13 h 34 Europe/Paris inclut maintenant les modèles Canva de publications, flyers et cartes cadeaux.
+- Voir `docs/naitea-platform-v12.md`, `docs/naitea-workshop-research.md` et `docs/naitea-invoices.md`. Aucune fusion main ni mise en production, aucune modification Supabase/Stripe.

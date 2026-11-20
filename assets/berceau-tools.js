@@ -17,7 +17,7 @@
     ['accompagnements', 'massage-bebe', 'Massage bébé'], ['accompagnements', 'atelier-collectif', 'Atelier collectif'], ['accompagnements', 'seance-individuelle', 'Séance individuelle'], ['accompagnements', 'consultation-en-visio', 'Consultation en visio'], ['accompagnements', 'accompagnement-a-domicile', 'Accompagnement à domicile'], ['accompagnements', 'ressources', 'Ressources'],
     ['espace-parents', 'pres-de-chez-moi', 'Près de chez moi'], ['espace-parents', 'favoris', 'Favoris'], ['espace-parents', 'creneaux-disponibles', 'Créneaux disponibles'], ['espace-parents', 'messagerie', 'Messagerie'], ['espace-parents', 'rappels', 'Rappels'], ['espace-parents', 'avis', 'Avis'],
     ['espace-pro', 'agenda', 'Agenda'], ['espace-pro', 'inscriptions', 'Inscriptions'], ['espace-pro', 'suivi-des-familles', 'Suivi des familles'], ['espace-pro', 'profil-public', 'Profil public'], ['espace-pro', 'automatisations', 'Automatisations'], ['espace-pro', 'statistiques', 'Statistiques'],
-  ].map(([group, id, label]) => ({ id, group, label, src: `/assets/berceau/pictogrammes/${group}/${id}.webp` }));
+  ].map(([group, id, label]) => ({ id, group, label, src: `/assets/berceau/transparent/${id}.png` }));
   function cents(value) {
     const s = String(value ?? '').trim().replace(',', '.');
     if (!/^\d+(\.\d{1,2})?$/.test(s)) return NaN;
