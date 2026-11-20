@@ -1,15 +1,16 @@
 <!doctype html>
-<html lang="fr">
+<html lang="fr" class="berceau-auth">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#FFF7F1">
+<meta name="theme-color" content="#FEF8ED">
+<link rel="icon" type="image/png" href="/assets/berceau/logos/naitea-symbole-berceau.png">
 <title>Connexion | Naïtéa</title>
 <style>
 @font-face{font-family:'DM Sans';font-style:normal;font-weight:400;font-display:swap;src:url('/assets/dm-sans-400.ttf') format('truetype')}
 @font-face{font-family:'DM Sans';font-style:normal;font-weight:700;font-display:swap;src:url('/assets/dm-sans-700.ttf') format('truetype')}
 @font-face{font-family:'Lora';font-style:normal;font-weight:700;font-display:swap;src:url('/assets/lora-700.ttf') format('truetype')}
-:root{color-scheme:light;--prune:#5B3A48;--rose:#B97682;--peach:#F0C2AE;--sage:#A8B59E;--cream:#FFF7F1}
+:root{color-scheme:light;--prune:#5B3A48;--rose:#B97682;--peach:#F0C2AE;--sage:#A8B59E;--cream:#FEF8ED}
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;background:var(--cream);color:var(--prune);font-family:'DM Sans',system-ui,sans-serif}
 main{min-height:100vh;display:grid;place-items:center;padding:28px 16px}
@@ -41,11 +42,12 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 .footer{text-align:center;margin-top:22px;font-size:12px}
 .footer a{color:var(--prune)}
 </style>
+<link rel="stylesheet" href="/assets/berceau.css">
 </head>
 <body>
 <main>
 <div class="card">
-<div class="brand">Naïtéa<span>.</span></div>
+<div class="brand"><img src="/assets/berceau/logos/naitea-logo-trema-ea.png" alt="Naïtea"></div>
 <section id="authPanel">
 <h1>Connexion</h1>
 <p class="intro">Connecte-toi ou crée ton compte professionnel.</p>

@@ -1,0 +1,12 @@
+:root {
+  --naitea-pourpre: #590425;
+  --naitea-orange-corail: #BF5B45;
+  --naitea-jaune-moutarde: #D89328;
+  --naitea-ivoire: #FEF8ED;
+  --naitea-texte: var(--naitea-pourpre);
+  --naitea-fond: var(--naitea-ivoire);
+  --naitea-action: var(--naitea-pourpre);
+  --naitea-action-texte: var(--naitea-ivoire);
+  --naitea-action-secondaire: var(--naitea-jaune-moutarde);
+  --naitea-action-secondaire-texte: var(--naitea-pourpre);
+}

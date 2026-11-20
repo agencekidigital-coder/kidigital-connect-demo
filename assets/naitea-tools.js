@@ -82,7 +82,7 @@
     if (!templates.some(t => t.id === id)) throw Error("Modèle inconnu");
     const { brand = {}, profile = {}, event = {}, events = [], offers = [], month = "", kind = "studio", photo = "/assets/photos/family-5.jpg" } = context;
     const color = (value, fallback) => /^#[\da-f]{6}$/i.test(value || "") ? value : fallback;
-    const accent = color(brand.accent, "#B97682"), ink = color(brand.text, "#5B3A48"), cream = color(brand.third, "#FFF7F1");
+    const accent = color(brand.accent, "#B97682"), ink = color(brand.text, "#5B3A48"), cream = color(brand.background || brand.third, "#FFF7F1");
     const titleFont = brand.titleFont || "Lora", bodyFont = brand.bodyFont || "DM Sans";
     let next = 0;
     const layers = [], add = l => layers.push({ id: "model-" + (++next), ...l });
@@ -94,7 +94,7 @@
     const date = event.date ? new Date(event.date + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : "Prochaine date";
     const details = [date, event.time, event.place].filter(Boolean).join(" · ");
     const contact = profile.website || profile.email || "Prendre rendez-vous";
-    const heading = { font: titleFont, weight: 700 };
+    const heading = { font: titleFont, weight: titleFont === "Naitea Titres" ? 600 : 700 };
     if (id === "rencontre") {
       image(0, 0, 100, 45);
       shape(6, 39, 88, 55, cream, 2);

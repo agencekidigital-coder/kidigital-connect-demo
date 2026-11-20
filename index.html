@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="theme-color" content="#FFF7F1" />
+<meta name="theme-color" content="#FEF8ED" />
+<link rel="icon" type="image/png" href="/assets/berceau/logos/naitea-symbole-berceau.png" />
 <title>Naïtéa</title>
 <style>
 
@@ -211,6 +212,8 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <link rel="stylesheet" href="/assets/workspace-v10.css" />
 <link rel="stylesheet" href="/assets/workspace-v11.css" />
 <link rel="stylesheet" href="/assets/professional-profile.css" />
+<link rel="stylesheet" href="/assets/berceau.css" />
+<link rel="stylesheet" href="/assets/berceau-features.css" />
 </head>
 <body>
 <div class="shell">
@@ -226,6 +229,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <script src="/assets/naitea-tools.js"></script>
 <script src="/assets/rich-text.js"></script>
 <script src="/assets/professional-profile.js"></script>
+<script src="/assets/berceau-tools.js"></script>
+<script src="/assets/berceau-brand.js"></script>
+<script src="/assets/berceau-workspace.js"></script>
+<script src="/assets/review-assistant.js"></script>
 <script>
 (function(){
 'use strict';
@@ -252,7 +259,8 @@ const defaults={
  logs:[{id:'a1',type:'mail',text:'Confirmation programmée pour Emma Laurent',date:'Démonstration'},{id:'a2',type:'star',text:'Avis post-atelier : scénario prêt',date:'Démonstration'},{id:'a3',type:'users',text:'3 familles découvertes via Naïtéa',date:'Démonstration'}],
  history:[],emailCount:0,selectedEvent:'e1',completed:[],
 };
-let state;try{const raw=localStorage.getItem('kidigital-connect-v1');state=raw?{...structuredClone(defaults),...JSON.parse(raw)}:structuredClone(defaults)}catch(e){state=JSON.parse(JSON.stringify(defaults))}
+let berceauExistingWorkspace = false;
+let state;try{const raw=localStorage.getItem('kidigital-connect-v1');berceauExistingWorkspace=!!raw;state=raw?{...structuredClone(defaults),...JSON.parse(raw)}:structuredClone(defaults)}catch(e){state=JSON.parse(JSON.stringify(defaults))}
 let naiteaStorageWarning=false;
 const save=()=>{try{localStorage.setItem('kidigital-connect-v1',JSON.stringify(state));return true}catch(e){if(!naiteaStorageWarning){naiteaStorageWarning=true;queueMicrotask(()=>toast('Enregistrement local impossible : télécharge ton visuel avant de fermer cet onglet.'))}return false}};
 let page='dashboard',mode='pro',eventTab='upcoming',familyQuery='',parentFilter='Tous',parentSearch='',commChannel='instagram',commEvent='e1',editorDraft='',modalName='',panelEvent=null;
@@ -285,9 +293,9 @@ function naiteaNavigation(){
  const group=(title,items)=>`<details class="navgroup" ${items.some(x=>x[0]===page)?'open':''}><summary>${title}<span>＋</span></summary><div class="nav">${items.map(button).join('')}</div></details>`;
  return `<nav aria-label="Navigation professionnelle"><div class="navtitle">MON ACTIVITÉ</div><div class="nav">${nav.filter(x=>primary.includes(x[0])).map(button).join('')}</div>${group('Créer & communiquer',nav.filter(x=>creation.includes(x[0])))}${group('Développer mon activité',nav.filter(x=>!primary.includes(x[0])&&!creation.includes(x[0])))}</nav>`;
 }
-function renderChrome(){document.body.classList.toggle('naitea-pro-dashboard',mode==='pro'&&page==='dashboard');document.getElementById('sidebar').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/naitea-symbol.svg" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div>${naiteaNavigation()}<div class="sidebottom"><div class="tipcard"><strong>🌷 Le conseil du jour</strong><p>Un atelier bien rempli, c'est souvent le début d'une jolie relation.</p><button data-action="marketing">Booster mes ateliers →</button></div><button class="btn ghost small full" style="margin-top:13px" data-action="reset">${ic('refresh','s')} Réinitialiser la démo</button></div>`;
+function renderChrome(){document.body.classList.toggle('naitea-pro-dashboard',mode==='pro'&&page==='dashboard');document.getElementById('sidebar').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/berceau/logos/naitea-logo-trema-ea.png" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div>${naiteaNavigation()}<div class="sidebottom"><div class="tipcard"><strong>🌷 Le conseil du jour</strong><p>Un atelier bien rempli, c'est souvent le début d'une jolie relation.</p><button data-action="marketing">Booster mes ateliers →</button></div><button class="btn ghost small full" style="margin-top:13px" data-action="reset">${ic('refresh','s')} Réinitialiser la démo</button></div>`;
 const modeHTML=`<button class="${mode==='pro'?'selected':''}" data-mode="pro">${ic('heart','s')} Pro</button><button class="${mode==='parent'?'selected':''}" data-mode="parent">${ic('users','s')} Parents</button>`;
-document.getElementById('modeDesktop').innerHTML=modeHTML;document.getElementById('mobilehead').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/naitea-symbol.svg" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div><div class="mode">${modeHTML}</div>`;
+document.getElementById('modeDesktop').innerHTML=modeHTML;document.getElementById('mobilehead').innerHTML=`<div class="brand naitea-brand"><img class="naitea-symbol" src="/assets/berceau/logos/naitea-logo-trema-ea.png" alt="" width="52" height="45"><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></div><div class="mode">${modeHTML}</div>`;
 let mobiles=mode==='parent'?[['parent','search','Découvrir'],['dashboard','home','Espace pro']]:[['dashboard','home','Accueil'],['ateliers','calendar','Ateliers'],['studioia','wand','Studio IA'],['familles','users','Familles'],['more','menu','Plus']];
 document.getElementById('mobilebar').innerHTML=mobiles.map(([id,icon,label])=>`<button class="${page===id?'active':''}" data-nav="${id}">${ic(icon)}<span>${label}</span></button>`).join('')}
 function pagehead(kicker,title,subtitle,action=''){return `<div class="headrow"><h1 class="h1">${title}</h1>${action}</div>`}
@@ -562,7 +570,7 @@ handleForm=function(form){if(form.id==='editEvent'||form.id==='createEvent'){
  addlog('calendar',(old?'Atelier modifié : ':'Nouvel atelier : ')+e.title);save();closeModal();navigate('ateliers');toast(old?'Atelier modifié 🌸':'Atelier créé 🌸');return;
  }
  if(form.id==='bookEvent'){
- let d=Object.fromEntries(new FormData(form).entries());if(!d.firstName?.trim()||!d.lastName?.trim()||!d.phone?.trim()){toast('Renseigne le prénom, le nom et le téléphone');return}
+ let d=Object.fromEntries(new FormData(form).entries());if(!d.firstName?.trim()||!d.lastName?.trim()){toast('Renseigne le prénom et le nom');return}
  const e=eventBy(d.eventId);if(!e)return;let existing=state.signups.some(s=>s.eventId===e.id&&s.email===d.email.toLowerCase().trim());if(existing){toast('Adresse déjà inscrite');return}
  let fake=document.createElement('form');fake.id='bookEvent';for(let [k,v] of Object.entries(d)){if(k==='name')continue;let x=document.createElement('input');x.name=k;x.value=v;fake.append(x)}let x=document.createElement('input');x.name='name';x.value=d.firstName.trim()+' '+d.lastName.trim();fake.append(x);
  if(d.newsletter){let c=document.createElement('input');c.name='newsletter';c.value='on';fake.append(c)}
@@ -630,7 +638,7 @@ function v6OfferForm(o){return `<form id="v6OfferForm" class="v6-form-modal"><in
 offerCreate=function(){showModal('Ajouter un accompagnement 💗','Personnalise la prestation, ses modalités et sa photo.',v6OfferForm(null))};
 const v6BaseHandle=handleForm;
 handleForm=function(form){if(form.id==='v6OfferForm'){let d=Object.fromEntries(new FormData(form)),o=state.offers.find(x=>x.id===d.offerId);if(!d.title?.trim()){toast('Renseigne le titre');return}if(!o){o={id:uid(),emoji:'💗'};state.offers.push(o)}Object.assign(o,{title:d.title.trim(),price:Math.max(0,+d.price||0),duration:d.duration.trim(),location:d.location.trim(),audience:d.audience.trim(),extra:d.extra.trim(),description:d.description.trim(),modalities:[...form.querySelectorAll('[name="modality"]:checked')].map(x=>x.value)});let media=state.media.find(m=>m.id===d.mediaCover);if(media)o.cover=media.data;let f=form.querySelector('[name="offerCover"]')?.files?.[0];if(f)loadCompressedImage(f,1200).then(x=>{o.cover=x;save();render()}).catch(x=>toast(x.message));save();closeModal();navigate('offers');toast('Accompagnement enregistré 🌸');return}
-if(form.id==='bookEvent'){let raw=form.querySelector('[name="phone"]')?.value||'';let norm=raw.replace(/[\s.()\-]/g,'');let digits=norm.replace(/\D/g,'');let fr=/^0[1-9]\d{8}$/.test(norm)||/^\+33[1-9]\d{8}$/.test(norm)||/^0033[1-9]\d{8}$/.test(norm);let intl=/^\+[1-9]\d{7,14}$/.test(norm);let valid=(fr||intl)&&!/^(\d)\1+$/.test(digits);if(!valid){let inp=form.querySelector('[name="phone"]');inp.setCustomValidity('Numéro invalide : ex. 06 12 34 56 78 ou +33 6 12 34 56 78');inp.reportValidity();toast('Vérifie le numéro de téléphone');return}form.querySelector('[name="phone"]').setCustomValidity('')}
+if(form.id==='bookEvent'){let raw=form.querySelector('[name="phone"]')?.value||'';let norm=raw.replace(/[\s.()\-]/g,'');let digits=norm.replace(/\D/g,'');let fr=/^0[1-9]\d{8}$/.test(norm)||/^\+33[1-9]\d{8}$/.test(norm)||/^0033[1-9]\d{8}$/.test(norm);let intl=/^\+[1-9]\d{7,14}$/.test(norm);let valid=!raw.trim()||((fr||intl)&&!/^(\d)\1+$/.test(digits));if(!valid){let inp=form.querySelector('[name="phone"]');inp.setCustomValidity('Numéro invalide : ex. 06 12 34 56 78 ou +33 6 12 34 56 78');inp.reportValidity();toast('Vérifie le numéro de téléphone');return}form.querySelector('[name="phone"]').setCustomValidity('')}
 return v6BaseHandle(form)};
 // Store current unsaved cover selection, shared by crop & offer forms.
 let v6Crop={kind:'event',id:'new',src:'',zoom:1,x:0,y:0,removeBg:false,tolerance:32};
@@ -800,7 +808,7 @@ renderChrome = function () {
       .querySelector(".topbar")
       .insertAdjacentHTML(
         "afterbegin",
-        '<button type="button" class="brand naitea-brand v8-parent-desktop-brand" data-nav="dashboard" aria-label="Naïtéa : revenir à la vue d’ensemble"><img class="naitea-symbol" src="/assets/naitea-symbol.svg" width="48" height="40" alt=""><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></button>',
+        '<button type="button" class="brand naitea-brand v8-parent-desktop-brand" data-nav="dashboard" aria-label="Naïtéa : revenir à la vue d’ensemble"><img class="naitea-symbol" src="/assets/berceau/logos/naitea-logo-trema-ea.png" width="48" height="40" alt=""><div class="naitea-brand-word"><b>Naïtéa<span class="naitea-dot">.</span></b><small>Grandir, bien entourés.</small></div></button>',
       );
   document.querySelectorAll(".naitea-brand").forEach((el) => {
     let b = document.createElement("button");
@@ -1018,7 +1026,7 @@ function v8Calendar() {
     )
     .join(
       "",
-    )}</div></div><div class="v8-toolbar">${v8Button("calendar-prev", "←", 'aria-label="Période précédente"')}<strong>${d.toLocaleDateString("fr-FR", v8CalView === "month" ? { month: "long", year: "numeric" } : { day: "numeric", month: "long", year: "numeric" })}</strong>${v8Button("calendar-next", "→", 'aria-label="Période suivante"')}${v8Button("calendar-today", "Aujourd’hui")}<input aria-label="Choisir une date du calendrier" id="v8CalendarDate" type="date" value="${v8CalDate}"></div><p class="v8-calendar-mobile-hint">${v8CalView==='week'?'Faites glisser la semaine pour parcourir les jours.':'Touchez un horaire pour ouvrir le détail de la rencontre.'}</p><div class="v8-calendar-scroll"><div class="v8-cal-grid ${v8CalView}">${v8CalView === "month" ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((t) => `<div class="v8-cal-weekday">${t}</div>`).join("") : ""}${cells.join("")}</div></div><p class="fine">Rose : ateliers · Sauge : rendez-vous individuels</p></section>`;
+    )}</div></div><div class="v8-toolbar">${v8Button("calendar-prev", "←", 'aria-label="Période précédente"')}<strong>${d.toLocaleDateString("fr-FR", v8CalView === "month" ? { month: "long", year: "numeric" } : { day: "numeric", month: "long", year: "numeric" })}</strong>${v8Button("calendar-next", "→", 'aria-label="Période suivante"')}${v8Button("calendar-today", "Aujourd’hui")}<input aria-label="Choisir une date du calendrier" id="v8CalendarDate" type="date" value="${v8CalDate}"></div><p class="v8-calendar-mobile-hint">${v8CalView==='week'?'Faites glisser la semaine pour parcourir les jours.':'Touchez un horaire pour ouvrir le détail de la rencontre.'}</p><div class="v8-calendar-scroll"><div class="v8-cal-grid ${v8CalView}">${v8CalView === "month" ? ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((t) => `<div class="v8-cal-weekday">${t}</div>`).join("") : ""}${cells.join("")}</div></div><p class="fine">Corail : ateliers · Moutarde : rendez-vous individuels</p></section>`;
 }
 // Availability rules are explicit; no fictional slots are silently enabled.
 function v8Minutes(t) {
@@ -3620,7 +3628,7 @@ function simplifyInterface(root=document){
  root.querySelectorAll('.taglabel').forEach(n=>{if(n.nextElementSibling?.matches('h1,h2,h3'))n.remove();else{n.classList.remove('taglabel');n.classList.add('section-label')}});
  root.querySelectorAll('.v8-designer>.v8-toolbar>div:first-child>p,.v9-publication-drafts>p:first-of-type,.v9-website-missing,.v9-social-unset,#v8ParentAppointments .roundicon').forEach(n=>n.remove());
  root.querySelectorAll('.v9-reviews>div>p').forEach(n=>{if(n.textContent.includes('après vérification'))n.remove()});
- const exclusions='script,style,svg,textarea,input,select,option,pre,[contenteditable],#v8DesignStage,#v3Stage,.v9-stars,.v9-email,.v7-topic h3,.v7-topic p,.v7-reply,.eventtitle,.v8-parent-profile .v7-about>p,.v12-professional-page,.v12-inbox,#v12DetailsPreview,.v12-lightbox';
+ const exclusions='script,style,svg,textarea,input,select,option,pre,[contenteditable],#v8DesignStage,#v3Stage,.v9-stars,.v9-email,.v7-topic h3,.v7-topic p,.v7-reply,.eventtitle,.v8-parent-profile .v7-about>p,.v12-professional-page,.v12-inbox,#v12DetailsPreview,.v12-lightbox,.berceau-gift-card,.berceau-review-drafts';
  const nodes=[];const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);while(walker.nextNode())nodes.push(walker.currentNode);for(const node of nodes){if(node.parentElement?.closest(exclusions))continue;const value=interfaceLabel(node.nodeValue);if(value!==node.nodeValue)node.nodeValue=value}
  root.querySelectorAll('[aria-label],[placeholder],[title]').forEach(node=>{if(node.closest('#v8DesignStage,#v3Stage,.v12-professional-page,.v12-inbox,#v12DetailsPreview,.v12-lightbox'))return;for(const key of ['aria-label','placeholder','title'])if(node.hasAttribute(key))node.setAttribute(key,interfaceLabel(node.getAttribute(key)).trim())});
  root.querySelectorAll('h1,h2').forEach(n=>{if(n.closest('#v8DesignStage,#v3Stage,.v12-professional-page,.v12-inbox,#v12DetailsPreview'))return;const text=n.textContent.trim();if(interfaceTitles[text])n.textContent=interfaceTitles[text]});
@@ -4201,7 +4209,7 @@ function v11OpenColors(target) {
   v11ColorTarget = target;
   const layer = v11Selected();
   const current = target === "text" ? v11TextStyle()?.color : target === "shape" ? layer?.fill : v8Design[target];
-  const colors = [...new Set([state.brand.accent, state.brand.secondary, state.brand.third, state.brand.text].filter(c => /^#[\da-f]{6}$/i.test(c)))];
+  const colors = [...new Set([state.brand.accent, state.brand.secondary, state.brand.third, state.brand.text, state.brand.background].filter(c => /^#[\da-f]{6}$/i.test(c)))];
   showModal("Choisir une couleur", "", `<p class="v11-color-heading">Ma charte graphique</p><div class="v11-color-swatches">${colors.map(c => `<button type="button" data-v11="pick-color" data-color="${c}" style="--swatch:${c}" aria-label="Couleur ${c}" title="${c}"></button>`).join("")}</div><label class="field"><span>Autre couleur</span><input type="color" id="v11CustomColor" value="${v11Rich.color(current)}"></label><label class="field"><span>Code HEX</span><input id="v11ColorHex" value="${v11Rich.color(current)}" maxlength="7" pattern="#[0-9a-fA-F]{6}"></label><button type="button" class="btn" data-v11="apply-custom-color">Appliquer</button>`);
   document.querySelector(".modal")?.classList.add("v11-color-modal");
 }
@@ -4650,9 +4658,80 @@ handleForm = function (form) {
 };
 const professionalPageRenderBase = render;
 render = function () { professionalPageRenderBase(); professionalPage.afterRender(); };
+let berceauAuthClient = null;
+const officialFont = { family: "Naitea Titres", data: "/assets/berceau/typographie/NaiteaTitres-Semibold.ttf" };
+state.v9.customFonts ||= [];
+if (!state.v9.customFonts.some(font => font.family === officialFont.family)) state.v9.customFonts.push(officialFont);
+if (!v9Catalog.some(font => font.family === officialFont.family)) v9Catalog.push({ family: officialFont.family, weights: [600] });
+const berceauFontBase = v9Font;
+const berceauFontPickerBase = v9FontPicker;
+v9FontPicker = function (layer) {
+  const html = berceauFontPickerBase(layer);
+  return layer.font === "Naitea Titres" ? html.replace(/href="\/api\/font\?[^\"]*license=1"/, 'href="/assets/berceau/typographie/OFL.txt"') : html;
+};
+v9Font = async function (family, weight = 400) {
+  if (family === "Naitea Titres" || family === "Source Sans 3") {
+    const actual = family === "Naitea Titres" ? 600 : Math.max(200, Math.min(900, Number(weight) || 400));
+    await document.fonts.load(`${actual} 24px "${family}"`); return actual;
+  }
+  return berceauFontBase(family, weight);
+};
+const berceauBrand = BerceauBrand.create({
+  getState: () => state, tools: BerceauTools, esc, ic, save, render: () => render(), toast,
+  snapshotBrand: () => v10SnapshotBrand(),
+  addImage: async src => {
+    try {
+      const image = await v3Img(src), [width, height] = v8DesignSize();
+      v9CommitText(); v8DesignSnapshot();
+      const layer = { id: uid(), type: "image", src, x: 22, y: 24, w: 35, h: Math.min(60, 35 * image.height / image.width * width / height), fit: "contain" };
+      v8Design.layers.push(layer); v8Selected = layer.id; v8DesignSave(); render();
+    } catch { toast("Ce pictogramme n’a pas pu être chargé."); }
+  },
+});
+const berceauWorkspace = BerceauWorkspace.create({
+  getState: () => state, restoreState: snapshot => { state = snapshot; }, tools: BerceauTools,
+  save, render: () => render(), esc, money, ic, fmtDate, demo: v8Demo, toast, uid,
+  showModal, closeModal, mode: () => mode, page: () => page, spots,
+  setParent: () => setMode("parent"), download: v9Download,
+  currentBooking: () => ({ offerId: v8BookingOffer, date: v8BookingDate, time: v8BookingSlot }),
+});
+const reviewAssistant = NaiteaReviewAssistant.create({
+  getState: () => state, tools: BerceauTools, esc, uid, save, showModal, toast,
+  getAccessToken: async () => {
+    if (!berceauAuthClient) return "";
+    const { data } = await berceauAuthClient.auth.getSession(); return data.session?.access_token || "";
+  },
+});
+v8Nav.splice(3, 0, ["cadeaux", "gift", "Bons cadeaux"]);
+const berceauShowModal = showModal;
+showModal = function (...args) { berceauShowModal(...args); berceauWorkspace.decorateBooking(); };
+const berceauQueueEmail = v8QueueEmail;
+v8QueueEmail = function (to, subject, body) {
+  if (/^Rappel/.test(subject) && /Modèle à programmer/.test(body)) return;
+  return berceauQueueEmail(to, subject, body);
+};
+const berceauHandleBase = handleForm;
+handleForm = function (form) {
+  if (berceauWorkspace.submit(form) || reviewAssistant.submit(form)) return;
+  if (!berceauBrand.beforeSubmit(form)) return;
+  const pending = berceauWorkspace.beforeBooking(form);
+  if (pending?.error) return toast(pending.error);
+  const result = berceauHandleBase(form);
+  berceauWorkspace.afterBooking(pending);
+  return result;
+};
+const berceauRenderBase = render;
+render = function () {
+  if (mode === "pro" && page === "cadeaux" && !v8Shared) {
+    document.body.classList.remove("v8-parent-mode"); renderChrome();
+    document.getElementById("app").innerHTML = berceauWorkspace.giftPage();
+  } else berceauRenderBase();
+  berceauBrand.afterRender(); berceauWorkspace.afterRender(); reviewAssistant.afterRender();
+};
 if (new URLSearchParams(location.search).get("vue") === "parents" && !v8Shared) {
   mode = "parent"; page = "parent";
 }
+if (!berceauExistingWorkspace && state.brand.titleFont === "Naitea Titres") v10ApplyTemplate("rencontre", "studio");
 render();
 
 // La démo reste en localStorage : nous personnalisons uniquement le prénom.
@@ -4687,6 +4766,7 @@ async function naiteaLoadAuth() {
     if (!config.url || !config.publishableKey) return;
     const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     const supabase = sdk.createClient(config.url, config.publishableKey);
+    berceauAuthClient = supabase;
     await naiteaRefreshAccount(supabase);
     supabase.auth.onAuthStateChange(() => {
       setTimeout(() => { naiteaRefreshAccount(supabase).catch(() => {}); }, 0);

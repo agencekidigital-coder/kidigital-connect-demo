@@ -1,6 +1,6 @@
 # Naïtéa — mémoire du projet et décisions
 
-Dernière mise à jour : 19 novembre 2026.
+Dernière mise à jour : 20 novembre 2026.
 
 ## Cadre permanent
 
@@ -10,7 +10,18 @@ Dernière mise à jour : 19 novembre 2026.
 - Ne pas modifier les données/configurations Supabase ou Stripe pour ces passes d’interface.
 - L’utilisatrice a confirmé le 16 novembre 2026 qu’elle souhaite une **démonstration complète pour l’instant** : réservations locales, emails non envoyés, paiements simulés, services IA distants non activés.
 - Toujours identifier les données et actions de démonstration ; ne pas les présenter comme réelles.
-- Identité : rose argile `#B97682`, prune `#5B3A48`, sauge `#A8B59E`, pêche `#F0C2AE`, crème `#FFF7F1`. Lora Bold pour les titres, DM Sans pour l’interface ; logo avec deux silhouettes, formes organiques, rendu chaleureux et premium.
+- Identité actuelle depuis le 20 novembre : **Berceau**, fichiers officiels fournis sur Drive. Pourpre `#590425`, corail `#BF5B45`, moutarde `#D89328`, ivoire `#FEF8ED`. Naitea Titres SemiBold pour les titres et Source Sans 3 pour l’interface. Logo Berceau avec deux parents et un bébé, 24 pictogrammes 3D. Cette demande remplace la palette Naïtéa initiale et les choix Lora/DM Sans de l’interface. Conserver les créations personnalisées déjà enregistrées.
+
+## Nouveaux parcours Berceau du 20 novembre 2026
+
+- Sources, licences et détails dans `assets/berceau/SOURCES.md` et `docs/naitea-berceau-workflows.md`.
+- Menu latéral professionnel, en-tête et barre mobile fixes ; pictogrammes 3D disponibles dans le studio. Icônes simples dans la navigation, conformément à la charte.
+- Bons cadeaux locaux : configuration professionnelle, achat fictif par montant ou accompagnement, bénéficiaire/message, code `DEMO-`, téléchargement PNG, notification et email préparé. Solde partiel et complément de réservation, restrictions et expiration, recrédit unique après annulation. Pas de valeur monétaire ni de partage des soldes entre appareils.
+- Fiche : actions appeler/écrire, réseaux LinkedIn et TikTok aussi dans Réseaux sociaux, spécialités/publics/langues par mots clés sélectionnables, formations en champs structurés. Galerie et horaires existants conservés.
+- L’utilisatrice a confirmé **email et SMS, en démonstration**. Canaux et délais réglables ; SMS uniquement avec numéro valide et demande distincte de la famille. Téléphone facultatif dans l’inscription à un atelier, réutilisé pour éviter une double saisie. Annulations et délais passés pris en compte ; aucun envoi réel.
+- Google Agenda : ajout manuel avec validation dans Google et export ICS des ateliers et rendez-vous, sans coordonnées de familles. **La synchronisation automatique n’est pas connectée** ; les occupations Google ne bloquent pas encore les créneaux Naïtea.
+- Avis : assistant de rédaction, ton/longueur, brouillon et copie, sans publication automatique. Démo par modèles locaux ; adaptateur IA serveur préparé, inactif sans activation, authentification et comptes explicitement autorisés. Ne pas prétendre que la génération IA distante ou l’import des avis individuels est actif.
+- Aucun secret ou accès Google/SMS/IA configuré, aucune modification de données Supabase/Stripe, aucun paiement ni message réel. Prévisualisation uniquement, sans fusion dans main.
 
 ## Travail déjà livré
 

@@ -1,0 +1,15 @@
+Naïtea Titres — prototype
+
+Police de titres pour les essais d'identité de Naïtea. Elle reprend les
+contours de n, a et e du lettrage de marque. Les autres glyphes sont issus
+de Baloo 2, avec la couverture de ses accents et de sa ponctuation française.
+Le nom « naïtea » peut afficher son lettrage complet avec le tréma et les
+lettres liées en activant la ligature discrétionnaire OpenType dlig.
+
+TTF pour l'installation locale, WOFF pour le web.
+Pour les titres courants, utiliser Naitea Titres sans activer dlig.
+Pour reproduire le mot-symbole, utiliser dlig sur « naïtea » seulement.
+Le symbole Berceau est une illustration distincte du fichier de police.
+
+Police dérivée de Baloo 2, sous licence SIL Open Font License 1.1.
+Se reporter à OFL.txt pour les mentions de droits et les conditions.
