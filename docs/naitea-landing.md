@@ -30,4 +30,6 @@ BASE_URL=http://127.0.0.1:4185 node tests/browser-landing.cjs
 
 Le navigateur vérifie le rendu, les images, les onglets et dialogues au clavier, les liens, le menu fixe, l’inscription directe et les largeurs 1440/768/390/320 px. La soumission d’inscription est testée avec un faux SDK isolé, jamais contre Supabase. `tests/capture-landing.cjs` permet d’actualiser les quatre captures à partir de données fictives dans un navigateur neuf.
 
+Vérification du 20 novembre : 63 tests unitaires réussis, parcours landing validé en local et sur Vercel, formulaire hébergé chargé, parcours plateforme existants validés sans écriture externe. Logo WebP optimisé de 13 466 octets avec alpha de 0 à 255 ; photo du premier écran de 101 998 octets. Les captures ordinateur/mobile sont conservées dans `/workspace/artifacts/naitea-landing-live/`.
+
 La configuration réelle des redirections et emails d’authentification reste celle du projet Supabase. La procédure déjà documentée pour les URLs de confirmation d’une prévisualisation doit être revue avant une campagne publique. Aucun compte réel, donnée Supabase, réglage Stripe ou service d’envoi n’a été modifié. Aucune fusion main ou mise en production autorisée.

@@ -68,6 +68,8 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     // Check the actual conversion link without submitting to Supabase.
     await page.locator('#hero-signup').click();
     await page.locator('#signupTab[aria-selected="true"]').waitFor();
+    await page.waitForFunction(() => !document.getElementById('submitBtn').disabled || document.getElementById('status').classList.contains('error'));
+    if (BASE.startsWith('https://')) assert.equal(await page.locator('#submitBtn').isEnabled(), true, 'hosted signup service must load');
     assert.equal(await page.locator('#password').getAttribute('autocomplete'), 'new-password');
     assert(await page.locator('#nameGroup').isVisible());
     assert.equal(await page.locator('#backLink').getAttribute('href'), '/decouvrir');
