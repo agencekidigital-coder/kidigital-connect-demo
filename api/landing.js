@@ -30,12 +30,19 @@ function createHandler({ env = process.env, readTemplate = () => fs.readFileSync
       return res.status(200).end(req.method === 'HEAD' ? undefined : content);
     }
     const schema = { '@context': 'https://schema.org', '@graph': [
-      { '@type': 'Organization', '@id': canonical + '#organisation', name: 'Naïtea', url: canonical, logo: origin + '/assets/berceau/transparent/naitea-logo.png' },
-      { '@type': 'WebPage', '@id': canonical + '#page', url: canonical, name: 'Logiciel périnatalité et parentalité | Naïtea', inLanguage: 'fr-FR', description: 'Ateliers, rendez-vous, familles et communication dans un même espace professionnel.', publisher: { '@id': canonical + '#organisation' }, mainEntity: { '@id': canonical + '#application' } },
-      { '@type': 'WebApplication', '@id': canonical + '#application', name: 'Naïtea', url: canonical, applicationCategory: 'BusinessApplication', operatingSystem: 'Web', inLanguage: 'fr-FR', description: 'Logiciel pour les professionnelles et professionnels de la périnatalité, de la parentalité et de la petite enfance.', featureList: ['Gestion des ateliers collectifs', 'Rendez-vous individuels', 'Fiche professionnelle', 'Suivi des familles', 'Studio de communication', 'Bons cadeaux personnalisables'], publisher: { '@id': canonical + '#organisation' } }
+      { '@type': 'Organization', '@id': canonical + '#organisation', name: 'Naïtea', url: canonical, logo: origin + '/assets/berceau/transparent/naitea-logo.png', founder: { '@type': 'Person', name: 'Laureen' } },
+      { '@type': 'WebPage', '@id': canonical + '#page', url: canonical, name: 'Logiciel tout en 1 périnatalité et parentalité | Naïtea', inLanguage: 'fr-FR', description: 'Ateliers, rendez-vous, familles, facturation et communication dans un même espace professionnel.', publisher: { '@id': canonical + '#organisation' }, mainEntity: { '@id': canonical + '#application' } },
+      { '@type': 'WebApplication', '@id': canonical + '#application', name: 'Naïtea', url: canonical, applicationCategory: 'BusinessApplication', operatingSystem: 'Web', inLanguage: 'fr-FR', description: 'Logiciel pour les professionnelles et professionnels de la périnatalité, de la parentalité et de la petite enfance.', featureList: ['Gestion des ateliers collectifs', 'Rendez-vous individuels', 'Fiche professionnelle', 'Suivi des familles', 'Studio de communication', 'Bons cadeaux personnalisables'], publisher: { '@id': canonical + '#organisation' } },
+      ...[
+        ['pro', 'Démonstration de l’espace professionnel Naïtea', 'Calendrier, ateliers, disponibilités, familles, studio et bons cadeaux. Enregistrement avec des données fictives.'],
+        ['familles', 'Démonstration de la fiche visible par les familles', 'Présentation de la professionnelle, ateliers et rendez-vous individuels. Réservations et paiements de démonstration.']
+      ].map(([id, name, description]) => ({ '@type': 'VideoObject', '@id': canonical + '#video-' + id, name, description, inLanguage: 'fr-FR', contentUrl: origin + '/assets/landing/demo-' + id + '.mp4', thumbnailUrl: origin + '/assets/landing/demo-' + id + '-poster.jpg', uploadDate: '2026-11-21', duration: 'PT35S', publisher: { '@id': canonical + '#organisation' } }))
     ] };
     const values = { ORIGIN: origin, CANONICAL: canonical, ROBOTS: isProduction ? 'index, follow, max-image-preview:large' : 'noindex, nofollow', YEAR: new Intl.DateTimeFormat('fr-FR', { year: 'numeric', timeZone: 'Europe/Paris' }).format(new Date()), SCHEMA: JSON.stringify(schema).replace(/</g, '\\u003c') };
-    const html = readTemplate().replace(/\{\{(ORIGIN|CANONICAL|ROBOTS|YEAR|SCHEMA)\}\}/g, (_, key) => values[key]);
+    let template = readTemplate();
+    // Layout examples requested for review only. Never publish them as customer evidence.
+    if (isProduction) template = template.replace(/<!-- preview-testimonials:start -->[\s\S]*?<!-- preview-testimonials:end -->/g, '');
+    const html = template.replace(/\{\{(ORIGIN|CANONICAL|ROBOTS|YEAR|SCHEMA)\}\}/g, (_, key) => values[key]);
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('ETag', '"' + crypto.createHash('sha256').update(html).digest('hex') + '"');

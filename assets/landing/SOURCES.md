@@ -10,8 +10,10 @@ Photos d’illustration téléchargées le 20 novembre 2026, hébergées localem
 
 La photo de petite enfance `assets/photos/family-2.jpg` est documentée dans `assets/photos/SOURCES.md` (Unsplash).
 
-Les quatre captures `*-demo.png` proviennent de l’interface réelle avec des données fictives, dans un navigateur isolé. Pour les actualiser : `BASE_URL=http://127.0.0.1:4185 node tests/capture-landing.cjs`. Ce script ne crée pas de compte et n’envoie pas de paiement ou de message.
+Les captures de l’espace pro, de la fiche familles, du studio et de la fiche mobile proviennent de l’interface réelle avec des données fictives, dans un navigateur isolé. Les photos visibles dans ces captures restent des illustrations de démonstration ; aucune personne n’est présentée comme cliente ou professionnelle réelle de Naïtea.
 
-`naitea-social.png` est une composition de partage de la marque avec la photo d’illustration du premier écran.
+`naitea-social.png` est une composition HTML de partage avec le logo et les captures réelles des espaces pro et familles. Elle remplace la première version avec photo.
+
+Les vidéos `demo-pro.mp4` et `demo-familles.mp4` sont des enregistrements silencieux des vrais parcours, réalisés le 21 novembre 2026 avec des données fictives. Textes explicatifs intégrés à l’enregistrement et pistes VTT françaises. Aucun achat, compte, email ou action Google réelle. Le navigateur est isolé de l’espace de travail de l’utilisatrice ; ses données locales ne sont jamais enregistrées dans ces médias. Captures et vidéos se régénèrent avec `tests/create-landing-media.cjs` ; voir la procédure FFmpeg dans `docs/naitea-landing.md`.
 
 `SourceSans3-Variable.woff2` est une conversion sans modification des glyphes du fichier officiel `assets/berceau/typographie/SourceSans3-Variable.ttf`. La licence SIL Open Font License est conservée dans `assets/berceau/typographie/`. Les titres, le logo et les pictogrammes transparents proviennent du kit Berceau fourni par la cliente.

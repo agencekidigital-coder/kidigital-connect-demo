@@ -1,6 +1,6 @@
 # Naïtéa — mémoire du projet et décisions
 
-Dernière mise à jour : 20 novembre 2026.
+Dernière mise à jour : 21 novembre 2026.
 
 ## Cadre permanent
 
@@ -157,3 +157,13 @@ Dernière mise à jour : 20 novembre 2026.
 - `/decouvrir` porte la landing ; `/` conserve la plateforme pendant sa vérification. Charte Berceau officielle, pictogrammes transparents, photos locales avec licences et captures réelles de la démonstration.
 - SEO rendu côté serveur, métadonnées de partage, données structurées, sitemap. Les previews restent noindex, l’indexation est préparée pour une future publication approuvée.
 - Aucun service de paiement/email activé, aucune donnée réelle de famille ni compte créé pendant les tests. Supabase et Stripe inchangés. Voir `docs/naitea-landing.md`.
+
+## Landing, présentation et tarifs du 21 novembre 2026
+
+- H1 demandé : logiciel tout en 1 des pros de la périnatalité et parentalité ; les deux mots sont en couleur. Valeur : communiquer, trouver des clients, gérer, organiser et développer son activité dans un même espace.
+- Remplacer la mère/le petit calendrier du premier écran par un aperçu plus complet du produit. Deux vraies vidéos silencieuses Pro/Familles avec textes explicatifs et ancres dédiées. Titres et sous-titre des fonctionnalités sur une ligne sur ordinateur, responsive conservé.
+- Fiche : mettre en avant référencement, spécialités et ville sans promettre de classement. Prise de rendez-vous intégrée ; paiements/facturation présentés avec les limites de la démo. Avant/avec Naïtea sans nombre de demandes ni économies inventés. FAQ toujours ouverte.
+- Prix validés : Ma fiche gratuite ; Naïtea Complet à 14,90 € TTC/mois ; lancement à 9,90 € TTC/mois pour les 50 premières abonnées. L’utilisatrice a explicitement confirmé 12 mois, puis 14,90 €. Essai de 30 jours avant les mois payants. Aucun faux compteur de places. La configuration, les droits d’accès et la facturation réels restent à implémenter côté serveur ultérieurement ; aucun changement Supabase/Stripe.
+- Présentation validée : Laureen, maman entrepreneure d’un garçon de 2 ans, fondatrice de Kidigital, agence de communication spécialisée périnatalité et parentalité. Elle travaille avec ces professionnelles au quotidien et connaît leurs problématiques.
+- Aucun témoignage disponible à ce stade. L’utilisatrice a demandé des faux en attendant : les exemples de maquette sont explicitement qualifiés de fictifs dans l’aperçu, sans identité, portrait, note ni chiffre de satisfaction inventé. Le serveur les retire en production. Les remplacer par des avis authentiques autorisés avant publication comme preuve sociale.
+- Source technique, médias et tests : `docs/naitea-landing.md`, `assets/landing/SOURCES.md`, `tests/create-landing-media.cjs`. Branche de travail uniquement, aucun déploiement de production ni fusion main.

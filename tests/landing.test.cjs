@@ -14,6 +14,9 @@ test('preview HTML has rendered SEO metadata, correct schema and no search index
   const schema = JSON.parse(res.body.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
   assert.equal(schema['@graph'].find(x => x['@type'] === 'WebApplication').name, 'Naïtea');
   assert.equal(schema['@graph'].some(x => x.aggregateRating || x.offers), false);
+  const videos = schema['@graph'].filter(x => x['@type'] === 'VideoObject');
+  assert.equal(videos.length, 2);
+  assert(videos.every(x => x.contentUrl.startsWith('https://naitea-preview.vercel.app/assets/landing/demo-') && x.thumbnailUrl.endsWith('-poster.jpg')));
 });
 test('production canonical, social metadata and sitemap agree on the approved origin', () => {
   const handler = createHandler({ env: { VERCEL_ENV: 'production', NAITEA_PUBLIC_ORIGIN: 'https://www.naitea.example' } });
@@ -25,6 +28,18 @@ test('production canonical, social metadata and sitemap agree on the approved or
   const sitemap = response(); handler(request({ query: { format: 'sitemap' } }), sitemap);
   assert.equal(sitemap.headers['Content-Type'], 'application/xml; charset=utf-8');
   assert(sitemap.body.includes('<loc>https://www.naitea.example/decouvrir</loc>'));
+});
+test('fictional testimonial examples are labelled in preview and excluded from production', () => {
+  const preview = response(), production = response();
+  createHandler({ env: { VERCEL_ENV: 'preview' } })(request(), preview);
+  createHandler({ env: { VERCEL_ENV: 'production' } })(request(), production);
+  assert(preview.body.includes('data-preview-testimonials'));
+  assert(preview.body.includes('Exemples fictifs pour la maquette. Aucun avis réel à ce stade.'));
+  assert.equal((preview.body.match(/Exemple fictif :/g) || []).length, 3);
+  assert(!production.body.includes('data-preview-testimonials'));
+  assert(!production.body.includes('Je retrouve mes ateliers, mes rendez-vous et mes familles'));
+  const schema = JSON.parse(production.body.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+  assert.equal(schema['@graph'].some(x => x.review || x.aggregateRating || x.interactionStatistic), false);
 });
 test('robots protects the fictitious app and previews, permits only the production landing', () => {
   for (const target of ['preview', 'production']) {

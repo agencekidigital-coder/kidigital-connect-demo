@@ -11,45 +11,54 @@
   });
   navigation.addEventListener('click', event => { if (event.target.closest('a')) closeMenu(); });
   document.addEventListener('keydown', event => { if (event.key === 'Escape' && menu.getAttribute('aria-expanded') === 'true') closeMenu(true); });
-  const media = matchMedia('(max-width: 1000px)'); media.addEventListener('change', () => closeMenu());
+  matchMedia('(max-width: 1000px)').addEventListener('change', () => closeMenu());
 
-  const tabs = [...document.querySelectorAll('[role="tab"]')];
-  function selectTab(tab, focus = false) {
-    tabs.forEach(item => {
-      const selected = item === tab; item.setAttribute('aria-selected', String(selected)); item.tabIndex = selected ? 0 : -1;
-      const panel = document.getElementById(item.getAttribute('aria-controls')); panel.hidden = !selected;
-      if (selected) panel.querySelector('img').loading = 'eager';
+  const tabs = [...document.querySelectorAll('.product-tabs [role="tab"]')], ids = ['pro', 'familles'];
+  const panels = ids.map(id => document.getElementById('demo-' + id));
+  function selectDemo(id, { focus = false, scroll = false, historyMode } = {}) {
+    if (!ids.includes(id)) return;
+    tabs.forEach(tab => {
+      const selected = tab.dataset.demoLink === id;
+      tab.setAttribute('aria-selected', String(selected)); tab.tabIndex = selected ? 0 : -1;
+      if (selected && focus) tab.focus();
     });
-    if (focus) tab.focus();
+    panels.forEach(panel => {
+      panel.hidden = panel.id !== 'demo-' + id;
+      if (panel.hidden) panel.querySelector('video').pause();
+    });
+    const hash = '#demo-' + id;
+    if (historyMode && location.hash !== hash) history[historyMode === 'replace' ? 'replaceState' : 'pushState'](null, '', hash);
+    if (scroll) document.getElementById('demo-' + id).scrollIntoView({ block: 'start' });
   }
-  tabs.forEach((tab, index) => {
-    tab.addEventListener('click', () => selectTab(tab));
-    tab.addEventListener('keydown', event => {
-      let next;
-      if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
-      if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
-      if (event.key === 'Home') next = 0;
-      if (event.key === 'End') next = tabs.length - 1;
-      if (next !== undefined) { event.preventDefault(); selectTab(tabs[next], true); }
-    });
-  });
-  const capture = document.getElementById('capture-dialog'), privacy = document.getElementById('privacy-dialog');
-  function openDialog(dialog) { closeMenu(); dialog.showModal(); document.documentElement.classList.add('dialog-open'); }
-  document.querySelectorAll('[data-enlarge]').forEach(button => button.addEventListener('click', () => {
-    const image = button.querySelector('img'), enlarged = document.getElementById('enlarged-capture');
-    enlarged.src = new URL(image.src).searchParams.get('url') || image.src; enlarged.alt = image.alt;
-    document.getElementById('capture-dialog-title').textContent = ({ agenda: 'L’agenda professionnel', fiche: 'La fiche côté familles', studio: 'Le studio de communication' })[button.dataset.enlarge];
-    openDialog(capture);
+  document.querySelectorAll('[data-demo-link]').forEach(link => link.addEventListener('click', event => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault(); closeMenu(); selectDemo(link.dataset.demoLink, { scroll: true, historyMode: 'push' });
   }));
-  document.querySelector('[data-open-privacy]').addEventListener('click', () => openDialog(privacy));
-  for (const dialog of [capture, privacy]) {
-    dialog.querySelector('[data-close-dialog]').addEventListener('click', () => dialog.close());
-    dialog.addEventListener('close', () => document.documentElement.classList.remove('dialog-open'));
-    dialog.addEventListener('click', event => {
-      const r = dialog.getBoundingClientRect();
-      if (event.target === dialog && (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom)) dialog.close();
-    });
-  }
+  tabs.forEach((tab, index) => tab.addEventListener('keydown', event => {
+    let next;
+    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+    if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+    if (event.key === 'Home') next = 0;
+    if (event.key === 'End') next = tabs.length - 1;
+    if (event.key === ' ') { event.preventDefault(); tab.click(); return; }
+    if (next !== undefined) { event.preventDefault(); selectDemo(ids[next], { focus: true, historyMode: 'replace' }); }
+  }));
+  function fromHash() { if (['#demo-pro', '#demo-familles'].includes(location.hash)) selectDemo(location.hash.slice(6)); }
+  selectDemo(location.hash === '#demo-familles' ? 'familles' : 'pro');
+  addEventListener('hashchange', fromHash); addEventListener('popstate', fromHash);
+  if (['#demo-pro', '#demo-familles'].includes(location.hash)) requestAnimationFrame(() => document.querySelector(location.hash).scrollIntoView({ block: 'start' }));
+  const videos = [...document.querySelectorAll('.demo-panel video')];
+  videos.forEach(video => video.addEventListener('play', () => videos.forEach(other => { if (other !== video) other.pause(); })));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) videos.forEach(video => video.pause()); });
+
+  const privacy = document.getElementById('privacy-dialog');
+  document.querySelector('[data-open-privacy]').addEventListener('click', () => { closeMenu(); privacy.showModal(); document.documentElement.classList.add('dialog-open'); });
+  privacy.querySelector('[data-close-dialog]').addEventListener('click', () => privacy.close());
+  privacy.addEventListener('close', () => document.documentElement.classList.remove('dialog-open'));
+  privacy.addEventListener('click', event => {
+    const r = privacy.getBoundingClientRect();
+    if (event.target === privacy && (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom)) privacy.close();
+  });
   const mobile = document.querySelector('.mobile-signup'), visible = new Set();
   if ('IntersectionObserver' in window) {
     const observer = new IntersectionObserver(entries => {

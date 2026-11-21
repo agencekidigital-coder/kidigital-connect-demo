@@ -52,6 +52,7 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <section id="authPanel">
 <h1>Connexion</h1>
 <p class="intro">Connecte-toi ou crée ton compte professionnel.</p>
+<p id="offerSummary" class="status" hidden></p>
 <div class="tabs" role="tablist" aria-label="Type de connexion">
 <button id="loginTab" type="button" role="tab" aria-selected="true">Se connecter</button>
 <button id="signupTab" type="button" role="tab" aria-selected="false">Créer un compte</button>
@@ -102,6 +103,7 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <script type="module">
 let client = null;
 let mode = new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login';
+const requestedOffer = new URLSearchParams(location.search).get('offre');
 let recoveryMode = false;
 const $ = (id) => document.getElementById(id);
 function status(message, type) {
@@ -116,6 +118,8 @@ function selectMode(next) {
   $('loginTab').setAttribute('aria-selected', String(mode === 'login'));
   $('signupTab').setAttribute('aria-selected', String(mode === 'signup'));
   $('nameGroup').hidden = mode !== 'signup';
+  $('offerSummary').hidden = mode !== 'signup' || !['fiche', 'complet'].includes(requestedOffer);
+  $('offerSummary').textContent = requestedOffer === 'fiche' ? 'Ma fiche : gratuit. Présentez votre activité, vos coordonnées et vos liens.' : 'Naïtea Complet : essai de 30 jours sans carte bancaire. Tarif prévu : 14,90 € TTC/mois ; lancement à 9,90 € pendant 12 mois pour les 50 premières abonnées. Cet aperçu ne déclenche aucun abonnement.';
   $('forgotRow').hidden = mode !== 'login';
   $('forgotPanel').hidden = true;
   $('authForm').hidden = false;
