@@ -25,8 +25,14 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
       await page.evaluate(async () => { document.querySelectorAll('img[src]').forEach(i => i.loading = 'eager'); await document.fonts.ready; await Promise.all([...document.querySelectorAll('img[src]')].map(i => i.decode())); });
     };
     await load();
-    const templateRoute = await context.request.get(BASE + '/marketing/landing.html', { maxRedirects: 0 });
-    assert.equal(templateRoute.status(), 307); assert.equal(templateRoute.headers().location, '/decouvrir');
+    // Follow the route in Chrome as a visitor would; the Node request client
+    // does not inherit the shared browser's network transport.
+    const redirectPage = await context.newPage();
+    const templateRoute = await redirectPage.goto(BASE + '/marketing/landing.html', { waitUntil: 'domcontentloaded' });
+    const redirect = await templateRoute.request().redirectedFrom()?.response();
+    assert.equal(redirect?.status(), 307);
+    assert.equal(new URL(templateRoute.url()).pathname, '/decouvrir');
+    await redirectPage.close();
     assert.equal(media.length, 0, 'videos are not downloaded before interaction');
     assert.equal(await page.locator('h1').count(), 1); assert.match(await page.title(), /Logiciel tout en 1 périnatalité et parentalité/);
     assert.equal(await page.locator('h1 span').count(), 2);
