@@ -51,6 +51,21 @@
   videos.forEach(video => video.addEventListener('play', () => videos.forEach(other => { if (other !== video) other.pause(); })));
   document.addEventListener('visibilitychange', () => { if (document.hidden) videos.forEach(video => video.pause()); });
 
+  const capture = document.getElementById('capture-dialog');
+  document.querySelectorAll('[data-capture]').forEach(button => button.addEventListener('click', () => {
+    const preview = button.querySelector('img'), enlarged = document.getElementById('enlarged-capture');
+    const source = new URL(preview.currentSrc || preview.src);
+    enlarged.src = source.searchParams.get('url') || source.href; enlarged.alt = preview.alt;
+    document.getElementById('capture-title').textContent = button.dataset.captureLabel;
+    videos.forEach(video => video.pause()); closeMenu();
+    capture.showModal(); capture.scrollTop = 0; document.documentElement.classList.add('dialog-open');
+  }));
+  capture.querySelector('[data-close-dialog]').addEventListener('click', () => capture.close());
+  capture.addEventListener('close', () => document.documentElement.classList.remove('dialog-open'));
+  capture.addEventListener('click', event => {
+    const r = capture.getBoundingClientRect();
+    if (event.target === capture && (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom)) capture.close();
+  });
   const privacy = document.getElementById('privacy-dialog');
   document.querySelector('[data-open-privacy]').addEventListener('click', () => { closeMenu(); privacy.showModal(); document.documentElement.classList.add('dialog-open'); });
   privacy.querySelector('[data-close-dialog]').addEventListener('click', () => privacy.close());

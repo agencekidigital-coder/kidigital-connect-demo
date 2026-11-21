@@ -167,3 +167,12 @@ Dernière mise à jour : 21 novembre 2026.
 - Présentation validée : Laureen, maman entrepreneure d’un garçon de 2 ans, fondatrice de Kidigital, agence de communication spécialisée périnatalité et parentalité. Elle travaille avec ces professionnelles au quotidien et connaît leurs problématiques.
 - Aucun témoignage disponible à ce stade. L’utilisatrice a demandé des faux en attendant : les exemples de maquette sont explicitement qualifiés de fictifs dans l’aperçu, sans identité, portrait, note ni chiffre de satisfaction inventé. Le serveur les retire en production. Les remplacer par des avis authentiques autorisés avant publication comme preuve sociale.
 - Source technique, médias et tests : `docs/naitea-landing.md`, `assets/landing/SOURCES.md`, `tests/create-landing-media.cjs`. Branche de travail uniquement, aucun déploiement de production ni fusion main.
+
+## Landing aérée et lecture en Z du 21 novembre 2026
+
+- Demande ajoutée : TL;DR en haut de page pour faciliter la lecture par les IA, suppression de la vignette « Vos visuels, à votre image », H1 sur trois lignes maximum, davantage d’espace et une capture par avantage. Remplacer les six petites cartes par six encarts alternant texte et aperçu.
+- Références fournies : `https://posipin.com/`, `https://mooddish.fr/`, `https://cozzly.fr/`. Conserver la charte Naïtea ; reprendre le rythme, les grandes démonstrations et la hiérarchie, sans recopier les contenus ni les créations de ces marques.
+- Résumé natif dépliable avant la hero, texte initial côté serveur identique au champ `abstract` du schema. Il reste lisible sans JavaScript et décrit honnêtement les prix prévus et les limites de la démonstration.
+- Titre raccourci en trois lignes : « Le logiciel tout en 1 / périnatalité et / parentalité. » La cible professionnelle reste explicite dans le résumé et le contenu. Tester la limite de trois lignes aux largeurs de 320 à 1920 px.
+- Six captures réelles issues d’un navigateur isolé : ateliers, fiche publique avec disponibilités, familles, studio, bons cadeaux et facture de démonstration. Alternance gauche/droite sur ordinateur, texte puis image sur mobile, agrandissement natif avec fermeture clavier. Données fictives uniquement.
+- Les deux vidéos, FAQ ouverte, présentation de Laureen, tarifs et conditions de lancement restent présents. Témoignages de maquette toujours signalés fictifs et exclus du rendu en production. Supabase/Stripe inchangés, branche de travail et prévisualisation uniquement.

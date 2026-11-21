@@ -1,8 +1,8 @@
 // Landing → videos/anchors → offer → signup. All account submissions use a stub.
 const { chromium } = require('playwright'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), { X509Certificate, createHash } = require('node:crypto');
-const BASE = process.env.BASE_URL || 'http://127.0.0.1:4186';
-const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landing-v2';
+const BASE = process.env.BASE_URL || 'http://127.0.0.1:4188';
+const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landing-v3';
 (async () => {
   const args = ['--no-sandbox'], certDir = '/usr/local/share/ca-certificates';
   if (fs.existsSync(certDir)) {
@@ -35,7 +35,27 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     await redirectPage.close();
     assert.equal(media.length, 0, 'videos are not downloaded before interaction');
     assert.equal(await page.locator('h1').count(), 1); assert.match(await page.title(), /Logiciel tout en 1 périnatalité et parentalité/);
-    assert.equal(await page.locator('h1 span').count(), 2);
+    assert.equal(await page.locator('h1 .highlight').count(), 2);
+    assert.equal(await page.locator('.hero-studio').count(), 0);
+    assert.equal(await page.locator('.feature-row').count(), 6);
+    assert.equal(await page.locator('.features-grid').count(), 0);
+    assert(await page.locator('#tldr').evaluate(el => el.compareDocumentPosition(document.querySelector('.hero')) & Node.DOCUMENT_POSITION_FOLLOWING));
+    await page.locator('#tldr summary').focus(); await page.keyboard.press('Enter');
+    assert(await page.locator('#tldr-text').isVisible());
+    const summary = await page.locator('#tldr-text').innerText();
+    assert.match(summary, /petite enfance/); assert.match(summary, /données fictives/);
+    assert.equal(await page.locator('script[type="application/ld+json"]').evaluate(el => JSON.parse(el.textContent)['@graph'].find(item => item['@type'] === 'WebPage').abstract), summary);
+    await page.locator('#tldr summary').click();
+    // The desktop reading order alternates at every benefit; each tool opens.
+    for (const [index, row] of (await page.locator('.feature-row').all()).entries()) {
+      const order = await row.evaluate(el => ({ copy: el.querySelector('.feature-copy').getBoundingClientRect().x, preview: el.querySelector('.feature-preview').getBoundingClientRect().x }));
+      assert.equal(order.copy < order.preview, index % 2 === 0);
+      const button = row.locator('[data-capture]'); await button.click();
+      assert(await page.locator('#capture-dialog').isVisible());
+      await page.locator('#enlarged-capture').evaluate(image => image.decode());
+      assert.equal(await page.locator('#capture-title').innerText(), await button.getAttribute('data-capture-label'));
+      await page.keyboard.press('Escape'); assert.equal(await page.locator('#capture-dialog').isVisible(), false);
+    }
     assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), new URL(BASE).origin + '/decouvrir');
     assert.equal(await page.locator('meta[name="robots"]').getAttribute('content'), 'noindex, nofollow');
     assert.equal(await page.evaluate(() => document.body.innerText.includes('—') || /kidigital connect/i.test(document.body.innerText)), false);
@@ -74,12 +94,18 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     await page.evaluate(() => scrollTo(0, 0)); await page.waitForFunction(() => scrollY === 0);
     await page.screenshot({ path: path.join(artifacts, 'desktop-hero.png') });
     await page.screenshot({ path: path.join(artifacts, 'desktop-full.png'), fullPage: true });
-    for (const width of [1024, 768, 390, 320]) {
+    for (const width of [1920, 1280, 1024, 768, 390, 320]) {
       await page.setViewportSize({ width, height: 844 }); await page.evaluate(() => scrollTo(0, 0)); await page.waitForFunction(() => scrollY === 0);
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'horizontal overflow at ' + width);
+      const heading = await page.locator('h1').evaluate(el => ({ lines: el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight), overflow: el.scrollWidth > el.clientWidth }));
+      assert(heading.lines <= 3.05 && !heading.overflow, 'heading limited to 3 complete lines at ' + width);
       assert(await page.locator('#hero-signup').evaluate(el => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; }), 'signup on first screen at ' + width);
       if (width === 390) {
         await page.screenshot({ path: path.join(artifacts, 'mobile-hero.png') }); await page.screenshot({ path: path.join(artifacts, 'mobile-full.png'), fullPage: true });
+        await page.locator('[data-capture="cadeaux"]').click();
+        await page.locator('#enlarged-capture').evaluate(image => image.decode());
+        assert(await page.locator('#capture-dialog').evaluate(el => el.getBoundingClientRect().right <= innerWidth));
+        await page.screenshot({ path: path.join(artifacts, 'mobile-capture.png') }); await page.keyboard.press('Escape');
         await page.locator('.menu-toggle').click(); assert.equal(await page.locator('.menu-toggle').getAttribute('aria-expanded'), 'true');
         await page.keyboard.press('Escape'); assert.equal(await page.locator('.menu-toggle').getAttribute('aria-expanded'), 'false');
         await page.locator('.menu-toggle').click(); await page.locator('#site-navigation a[href="#tarifs"]').click();
@@ -112,7 +138,11 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     await signup.locator('#fullName').fill('Professionnelle de test'); await signup.locator('#email').fill('landing@example.test'); await signup.locator('#password').fill('Exemple-test-2026');
     await signup.locator('#submitBtn').click(); await signup.waitForFunction(() => window.__signupInput?.options?.data?.full_name === 'Professionnelle de test');
     assert.match(await signup.locator('#status').innerText(), /confirme ton adresse/);
-    const result = { landing: 'pass', widths: [1440, 1024, 768, 390, 320], videos: videoInfo, anchorsAndHistory: 'pass', captionsAndSeeking: 'pass', openFaq: 'pass', pricingAndOffers: 'pass', signup: 'pass', realAccountsCreated: 0, browserErrors: errors.length };
+    const noJS = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 900 } });
+    const reader = await noJS.newPage(); await reader.goto(BASE + '/decouvrir', { waitUntil: 'domcontentloaded' });
+    await reader.locator('#tldr summary').click(); assert(await reader.locator('#tldr-text').isVisible());
+    assert.equal(await reader.locator('#tldr-text').innerText(), summary);
+    const result = { landing: 'pass', widths: [1920, 1440, 1280, 1024, 768, 390, 320], headingMaxLines: 3, alternatingBenefits: 6, readableSummaryWithoutJS: 'pass', enlargedCaptures: 'pass', videos: videoInfo, anchorsAndHistory: 'pass', captionsAndSeeking: 'pass', openFaq: 'pass', pricingAndOffers: 'pass', signup: 'pass', realAccountsCreated: 0, browserErrors: errors.length };
     fs.writeFileSync(path.join(artifacts, 'browser-results.json'), JSON.stringify(result, null, 2)); console.log(JSON.stringify(result));
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

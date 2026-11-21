@@ -41,6 +41,17 @@ test('fictional testimonial examples are labelled in preview and excluded from p
   const schema = JSON.parse(production.body.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
   assert.equal(schema['@graph'].some(x => x.review || x.aggregateRating || x.interactionStatistic), false);
 });
+test('the same factual summary is present in initial HTML and machine-readable metadata', () => {
+  for (const target of ['preview', 'production']) {
+    const res = response(); createHandler({ env: { VERCEL_ENV: target } })(request(), res);
+    const schema = JSON.parse(res.body.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+    const summary = schema['@graph'].find(item => item['@type'] === 'WebPage').abstract;
+    assert.equal(res.body.match(/<p id="tldr-text">([^<]+)<\/p>/)[1], summary);
+    assert(summary.includes('données fictives') && summary.includes('14,90') && summary.includes('50 premières'));
+    assert(res.body.indexOf('id="tldr"') < res.body.indexOf('class="hero wrap"'));
+    assert(!res.body.includes('{{SUMMARY}}'));
+  }
+});
 test('robots protects the fictitious app and previews, permits only the production landing', () => {
   for (const target of ['preview', 'production']) {
     const res = response(); createHandler({ env: { VERCEL_ENV: target } })(request({ query: { format: 'robots' } }), res);
