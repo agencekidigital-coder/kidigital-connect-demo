@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="fr" class="berceau-auth">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#FEF8ED">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="/assets/berceau/logos/naitea-symbole-berceau.png">
+<title>Connexion | Naïtéa</title>
+<style>
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:400;font-display:swap;src:url('/assets/dm-sans-400.ttf') format('truetype')}
+@font-face{font-family:'DM Sans';font-style:normal;font-weight:700;font-display:swap;src:url('/assets/dm-sans-700.ttf') format('truetype')}
+@font-face{font-family:'Lora';font-style:normal;font-weight:700;font-display:swap;src:url('/assets/lora-700.ttf') format('truetype')}
+:root{color-scheme:light;--prune:#5B3A48;--rose:#B97682;--peach:#F0C2AE;--sage:#A8B59E;--cream:#FEF8ED}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--cream);color:var(--prune);font-family:'DM Sans',system-ui,sans-serif}
+main{min-height:100vh;display:grid;place-items:center;padding:28px 16px}
+.card{background:#fffefa;border:1px solid #ecdcd6;border-radius:13px;width:min(100%,460px);padding:36px}
+.brand{text-align:center;font-family:'Lora',Georgia,serif;font-size:37px;font-weight:700;letter-spacing:-1.2px}
+.brand span{color:var(--rose)}
+h1{font:700 25px/1.25 'Lora',Georgia,serif;margin:26px 0 8px}
+.intro{font-size:13px;line-height:1.6;color:#866e78;margin:0 0 24px}
+.tabs{display:flex;background:#f8eeeb;padding:4px;border-radius:14px;margin-bottom:22px;gap:5px}
+.tabs button{flex:1;border:0;border-radius:10px;background:transparent;color:#7c6570;padding:11px 8px;font:700 13px 'DM Sans',sans-serif;cursor:pointer}
+.tabs button[aria-selected="true"]{background:white;box-shadow:0 2px 10px #5b3a4814;color:var(--prune)}
+label{display:block;font-size:12px;font-weight:700;margin:15px 0 7px}
+input{width:100%;border:1px solid #decac9;border-radius:12px;padding:13px 14px;background:white;color:var(--prune);font:14px 'DM Sans',sans-serif}
+input:focus{outline:2px solid #b9768288;outline-offset:2px}
+.primary{width:100%;border:0;border-radius:9px;background:var(--rose);color:white;padding:14px 18px;font:700 14px 'DM Sans',sans-serif;margin-top:22px;cursor:pointer}
+.primary:hover{background:#a66370}.primary:disabled{opacity:.6;cursor:wait}
+.secondary{display:inline-block;border:1px solid #b97682;border-radius:9px;background:transparent;color:var(--prune);padding:11px 17px;font:700 13px 'DM Sans',sans-serif;cursor:pointer;text-decoration:none}
+.status{font-size:13px;line-height:1.55;border-radius:12px;padding:13px;margin:17px 0 0;background:#f7efeb;color:var(--prune)}
+.status.error{background:#fff0ef;color:#8f353b}
+.status.success{background:#edf5eb;color:#47664d}
+.status[hidden],section[hidden],div[hidden]{display:none!important}
+.note{font-size:11px;line-height:1.6;color:#907983;margin-top:20px}
+.account{background:#f8eeeb;border-radius:16px;padding:18px;word-break:break-word}
+.account strong{display:block;margin-bottom:6px}
+.forgot{text-align:right;margin:12px 0 0}
+.textlink{border:0;background:none;color:var(--prune);text-decoration:underline;font:700 12px 'DM Sans',sans-serif;cursor:pointer;padding:4px}
+#forgotPanel{margin-top:22px;border-top:1px solid #ead9d4;padding-top:18px}
+#forgotPanel h2{font:600 21px 'Lora',Georgia,serif}
+.footer{text-align:center;margin-top:22px;font-size:12px}
+.footer a{color:var(--prune)}
+</style>
+<link rel="stylesheet" href="/assets/berceau.css">
+</head>
+<body>
+<main>
+<div class="card">
+<div class="brand"><img src="/assets/berceau/transparent/naitea-logo.png" alt="Naïtea"></div>
+<section id="authPanel">
+<h1>Connexion</h1>
+<p class="intro">Connecte-toi ou crée ton compte professionnel.</p>
+<p id="offerSummary" class="status" hidden></p>
+<div class="tabs" role="tablist" aria-label="Type de connexion">
+<button id="loginTab" type="button" role="tab" aria-selected="true">Se connecter</button>
+<button id="signupTab" type="button" role="tab" aria-selected="false">Créer un compte</button>
+</div>
+<form id="authForm">
+<div id="nameGroup" hidden><label for="fullName">Prénom et nom</label><input id="fullName" name="fullName" autocomplete="name" maxlength="120"></div>
+<label for="email">Adresse e-mail</label>
+<input id="email" name="email" type="email" autocomplete="email" required>
+<label for="password">Mot de passe</label>
+<input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required>
+<button id="submitBtn" class="primary" type="submit" disabled>Chargement…</button>
+</form>
+<p id="forgotRow" class="forgot"><button type="button" class="textlink" id="forgotBtn">Mot de passe oublié ?</button></p>
+<div id="forgotPanel" hidden>
+<h2>Retrouver mon accès</h2>
+<p class="intro">Saisis ton adresse e-mail : nous t'enverrons un lien pour choisir un nouveau mot de passe.</p>
+<form id="forgotForm">
+<label for="resetEmail">Adresse e-mail du compte</label>
+<input id="resetEmail" type="email" autocomplete="email" required>
+<button id="sendResetBtn" type="submit" class="primary">Recevoir le lien de réinitialisation</button>
+</form>
+<p><button type="button" class="textlink" id="backLoginBtn">← Retour à la connexion</button></p>
+</div>
+</section>
+<section id="resetPanel" hidden>
+<h1>Choisir un nouveau mot de passe</h1>
+<p class="intro">Ton lien est valide. Choisis un nouveau mot de passe de 12 caractères minimum.</p>
+<form id="newPasswordForm">
+<label for="newPassword">Nouveau mot de passe</label>
+<input id="newPassword" type="password" autocomplete="new-password" minlength="12" required>
+<label for="confirmPassword">Confirmer le nouveau mot de passe</label>
+<input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" required>
+<button id="savePasswordBtn" type="submit" class="primary">Enregistrer mon nouveau mot de passe</button>
+</form>
+</section>
+<section id="accountPanel" hidden>
+<h1>Mon compte Naïtea</h1>
+<p class="intro">Votre compte est créé. Les données de démonstration restent enregistrées dans ce navigateur.</p>
+<div class="account"><strong>Connectée en tant que</strong><span id="accountEmail"></span></div>
+<p><a class="secondary" href="/">Ouvrir la démo actuelle</a></p>
+<button class="primary" type="button" id="logoutBtn">Se déconnecter</button>
+</section>
+<div id="status" class="status" role="status" aria-live="polite">Chargement du formulaire…</div>
+<p class="note">Version de test : ne saisissez aucune donnée réelle concernant des familles ou des enfants. Les paiements sont simulés.</p>
+<div class="footer"><a id="backLink" href="/">Retour à la démo</a></div>
+</div>
+</main>
+<script type="module">
+let client = null;
+let mode = new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login';
+const requestedOffer = new URLSearchParams(location.search).get('offre');
+let recoveryMode = false;
+const $ = (id) => document.getElementById(id);
+function status(message, type) {
+  $('status').textContent = message;
+  $('status').className = 'status' + (type ? ' ' + type : '');
+}
+function selectMode(next) {
+  mode = next;
+  document.querySelector('#authPanel h1').textContent = mode === 'signup' ? 'Créer mon compte professionnel' : 'Connexion';
+  document.querySelector('#authPanel .intro').textContent = mode === 'signup' ? 'Utilisez votre email professionnel pour découvrir Naïtea avec un compte de test.' : 'Retrouvez votre espace professionnel Naïtea.';
+  document.title = mode === 'signup' ? 'Créer mon compte professionnel | Naïtea' : 'Connexion | Naïtea';
+  $('loginTab').setAttribute('aria-selected', String(mode === 'login'));
+  $('signupTab').setAttribute('aria-selected', String(mode === 'signup'));
+  $('nameGroup').hidden = mode !== 'signup';
+  $('offerSummary').hidden = mode !== 'signup' || !['fiche', 'complet'].includes(requestedOffer);
+  $('offerSummary').textContent = requestedOffer === 'fiche' ? 'Ma fiche : gratuit. Présentez votre activité, vos coordonnées et vos liens.' : 'Naïtea Complet : essai de 30 jours sans carte bancaire. Tarif prévu : 14,90 € TTC/mois ; lancement à 9,90 € pendant 12 mois pour les 50 premières abonnées. Cet aperçu ne déclenche aucun abonnement.';
+  $('forgotRow').hidden = mode !== 'login';
+  $('forgotPanel').hidden = true;
+  $('authForm').hidden = false;
+  $('fullName').required = mode === 'signup';
+  $('password').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
+  $('submitBtn').textContent = mode === 'signup' ? 'Créer mon compte' : 'Se connecter';
+  status(mode === 'signup' ? 'Choisissez un mot de passe de 12 caractères minimum.' : 'Renseignez votre email et votre mot de passe.');
+}
+async function showAccount() {
+  if (recoveryMode) return;
+  const { data, error } = await client.auth.getUser();
+  const user = !error && data && data.user;
+  $('authPanel').hidden = !!user;
+  $('accountPanel').hidden = !user;
+  if (user) {
+    $('accountEmail').textContent = user.email || 'Compte connecté';
+    status('Connexion réussie !', 'success');
+  }
+}
+async function init() {
+  selectMode(mode);
+  if (new URLSearchParams(location.search).get('from') === 'landing') { $('backLink').href = '/decouvrir'; $('backLink').textContent = 'Retour à Naïtea'; }
+  try {
+    const response = await fetch('/api/public-config', { cache: 'no-store' });
+    if (!response.ok) throw new Error('La création de compte est momentanément indisponible. Vous pouvez explorer la démo et réessayer plus tard.');
+    const config = await response.json();
+    if (!config.url || !config.publishableKey) throw new Error('Le service de connexion est momentanément indisponible.');
+    const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    client = sdk.createClient(config.url, config.publishableKey);
+    $('submitBtn').disabled = false;
+    selectMode(mode);
+    if (window.location.hash.includes('type=recovery')) {
+      // Le SDK traite automatiquement le jeton reçu dans l'URL.
+      // Ne pas afficher l'espace connecté tant que la récupération est en cours.
+      recoveryMode = true;
+    }
+    if (!recoveryMode) await showAccount();
+    client.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        recoveryMode = true;
+        $('authPanel').hidden = true;
+        $('accountPanel').hidden = true;
+        $('resetPanel').hidden = false;
+        status('Lien de réinitialisation reconnu. Tu peux choisir ton nouveau mot de passe.', 'success');
+        return;
+      }
+      if (!recoveryMode) setTimeout(() => { showAccount().catch(() => {}); }, 0);
+    });
+  } catch (err) {
+    status(err.message || 'Impossible de charger le service de connexion.', 'error');
+  }
+}
+$('loginTab').addEventListener('click', () => selectMode('login'));
+$('signupTab').addEventListener('click', () => selectMode('signup'));
+$('forgotBtn').addEventListener('click', () => {
+  $('forgotPanel').hidden = false;
+  $('authForm').hidden = true;
+  $('forgotRow').hidden = true;
+  $('resetEmail').value = $('email').value.trim();
+  status('Entre l’adresse e-mail utilisée lors de ton inscription.');
+});
+$('backLoginBtn').addEventListener('click', () => {
+  $('forgotPanel').hidden = true;
+  $('authForm').hidden = false;
+  $('forgotRow').hidden = false;
+  selectMode('login');
+});
+$('forgotForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!client) return status('Service de connexion indisponible.', 'error');
+  const email = $('resetEmail').value.trim();
+  const btn = $('sendResetBtn');
+  btn.disabled = true;
+  try {
+    const { error } = await client.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin + '/connexion.html'
+    });
+    if (error) throw error;
+    status('Si cette adresse correspond à un compte, un e-mail de réinitialisation va arriver. Vérifie aussi les spams.', 'success');
+  } catch (error) {
+    status(error.message || 'Impossible d’envoyer le lien.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+$('newPasswordForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!client || !recoveryMode) return status('Ouvre d’abord le lien de réinitialisation reçu par e-mail.', 'error');
+  const password = $('newPassword').value;
+  if (password !== $('confirmPassword').value) return status('Les deux mots de passe ne correspondent pas.', 'error');
+  const btn = $('savePasswordBtn');
+  btn.disabled = true;
+  try {
+    const { error } = await client.auth.updateUser({ password });
+    if (error) throw error;
+    recoveryMode = false;
+    await client.auth.signOut();
+    history.replaceState(null, '', '/connexion.html');
+    $('resetPanel').hidden = true;
+    $('authPanel').hidden = false;
+    $('authForm').hidden = false;
+    selectMode('login');
+    status('Ton mot de passe est modifié ! Tu peux maintenant te connecter.', 'success');
+  } catch (error) {
+    status(error.message || 'Impossible de modifier le mot de passe.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+$('authForm').addEventListener('submit', async (event) => {
+  event.preventDefault();
+  if (!client) return;
+  const email = $('email').value.trim();
+  const password = $('password').value;
+  const fullName = $('fullName').value.trim();
+  $('submitBtn').disabled = true;
+  try {
+    if (mode === 'signup') {
+      const { data, error } = await client.auth.signUp({
+        email, password,
+        options: {
+          data: { full_name: fullName },
+          emailRedirectTo: window.location.origin + '/connexion.html'
+        }
+      });
+      if (error) throw error;
+      if (data.session) {
+        await showAccount();
+      } else {
+        status('Compte demandé. Vérifie ta boîte e-mail et confirme ton adresse avant de te connecter.', 'success');
+      }
+    } else {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      await showAccount();
+    }
+  } catch (err) {
+    status(err.message || 'Une erreur est survenue.', 'error');
+  } finally {
+    $('submitBtn').disabled = false;
+  }
+});
+$('logoutBtn').addEventListener('click', async () => {
+  if (!client) return;
+  const { error } = await client.auth.signOut();
+  if (error) return status(error.message, 'error');
+  $('accountPanel').hidden = true;
+  $('authPanel').hidden = false;
+  status('Tu es déconnectée.', 'success');
+});
+init();
+</script>
+</body>
+</html>

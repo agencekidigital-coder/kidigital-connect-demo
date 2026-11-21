@@ -1,0 +1,34 @@
+.billing-page{display:grid;gap:20px}.billing-page .card>p{max-width:850px}.billing-row{display:flex;justify-content:space-between;align-items:center;gap:18px;border-top:1px solid #e6d5cf;padding:20px 0}.billing-row p{margin:6px 0}.billing-row .berceau-toolbar{justify-content:flex-end}.billing-receipt{margin:20px 0;padding:20px;border:1px solid #dcbcac;border-radius:16px;background:#fef8ed;color:#590425}.billing-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px}.billing-total{font-size:30px;font-weight:700}.billing-email{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}.billing-payment small{line-height:1.45;color:#76545c}.billing-preview p{overflow-wrap:anywhere}@media(max-width:700px){.billing-row{align-items:flex-start;flex-direction:column}.billing-row .berceau-toolbar{justify-content:flex-start}.billing-row .btn{white-space:normal}.billing-parties{grid-template-columns:1fr;gap:10px}}
+.billing-invoice-modal{width:min(96vw,900px)!important}
+.billing-invoice{background:#fff;color:#38242c;padding:30px;border:1px solid #e6d5cf;border-radius:4px;box-shadow:0 6px 24px #59042509;margin-bottom:22px;font-size:14px}
+.billing-invoice>header{display:flex;justify-content:space-between;gap:24px;border-bottom:2px solid #590425;padding-bottom:18px}
+.billing-invoice>header>div:last-child{text-align:right}
+.billing-invoice header strong{font-size:20px}
+.billing-invoice header h2{font-size:27px!important;line-height:1.2!important;margin:0 0 12px}
+.billing-invoice p{margin:5px 0;overflow-wrap:anywhere;font-size:14px!important;color:#38242c}
+.billing-invoice .billing-demo-stamp{font-size:12px!important;letter-spacing:.3px;font-weight:600;color:#590425;background:#FEF8ED;padding:9px 12px;margin:18px 0}
+.billing-invoice-parties{display:grid;grid-template-columns:1fr 1fr;gap:40px;padding:12px 0 24px}
+.billing-invoice-parties h3{font:700 13px 'Source Sans 3',sans-serif!important;margin:0 0 10px;text-transform:none}
+.billing-invoice-meta{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;margin:10px 0 24px;padding:14px 0;border-top:1px solid #eee1d8;border-bottom:1px solid #eee1d8}
+.billing-invoice-meta dt{font-size:12px;color:#76545c}
+.billing-invoice-meta dd{margin:4px 0 0;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.billing-invoice-table{overflow:auto}
+.billing-invoice table{width:100%;border-collapse:collapse;font-size:13px;min-width:460px}
+.billing-invoice thead{background:#590425;color:#fff}
+.billing-invoice th,.billing-invoice td{text-align:right;padding:12px 10px}
+.billing-invoice th:first-child,.billing-invoice td:first-child{text-align:left;width:43%}
+.billing-invoice td{vertical-align:top;border-bottom:1px solid #e6d5cf}
+.billing-invoice td small{display:block;line-height:1.5;margin-top:6px;color:#76545c}
+.billing-invoice-totals{width:min(100%,330px);margin:24px 0 30px auto}
+.billing-invoice-totals p{display:flex;justify-content:space-between;gap:20px;padding:6px 0}
+.billing-invoice .billing-grand-total{border-top:1px solid #e6d5cf;border-bottom:1px solid #e6d5cf;font-size:19px!important;padding:12px 0;margin:7px 0}
+.billing-invoice footer{border-top:1px solid #e6d5cf;padding-top:16px}
+.billing-invoice footer p{font-size:12px!important;line-height:1.5}
+.billing-invoice-incomplete{background:#FEF8ED;padding:10px;border-left:2px solid #BF5B45}
+.billing-address{border:1px solid #dcbcac;border-radius:12px;padding:16px;margin:22px 0;min-width:0}
+.billing-address legend{font-weight:600;font-size:17px;padding:0 6px}
+.billing-address .checkline{margin:10px 0 18px}
+.billing-legal-settings{max-width:100%}
+.billing-legal-settings form{max-width:850px}
+.billing-legal-settings h3{margin-top:26px}
+@media(max-width:600px){.billing-invoice{padding:16px}.billing-invoice>header{display:block}.billing-invoice>header>div:last-child{text-align:left;margin-top:22px}.billing-invoice-parties{grid-template-columns:1fr;gap:20px}.billing-invoice-table{margin:0 -4px}.billing-invoice-meta{flex-direction:column;gap:12px}.billing-invoice-modal .modalbody{padding:12px}.billing-legal-settings .inputgrid{grid-template-columns:1fr}}
