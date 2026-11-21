@@ -176,3 +176,12 @@ Dernière mise à jour : 21 novembre 2026.
 - Titre raccourci en trois lignes : « Le logiciel tout en 1 / périnatalité et / parentalité. » La cible professionnelle reste explicite dans le résumé et le contenu. Tester la limite de trois lignes aux largeurs de 320 à 1920 px.
 - Six captures réelles issues d’un navigateur isolé : ateliers, fiche publique avec disponibilités, familles, studio, bons cadeaux et facture de démonstration. Alternance gauche/droite sur ordinateur, texte puis image sur mobile, agrandissement natif avec fermeture clavier. Données fictives uniquement.
 - Les deux vidéos, FAQ ouverte, présentation de Laureen, tarifs et conditions de lancement restent présents. Témoignages de maquette toujours signalés fictifs et exclus du rendu en production. Supabase/Stripe inchangés, branche de travail et prévisualisation uniquement.
+
+## Landing visible, humaine et commentée, 21 novembre 2026
+
+- Le TL;DR est désormais une vraie liste de bénéfices ouverte dans la hero, entre présentation et CTA, lisible sans JavaScript. H1 conservé sur trois lignes maximum. Ateliers : paiements en ligne et intégration au site/lien partagé. Familles : CRM et historique client. Studio : offres et évènements, partage natif depuis l’appareil sans prétendre à une publication automatique via API. Bons cadeaux : paiement, facture par email, code d’utilisation, toujours en démonstration.
+- Portrait de banque distinct pour Camille dans les captures et les vidéos. Fiche capturée en entier avec marges. Vraie photo de Laureen retrouvée dans son Drive et ajoutée dans sa présentation. Davantage de photos parent/bébé dans les bénéfices.
+- Nouveaux cadeau et cookie 3D à fond transparent, favicon détouré. Pictogrammes réservés à l’interface Naïtea, pas à la bibliothèque des pros. Sources documentées.
+- Lecture automatique de la vidéo visible uniquement, sans son ; activation explicite de la voix, sous-titres plus visibles. Pause hors écran, en arrière-plan, au changement d’onglet ; respect du mouvement réduit.
+- Bandeau de choix de confidentialité et réglages accessibles depuis le footer. Aucun traceur facultatif n’est présent ; aucune mesure/publicité activée par les boutons. Préférence conservée localement 180 jours, sans identifiant personnel.
+- Travail limité à la branche feature et à la prévisualisation. Aucun compte de test réel, aucun email/paiement réel, aucune modification Supabase/Stripe, fusion principale ou production.

@@ -12,7 +12,7 @@ http.createServer(async (req, res) => {
   if (u.pathname === '/robots.txt' || u.pathname === '/sitemap.xml') { req.query.format = u.pathname === '/robots.txt' ? 'robots' : 'sitemap'; return routes['/api/landing'](req, res); }
   if (u.pathname === '/_vercel/image') {
     const source = u.searchParams.get('url') || '';
-    if (!/^\/assets\/(berceau\/transparent|landing|photos)\/[\w.-]+\.(png|jpg|webp)$/.test(source)) return res.status(400).end();
+    if (!/^\/assets\/(berceau\/transparent|landing(?:\/brand-additions)?|photos)\/[\w.-]+\.(png|jpg|webp)$/.test(source)) return res.status(400).end();
     const file = path.join(root, source); try { res.setHeader('Content-Type', types[path.extname(file)]); return res.end(fs.readFileSync(file)); } catch { return res.status(404).end(); }
   }
   if (routes[u.pathname]) {

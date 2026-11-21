@@ -46,10 +46,14 @@ test('the same factual summary is present in initial HTML and machine-readable m
     const res = response(); createHandler({ env: { VERCEL_ENV: target } })(request(), res);
     const schema = JSON.parse(res.body.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
     const summary = schema['@graph'].find(item => item['@type'] === 'WebPage').abstract;
-    assert.equal(res.body.match(/<p id="tldr-text">([^<]+)<\/p>/)[1], summary);
-    assert(summary.includes('données fictives') && summary.includes('14,90') && summary.includes('50 premières'));
-    assert(res.body.indexOf('id="tldr"') < res.body.indexOf('class="hero wrap"'));
-    assert(!res.body.includes('{{SUMMARY}}'));
+    const list = res.body.match(/<ul class="hero-summary" id="tldr"[^>]*>(.*?)<\/ul>/)[1];
+    const items = [...list.matchAll(/<li>([^<]+)<\/li>/g)].map(match => match[1]);
+    assert.equal(items.length, 3);
+    assert(items.every(item => summary.includes(item)));
+    assert(summary.includes('données fictives') && summary.includes('périnatalité'));
+    assert(res.body.indexOf('class="hero-description"') < res.body.indexOf('id="tldr"'));
+    assert(res.body.indexOf('id="tldr"') < res.body.indexOf('class="hero-actions"'));
+    assert(!res.body.includes('<details') && !res.body.includes('{{SUMMARY_ITEMS}}'));
   }
 });
 test('robots protects the fictitious app and previews, permits only the production landing', () => {

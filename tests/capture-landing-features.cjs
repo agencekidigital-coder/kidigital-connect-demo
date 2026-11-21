@@ -28,12 +28,14 @@ const out = path.resolve(__dirname, '../assets/landing');
         await document.fonts.ready;
         await Promise.all([...document.images].filter(img => { const r = img.getBoundingClientRect(); return r.top < innerHeight && r.bottom > 0 && r.height > 0; }).map(img => img.decode().catch(() => {})));
       });
-      const box = await page.locator(selector).boundingBox();
-      const clip = { x: Math.ceil(box.x), y: Math.ceil(box.y), width: Math.floor(box.width), height: Math.floor(Math.min(box.height, 850, 1000 - box.y)) };
+      const box = selector === '.v12-professional-page' ? { x: 0, y: 0, width: 1440, height: 1000 } : await page.locator(selector).boundingBox();
+      const clip = { x: Math.ceil(box.x), y: Math.ceil(box.y), width: Math.floor(box.width), height: Math.floor(Math.min(box.height, selector === '.v12-professional-page' ? 1000 : 850, 1000 - box.y)) };
       await page.screenshot({ path: path.join(out, 'outil-' + name + '.png'), clip });
       captures.push({ name, width: clip.width, height: clip.height });
     }
     await page.goto(BASE, { waitUntil: 'domcontentloaded' }); await page.locator('.v8-calendar').waitFor();
+    await page.evaluate(() => { const key = 'kidigital-connect-v1', state = JSON.parse(localStorage.getItem(key)); state.profile.photo = '/assets/landing/brand-additions/accompagnante-illustration.jpg'; localStorage.setItem(key, JSON.stringify(state)); });
+    await page.reload(); await page.locator('.v8-calendar').waitFor();
     await nav('ateliers'); await capture('ateliers');
     await nav('rendezvous'); await page.locator('#v8Availability [name="offerId"]').selectOption('o1');
     await page.locator('#v8Availability [name="start"]').fill('09:00'); await page.locator('#v8Availability [name="end"]').fill('17:00');

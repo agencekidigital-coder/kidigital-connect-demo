@@ -25,6 +25,9 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
       await page.evaluate(async () => { document.querySelectorAll('img[src]').forEach(i => i.loading = 'eager'); await document.fonts.ready; await Promise.all([...document.querySelectorAll('img[src]')].map(i => i.decode())); });
     };
     await load();
+    assert(await page.locator('#naitea-consent-banner').isVisible());
+    await page.locator('#naitea-consent-banner [data-consent-choice="refused"]').click();
+    assert.equal(await page.evaluate(() => window.NaiteaConsent.get().analytics), false);
     // Follow the route in Chrome as a visitor would; the Node request client
     // does not inherit the shared browser's network transport.
     const redirectPage = await context.newPage();
@@ -39,13 +42,16 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     assert.equal(await page.locator('.hero-studio').count(), 0);
     assert.equal(await page.locator('.feature-row').count(), 6);
     assert.equal(await page.locator('.features-grid').count(), 0);
-    assert(await page.locator('#tldr').evaluate(el => el.compareDocumentPosition(document.querySelector('.hero')) & Node.DOCUMENT_POSITION_FOLLOWING));
-    await page.locator('#tldr summary').focus(); await page.keyboard.press('Enter');
-    assert(await page.locator('#tldr-text').isVisible());
-    const summary = await page.locator('#tldr-text').innerText();
-    assert.match(summary, /petite enfance/); assert.match(summary, /données fictives/);
-    assert.equal(await page.locator('script[type="application/ld+json"]').evaluate(el => JSON.parse(el.textContent)['@graph'].find(item => item['@type'] === 'WebPage').abstract), summary);
-    await page.locator('#tldr summary').click();
+    assert(await page.locator('#tldr').evaluate(el => Boolean(document.querySelector('.hero-description').compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) && Boolean(el.compareDocumentPosition(document.querySelector('.hero-actions')) & Node.DOCUMENT_POSITION_FOLLOWING)));
+    assert(await page.locator('#tldr').isVisible());
+    const summaryItems = await page.locator('#tldr li').allTextContents();
+    assert.equal(summaryItems.length, 3);
+    const summary = await page.locator('script[type="application/ld+json"]').evaluate(el => JSON.parse(el.textContent)['@graph'].find(item => item['@type'] === 'WebPage').abstract);
+    assert(summaryItems.every(item => summary.includes(item)));
+    assert.match(await page.locator('#outil-familles h3').innerText(), /CRM/);
+    assert.match(await page.locator('#outil-ateliers').innerText(), /paiement en ligne/);
+    assert.match(await page.locator('#outil-cadeaux').innerText(), /code cadeau/);
+    assert.match(await page.locator('#creatrice img').getAttribute('src'), /laureen-kidigital/);
     // The desktop reading order alternates at every benefit; each tool opens.
     for (const [index, row] of (await page.locator('.feature-row').all()).entries()) {
       const order = await row.evaluate(el => ({ copy: el.querySelector('.feature-copy').getBoundingClientRect().x, preview: el.querySelector('.feature-preview').getBoundingClientRect().x }));
@@ -67,6 +73,9 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     assert.match(await page.locator('[data-preview-testimonials]').innerText(), /Exemples fictifs/);
     assert.match(await page.locator('#tarifs').innerText(), /50 premières abonnées/);
     assert.match(await page.locator('#tarifs').innerText(), /12 mois, puis 14,90/);
+    // Hero navigation also transfers keyboard focus to the visible panel.
+    await page.locator('.hero .demo-link').focus(); await page.keyboard.press('Enter');
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'demo-pro');
     // Native media must really decode, play, seek and expose French captions.
     const videoInfo = [];
     for (const id of ['pro', 'familles']) {
@@ -74,13 +83,19 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
       assert.equal(new URL(page.url()).hash, '#demo-' + id);
       assert(await page.locator('#demo-' + id).isVisible());
       const video = page.locator('#demo-' + id + ' video');
-      await video.evaluate(v => v.load());
+      await page.waitForFunction(id => { const v = document.querySelector('#demo-' + id + ' video'); return !v.paused && v.muted && v.currentTime > .15; }, id);
+      const sound = page.locator('#demo-' + id + ' [data-video-sound]');
+      await sound.click(); assert.equal(await video.evaluate(v => v.muted), false);
+      assert.equal(await sound.getAttribute('aria-pressed'), 'true');
+      await sound.click(); assert.equal(await video.evaluate(v => v.muted), true);
       await page.waitForFunction(id => { const v = document.querySelector('#demo-' + id + ' video'); return v.readyState >= 1 && v.duration > 20 && !v.error; }, id);
       const info = await video.evaluate(v => ({ duration: v.duration, width: v.videoWidth, height: v.videoHeight }));
       assert(info.duration < 90); assert(info.width >= 1280); videoInfo.push({ id, ...info });
-      await video.evaluate(v => { v.currentTime = 10; v.textTracks[0].mode = 'hidden'; });
+      assert.equal(await video.evaluate(v => v.textTracks[0].mode), 'showing');
+      await video.evaluate(v => { v.currentTime = 10; });
       await video.evaluate(v => v.play());
       await page.waitForFunction(id => { const v = document.querySelector('#demo-' + id + ' video'); return !v.paused && v.currentTime > 10.15 && v.readyState >= 2; }, id);
+      await page.waitForFunction(id => document.querySelector('#demo-' + id + ' video').webkitAudioDecodedByteCount > 0, id);
       await page.waitForFunction(id => document.querySelector('#demo-' + id + ' video').textTracks[0].cues?.length >= 7, id);
       await page.screenshot({ path: path.join(artifacts, 'video-' + id + '.png') });
     }
@@ -91,6 +106,14 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     await page.keyboard.press('Home'); assert.equal(await page.locator('#tab-pro').getAttribute('aria-selected'), 'true');
     await load('#demo-familles'); assert(await page.locator('#demo-familles').isVisible());
     await page.locator('[data-open-privacy]').click(); assert(await page.locator('#privacy-dialog').isVisible()); await page.keyboard.press('Escape');
+    assert(await page.locator('#demo-familles video').evaluate(v => v.paused), 'privacy dialogs stop narration');
+    const transparency = await page.evaluate(async () => {
+      const source = document.querySelector('link[rel="icon"]').href, image = new Image(); image.src = source; await image.decode();
+      const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(image, 0, 0);
+      return { corner: ctx.getImageData(0, 0, 1, 1).data[3], pixels: ctx.getImageData(0, 0, canvas.width, canvas.height).data.some((value, index) => index % 4 === 3 && value > 0) };
+    });
+    assert.equal(transparency.corner, 0); assert.equal(transparency.pixels, true);
     await page.evaluate(() => scrollTo(0, 0)); await page.waitForFunction(() => scrollY === 0);
     await page.screenshot({ path: path.join(artifacts, 'desktop-hero.png') });
     await page.screenshot({ path: path.join(artifacts, 'desktop-full.png'), fullPage: true });
@@ -140,9 +163,13 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     assert.match(await signup.locator('#status').innerText(), /confirme ton adresse/);
     const noJS = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 1280, height: 900 } });
     const reader = await noJS.newPage(); await reader.goto(BASE + '/decouvrir', { waitUntil: 'domcontentloaded' });
-    await reader.locator('#tldr summary').click(); assert(await reader.locator('#tldr-text').isVisible());
-    assert.equal(await reader.locator('#tldr-text').innerText(), summary);
-    const result = { landing: 'pass', widths: [1920, 1440, 1280, 1024, 768, 390, 320], headingMaxLines: 3, alternatingBenefits: 6, readableSummaryWithoutJS: 'pass', enlargedCaptures: 'pass', videos: videoInfo, anchorsAndHistory: 'pass', captionsAndSeeking: 'pass', openFaq: 'pass', pricingAndOffers: 'pass', signup: 'pass', realAccountsCreated: 0, browserErrors: errors.length };
+    assert(await reader.locator('#tldr').isVisible());
+    assert.deepEqual(await reader.locator('#tldr li').allTextContents(), summaryItems);
+    const reduced = await browser.newContext({ reducedMotion: 'reduce' });
+    const calm = await reduced.newPage(); await calm.goto(BASE + '/decouvrir#demo-pro');
+    await calm.waitForFunction(() => document.querySelector('#demo-pro video').getBoundingClientRect().top < innerHeight);
+    assert(await calm.locator('#demo-pro video').evaluate(v => v.paused && v.currentTime === 0), 'reduced motion prevents autoplay');
+    const result = { landing: 'pass', widths: [1920, 1440, 1280, 1024, 768, 390, 320], headingMaxLines: 3, alternatingBenefits: 6, readableSummaryWithoutJS: 'pass', enlargedCaptures: 'pass', videos: videoInfo, autoplayAndSoundControl: 'pass', reducedMotion: 'pass', privacyPausesVideo: 'pass', transparentFavicon: 'pass', anchorsAndHistory: 'pass', captionsAndSeeking: 'pass', openFaq: 'pass', pricingAndOffers: 'pass', signup: 'pass', realAccountsCreated: 0, browserErrors: errors.length };
     fs.writeFileSync(path.join(artifacts, 'browser-results.json'), JSON.stringify(result, null, 2)); console.log(JSON.stringify(result));
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

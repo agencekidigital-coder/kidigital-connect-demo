@@ -15,7 +15,7 @@
 
   const tabs = [...document.querySelectorAll('.product-tabs [role="tab"]')], ids = ['pro', 'familles'];
   const panels = ids.map(id => document.getElementById('demo-' + id));
-  function selectDemo(id, { focus = false, scroll = false, historyMode } = {}) {
+  function selectDemo(id, { focus = false, focusPanel = false, scroll = false, historyMode } = {}) {
     if (!ids.includes(id)) return;
     tabs.forEach(tab => {
       const selected = tab.dataset.demoLink === id;
@@ -24,15 +24,17 @@
     });
     panels.forEach(panel => {
       panel.hidden = panel.id !== 'demo-' + id;
-      if (panel.hidden) panel.querySelector('video').pause();
+      const video = panel.querySelector('video');
+      if (panel.hidden) { video.pause(); video.muted = true; }
     });
     const hash = '#demo-' + id;
     if (historyMode && location.hash !== hash) history[historyMode === 'replace' ? 'replaceState' : 'pushState'](null, '', hash);
     if (scroll) document.getElementById('demo-' + id).scrollIntoView({ block: 'start' });
+    if (focusPanel) document.getElementById('demo-' + id).focus({ preventScroll: true });
   }
   document.querySelectorAll('[data-demo-link]').forEach(link => link.addEventListener('click', event => {
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-    event.preventDefault(); closeMenu(); selectDemo(link.dataset.demoLink, { scroll: true, historyMode: 'push' });
+    event.preventDefault(); closeMenu(); selectDemo(link.dataset.demoLink, { scroll: true, focusPanel: link.getAttribute('role') !== 'tab', historyMode: 'push' });
   }));
   tabs.forEach((tab, index) => tab.addEventListener('keydown', event => {
     let next;
@@ -48,8 +50,49 @@
   addEventListener('hashchange', fromHash); addEventListener('popstate', fromHash);
   if (['#demo-pro', '#demo-familles'].includes(location.hash)) requestAnimationFrame(() => document.querySelector(location.hash).scrollIntoView({ block: 'start' }));
   const videos = [...document.querySelectorAll('.demo-panel video')];
-  videos.forEach(video => video.addEventListener('play', () => videos.forEach(other => { if (other !== video) other.pause(); })));
-  document.addEventListener('visibilitychange', () => { if (document.hidden) videos.forEach(video => video.pause()); });
+  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)'), inView = new Set(), pausedByVisitor = new WeakSet();
+  function tryAutoplay(video) {
+    if (!inView.has(video) || document.hidden || reducedMotion.matches || video.closest('[hidden]') || document.querySelector('dialog[open]') || pausedByVisitor.has(video)) return;
+    video.play().catch(() => {});
+  }
+  videos.forEach(video => {
+    const sound = video.closest('.demo-panel').querySelector('[data-video-sound]');
+    function updateSound() { sound.textContent = video.muted ? 'Activer le son' : 'Couper le son'; sound.setAttribute('aria-pressed', String(!video.muted)); }
+    video.addEventListener('volumechange', updateSound);
+    video.addEventListener('play', () => {
+      pausedByVisitor.delete(video);
+      videos.forEach(other => { if (other !== video) { other.pause(); other.muted = true; } });
+    });
+    video.addEventListener('pause', () => {
+      // Preserve a manual pause while the video stays in view.
+      if (inView.has(video) && !video.closest('[hidden]') && !document.hidden && !document.querySelector('dialog[open]')) pausedByVisitor.add(video);
+    });
+    sound.addEventListener('click', () => {
+      const enable = video.muted;
+      video.muted = !enable;
+      if (enable) { video.currentTime = 0; pausedByVisitor.delete(video); video.play().catch(() => {}); }
+      updateSound();
+    });
+    updateSound();
+  });
+  if ('IntersectionObserver' in window) {
+    const mediaObserver = new IntersectionObserver(entries => entries.forEach(entry => {
+      if (entry.isIntersecting) { inView.add(entry.target); tryAutoplay(entry.target); }
+      else { inView.delete(entry.target); entry.target.pause(); }
+    }), { threshold: .25 });
+    videos.forEach(video => mediaObserver.observe(video));
+    const tabObserver = new MutationObserver(() => videos.forEach(tryAutoplay));
+    panels.forEach(panel => tabObserver.observe(panel, { attributes: true, attributeFilter: ['hidden'] }));
+  }
+  reducedMotion.addEventListener('change', () => { if (reducedMotion.matches) videos.forEach(video => video.pause()); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) videos.forEach(video => video.pause());
+    else videos.forEach(tryAutoplay);
+  });
+  // Also covers the preferences dialog injected by the consent module.
+  new MutationObserver(entries => {
+    if (entries.some(entry => entry.target.tagName === 'DIALOG' && entry.target.open)) videos.forEach(video => video.pause());
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['open'] });
 
   const capture = document.getElementById('capture-dialog');
   document.querySelectorAll('[data-capture]').forEach(button => button.addEventListener('click', () => {

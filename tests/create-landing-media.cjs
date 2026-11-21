@@ -72,7 +72,7 @@ async function record(kind, fixture, action) {
       const data = JSON.parse(localStorage.getItem(key)), date = new Date(); date.setDate(date.getDate() + (8 - date.getDay()) % 7 || 7);
       const iso = date => [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
       data.events.forEach((event, i) => { const next = new Date(date); next.setDate(date.getDate() + 1 + i * 2); event.date = iso(next); });
-      data.profile.email = 'camille@example.test'; data.profile.publicPage.headline = 'Massage bébé, portage et accompagnement post-partum';
+      data.profile.photo = '/assets/landing/brand-additions/accompagnante-illustration.jpg'; data.profile.email = 'camille@example.test'; data.profile.publicPage.headline = 'Massage bébé, portage et accompagnement post-partum';
       localStorage.setItem(key, JSON.stringify(data)); return iso(date);
     }, stateKey);
     await page.reload(); await page.locator('.v8-calendar').waitFor();
