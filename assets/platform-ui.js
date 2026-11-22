@@ -6,6 +6,7 @@
       const state = deps.getState;
       let bookingDraft = {}, draftKey = '', connection = { configured: false, connected: false }, googleReviews = [], selectedLocation = '', loadedReviewLocation = '', busy = false, workshopAI = false;
       const googleReplyDrafts = new Map();
+      let chatContext = {}, chatHistory = [], chatOpen = false;
       const local = () => state().berceau;
       // Upgrade only unchanged stock offers from older local demos. User-defined modes stay intact.
       const seed = state().offers.find(o => o.id === 'o1' && o.title === 'Accompagnement post-partum' && o.description === 'Présence et soutien à domicile pour traverser les premières semaines sereinement.' && !o.modalities);
@@ -13,7 +14,7 @@
       const portage = state().offers.find(o => o.id === 'o2' && o.title === 'Séance individuelle portage' && o.description === 'Un moment personnalisé pour trouver le portage qui convient à votre famille.' && !o.modalities);
       if (portage) { portage.modalities = ['En cabinet', 'En visio']; portage.modalityDetails = { office: { address: 'Adresse du cabinet à préciser avec la professionnelle' }, video: { platform: 'Zoom' } }; }
       const field = (label, name, value = '', extra = '') => `<label class="field"><span>${label}</span><input name="${name}" value="${esc(value)}" ${extra}></label>`;
-      const icon = (id, cls = '') => `<img class="naitea-pictogram ${cls}" src="/assets/berceau/transparent/${id}.png" alt="" loading="lazy" width="80" height="80">`;
+      const icon = (id, cls = '') => `<img class="naitea-pictogram ${cls}" src="${id === 'cadeau' ? '/_vercel/image?url=%2Fassets%2Flanding%2Fbrand-additions%2Fcadeau-3d.png&amp;w=256&amp;q=80' : '/assets/berceau/transparent/' + id + '.png'}" alt="" loading="lazy" width="80" height="80">`;
       const button = (action, text, extra = '') => `<button class="btn secondary" type="button" data-platform="${action}" ${extra}>${text}</button>`;
       function eventForm(html, event) {
         const e = event || {}, box = document.createElement('div'); box.innerHTML = html;
@@ -46,7 +47,9 @@
       }
       function decorateBooking() {
         workshopFields();
-        const form = document.querySelector('#v8BookAppointment,#bookEvent'); if (!form || form.dataset.naiteaBooking) return;
+        const form = document.querySelector('#v8BookAppointment,#bookEvent'); if (!form) return;
+        decorateCancellation(form);
+        if (form.dataset.naiteaBooking) return;
         const context = bookingContext(form); if (!context) return; form.dataset.naiteaBooking = '1';
         if (draftKey !== context.key) { draftKey = context.key; bookingDraft = {}; }
         const oldName = form.elements.namedItem('name');
@@ -63,6 +66,15 @@
         if (form.elements.billingAddressOpposed && bookingDraft.billingAddressOpposed) { form.elements.billingAddressOpposed.checked = true; form.elements.billingAddressOpposed.dispatchEvent(new Event('change', { bubbles: true })); }
         const privacy = form.querySelector('.v9-privacy'); if (privacy) privacy.textContent = 'Vos coordonnées servent à organiser ce rendez-vous. L’adresse est demandée uniquement pour une séance à domicile. Utilisez des informations fictives dans cette démonstration, stockée sur cet appareil. Aucun renseignement de santé ni accord commercial n’est demandé.';
         modalityFields();
+      }
+      function decorateCancellation(form) {
+        const url = root.NaiteaProfessionalProfile.safePolicyURL(state().profile.publicPage?.cancellationURL);
+        const existing = form.querySelector('.naitea-booking-policy');
+        if (!url) { existing?.remove(); return; }
+        if (existing) { existing.querySelector('a').href = url; return; }
+        const content = `<p class="naitea-booking-policy"><a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Consulter la politique d’annulation et de report ${ic('external', 's')}</a></p>`;
+        const submit = form.querySelector('button[type="submit"]');
+        if (submit) submit.insertAdjacentHTML('beforebegin', content); else form.insertAdjacentHTML('beforeend', content);
       }
       function modalityFields() {
         const form = document.querySelector('#v8BookAppointment,#bookEvent'); if (!form?.dataset.naiteaBooking) return;
@@ -115,7 +127,7 @@
       }
       function giftDesignEditor() {
         const d = T.giftDesign(local().giftDesign, state().brand);
-        return `<section class="card naitea-gift-design"><div class="naitea-section-title">${icon('prendre-soin-de-soi')}<h2>Personnaliser mes bons cadeaux</h2></div><div class="naitea-gift-editor-layout"><form id="naiteaGiftDesign"><fieldset><legend>Modèle de départ</legend><div class="naitea-gift-templates">${[['classic', 'Épuré'], ['arch', 'Arche'], ['photo', 'Avec une photo']].map(([id, name]) => `<label class="naitea-template ${id}"><input type="radio" name="template" value="${id}" ${d.template === id ? 'checked' : ''}><span>${name}</span></label>`).join('')}</div></fieldset>${field('Titre du bon', 'title', d.title, 'required maxlength="80"')}${field('Petit mot de présentation', 'subtitle', d.subtitle, 'maxlength="200"')}<div class="naitea-gift-colors">${[['accent', 'Accent'], ['background', 'Fond'], ['text', 'Texte']].map(([k, label]) => field(label, k, d[k], 'type="color"')).join('')}</div><div class="inputgrid"><label class="field"><span>Mon logo transparent</span><input type="file" data-gift-image="logo" accept="image/png,image/webp"></label><label class="field"><span>Ma photo</span><input type="file" data-gift-image="photo" accept="image/png,image/jpeg,image/webp"></label></div><div class="naitea-choice-row">${button('remove-gift-logo', 'Retirer le logo')}${button('remove-gift-photo', 'Retirer la photo')}</div><p class="fine">Utilise tes propres photos et éléments de marque, avec les autorisations nécessaires.</p><button type="submit" class="btn">Enregistrer mon modèle</button><p id="naiteaGiftDesignStatus" role="status" class="fine"></p></form><div><div id="naiteaGiftDesignPreview"></div><p class="fine">Exemple fictif. Le nom, la prestation, le montant et le code sont ajoutés à l’achat.</p></div></div></section>`;
+        return `<section class="card naitea-gift-design"><div class="naitea-section-title">${icon('cadeau')}<h2>Personnaliser mes bons cadeaux</h2></div><div class="naitea-gift-editor-layout"><form id="naiteaGiftDesign"><fieldset><legend>Modèle de départ</legend><div class="naitea-gift-templates">${[['classic', 'Épuré'], ['arch', 'Arche'], ['photo', 'Avec une photo']].map(([id, name]) => `<label class="naitea-template ${id}"><input type="radio" name="template" value="${id}" ${d.template === id ? 'checked' : ''}><span>${name}</span></label>`).join('')}</div></fieldset>${field('Titre du bon', 'title', d.title, 'required maxlength="80"')}${field('Petit mot de présentation', 'subtitle', d.subtitle, 'maxlength="200"')}<div class="naitea-gift-colors">${[['accent', 'Accent'], ['background', 'Fond'], ['text', 'Texte']].map(([k, label]) => field(label, k, d[k], 'type="color"')).join('')}</div><div class="inputgrid"><label class="field"><span>Mon logo transparent</span><input type="file" data-gift-image="logo" accept="image/png,image/webp"></label><label class="field"><span>Ma photo</span><input type="file" data-gift-image="photo" accept="image/png,image/jpeg,image/webp"></label></div><div class="naitea-choice-row">${button('remove-gift-logo', 'Retirer le logo')}${button('remove-gift-photo', 'Retirer la photo')}</div><p class="fine">Utilise tes propres photos et éléments de marque, avec les autorisations nécessaires.</p><button type="submit" class="btn">Enregistrer mon modèle</button><p id="naiteaGiftDesignStatus" role="status" class="fine"></p></form><div><div id="naiteaGiftDesignPreview"></div><p class="fine">Exemple fictif. Le nom, la prestation, le montant et le code sont ajoutés à l’achat.</p></div></div></section>`;
       }
       function giftCard(gift, design) {
         const d = T.giftDesign(design || gift.design || local().giftDesign, state().brand);
@@ -156,7 +168,7 @@
       function iframe(url) { return `<iframe src="${url}" title="Bons cadeaux" width="100%" height="900" style="border:0;border-radius:20px" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>`; }
       function giftShop() {
         const offerId = new URLSearchParams(location.search).get('offre'), cfg = B.giftSettings(local().giftConfig), offers = state().offers.filter(o => o.price >= 5 && o.price <= 1000 && (!offerId || o.id === offerId));
-        return `<main class="naitea-gift-shop"><header>${icon('prendre-soin-de-soi')}<h1>Offrir un moment avec ${esc(state().profile.first || 'votre professionnelle')}</h1><p>Choisissez un accompagnement ou un montant à offrir.</p></header>${deps.demo}${cfg.enabled ? `<div class="naitea-gift-shop-grid">${cfg.offers ? offers.map(o => `<article class="card"><h2>${esc(o.title)}</h2><strong>${deps.money(o.price)}</strong><p>Un bon réservé à cet accompagnement.</p>${button('buy-specific-gift', 'Offrir cet accompagnement', `data-offer="${esc(o.id)}"`)}</article>`).join('') : ''}${!offerId ? `<article class="card"><h2>Un montant au choix</h2><p>${cfg.amounts.map(a => deps.money(a)).join(' · ')}${cfg.custom ? ' · ou un montant libre' : ''}</p><p>${cfg.offers && cfg.workshops ? 'Ateliers et accompagnements au choix.' : cfg.offers ? 'Accompagnements individuels au choix.' : 'Ateliers collectifs au choix.'}</p>${button('buy-generic-gift', 'Choisir mon bon cadeau')}</article>` : ''}</div>` : '<p>Les bons cadeaux ne sont pas proposés actuellement.</p>'}<p class="fine">Démonstration Naïtea. Aucun paiement ni email réel.</p></main>`;
+        return `<main class="naitea-gift-shop"><header>${icon('cadeau')}<h1>Offrir un moment avec ${esc(state().profile.first || 'votre professionnelle')}</h1><p>Choisissez un accompagnement ou un montant à offrir.</p></header>${deps.demo}${cfg.enabled ? `<div class="naitea-gift-shop-grid">${cfg.offers ? offers.map(o => `<article class="card"><h2>${esc(o.title)}</h2><strong>${deps.money(o.price)}</strong><p>Un bon réservé à cet accompagnement.</p>${button('buy-specific-gift', 'Offrir cet accompagnement', `data-offer="${esc(o.id)}"`)}</article>`).join('') : ''}${!offerId ? `<article class="card"><h2>Un montant au choix</h2><p>${cfg.amounts.map(a => deps.money(a)).join(' · ')}${cfg.custom ? ' · ou un montant libre' : ''}</p><p>${cfg.offers && cfg.workshops ? 'Ateliers et accompagnements au choix.' : cfg.offers ? 'Accompagnements individuels au choix.' : 'Ateliers collectifs au choix.'}</p>${button('buy-generic-gift', 'Choisir mon bon cadeau')}</article>` : ''}</div>` : '<p>Les bons cadeaux ne sont pas proposés actuellement.</p>'}<p class="fine">Démonstration Naïtea. Aucun paiement ni email réel.</p></main>`;
       }
       function giftShopMode() { return new URLSearchParams(location.search).get('boutique-cadeaux') === '1'; }
       function importGiftShop() {
@@ -182,7 +194,7 @@
         const offer = state().offers.find(o => o.id === select?.value); status.textContent = offer ? 'Bon réservé à : ' + offer.title : T.giftLabel({ scope: B.giftSettings(local().giftConfig) });
       }
       function addPictograms() {
-        const pageIcons = { dashboard: 'agenda', ateliers: 'atelier-collectif', offers: 'seance-individuelle', cadeaux: 'prendre-soin-de-soi', facturation: 'ressources', rendezvous: 'creneaux-disponibles', familles: 'suivi-des-familles', communication: 'ressources', personnaliser: 'profil-public', automations: 'automatisations', community: 'messagerie' };
+        const pageIcons = { dashboard: 'agenda', ateliers: 'atelier-collectif', offers: 'seance-individuelle', cadeaux: 'cadeau', facturation: 'ressources', rendezvous: 'creneaux-disponibles', familles: 'suivi-des-familles', communication: 'ressources', personnaliser: 'profil-public', automations: 'automatisations', community: 'messagerie' };
         const h1 = document.querySelector('#app h1'); if (deps.mode() === 'pro' && h1 && !h1.querySelector('img')) h1.insertAdjacentHTML('afterbegin', icon(pageIcons[deps.page()] || 'profil-public', 'naitea-title-picto'));
         for (const [id, picto] of [['v12Presentation', 'profil-public'], ['v8ParentAppointments', 'seance-individuelle'], ['v8ParentWorkshops', 'atelier-collectif'], ['v12Practical', 'pres-de-chez-moi'], ['v12FAQ', 'ressources'], ['v12Contact', 'messagerie']]) {
           const heading = document.querySelector('#' + id + ' h2'); if (heading && !heading.querySelector('img')) heading.insertAdjacentHTML('afterbegin', icon(picto));
@@ -198,12 +210,30 @@
       }
       function chatPanel() {
         const parent = document.querySelector('.v12-professional-page'); if (!parent || local().chatEnabled === false || document.getElementById('naiteaChatLauncher')) return;
-        parent.insertAdjacentHTML('beforeend', `<button type="button" id="naiteaChatLauncher" data-platform="toggle-chat" aria-expanded="false" aria-controls="naiteaChat">${icon('messagerie')}<span>Une question ?</span></button><section id="naiteaChat" hidden aria-label="Assistant de la fiche professionnelle"><header><h2>Une question sur cette fiche ?</h2><button type="button" data-platform="toggle-chat" aria-label="Fermer la discussion">×</button></header><p class="fine">Assistant automatique de démonstration. Informations de cette fiche uniquement, sans conseil médical. Aucun message transmis à la professionnelle.</p><div id="naiteaChatMessages" aria-live="polite"><p class="naitea-chat-answer">Bonjour ! Je peux vous aider à trouver un atelier, un accompagnement ou une information pratique.</p></div><div class="naitea-chat-prompts">${['Les accompagnements', 'Les ateliers', 'Les bons cadeaux'].map(v => button('chat-prompt', v, `data-question="${v}"`)).join('')}</div><form id="naiteaChatForm"><label class="field"><span>Votre question (sans information personnelle)</span><input name="question" required maxlength="400" autocomplete="off"></label><button class="btn" type="submit">Envoyer</button></form></section>`);
+        const history = chatHistory.map(row => `<p class="naitea-chat-${row.author}"><span class="naitea-chat-author">${row.author === 'question' ? 'Vous' : 'Assistant'}</span>${esc(row.text)}</p>`).join('');
+        parent.insertAdjacentHTML('beforeend', `<button type="button" id="naiteaChatLauncher" data-platform="toggle-chat" aria-expanded="${chatOpen}" aria-controls="naiteaChat">${icon('messagerie')}<span>Une question ?</span></button><section id="naiteaChat" ${chatOpen ? '' : 'hidden'} aria-labelledby="naiteaChatTitle"><header><h2 id="naiteaChatTitle">Assistant d’information</h2><div>${button('clear-chat', ic('trash', 's'), 'aria-label="Effacer la discussion"')}<button type="button" data-platform="toggle-chat" aria-label="Fermer la discussion">×</button></div></header><p class="fine" id="naiteaChatPrivacy">Réponses locales à partir de cette fiche. Discussion non enregistrée ni transmise. Offres et réservations de démonstration.</p><div id="naiteaChatMessages" role="log" aria-label="Discussion avec l’assistant" aria-live="polite" aria-relevant="additions"><p class="naitea-chat-answer"><span class="naitea-chat-author">Assistant</span>Bonjour ! Quelle information recherchez-vous sur les offres de ${esc(state().profile.first || 'cette professionnelle')} ?</p>${history}</div><div class="naitea-chat-prompts">${['Les accompagnements', 'Les ateliers', 'Les horaires'].map(v => button('chat-prompt', v, `data-question="${v}"`)).join('')}</div><form id="naiteaChatForm"><label class="field"><span>Votre question</span><input name="question" required maxlength="400" autocomplete="off" aria-describedby="naiteaChatInputNote"></label><p class="fine" id="naiteaChatInputNote">Sans donnée personnelle ni renseignement de santé.</p><button class="btn" type="submit">Demander</button></form><div class="naitea-chat-actions">${button('chat-offers', 'Voir les accompagnements')}${button('chat-contact', 'Poser une question à la professionnelle')}</div></section>`);
+        const messages = document.getElementById('naiteaChatMessages'); messages.scrollTop = messages.scrollHeight;
       }
       function answerChat(question) {
-        const messages = document.getElementById('naiteaChatMessages');
-        if (messages.children.length > 16) messages.firstElementChild.remove();
-        messages.insertAdjacentHTML('beforeend', `<p class="naitea-chat-question">${esc(question)}</p><p class="naitea-chat-answer">${esc(T.chatAnswer(question, state()))}</p>`); messages.scrollTop = messages.scrollHeight;
+        const messages = document.getElementById('naiteaChatMessages'); if (!messages) return;
+        const result = T.chatReply(question, state(), chatContext, { nextDate: deps.nextDate, slots: deps.slots });
+        chatContext = result.context;
+        chatHistory.push({ author: 'question', text: String(question).trim().slice(0, 400) }, { author: 'answer', text: result.text });
+        chatHistory = chatHistory.slice(-20);
+        if (messages.children.length > 19) { messages.children[1]?.remove(); messages.children[1]?.remove(); }
+        for (const row of chatHistory.slice(-2)) messages.insertAdjacentHTML('beforeend', `<p class="naitea-chat-${row.author}"><span class="naitea-chat-author">${row.author === 'question' ? 'Vous' : 'Assistant'}</span>${esc(row.text)}</p>`);
+        messages.scrollTop = messages.scrollHeight;
+      }
+      function toggleChat(open = !chatOpen, focus = true) {
+        const panel = document.getElementById('naiteaChat'), launcher = document.getElementById('naiteaChatLauncher'); if (!panel || !launcher) return;
+        chatOpen = open; panel.hidden = !open; launcher.setAttribute('aria-expanded', String(open));
+        if (focus) (open ? panel.querySelector('input') : launcher).focus({ preventScroll: true });
+      }
+      function openChatDestination(id) {
+        toggleChat(false, false);
+        const section = document.getElementById(id); if (!section) return;
+        section.scrollIntoView({ block: 'start' });
+        const target = section.querySelector('h2') || section; target.setAttribute('tabindex', '-1'); target.focus({ preventScroll: true });
       }
       function afterRender() {
         addPictograms(); chatPanel();
@@ -307,6 +337,9 @@
         if (form && ['v8BookAppointment', 'bookEvent'].includes(form.id) && event.target.name) { const context = bookingContext(form); if (context) { draftKey = context.key; bookingDraft = { ...bookingDraft, ...Object.fromEntries(new FormData(form)) }; } }
         if (event.target.closest('#naiteaGiftDesign') && !event.target.matches('[type="file"]')) updateGiftPreview();
       }, true);
+      document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && chatOpen && event.target.closest('#naiteaChat,#naiteaChatLauncher')) { event.preventDefault(); toggleChat(false); }
+      });
       document.addEventListener('change', async event => {
         if (event.target.closest('#createEvent,#editEvent')) workshopFields();
         if (event.target.name === 'bookingModality') { modalityFields(); const form = event.target.form; bookingDraft = { ...bookingDraft, ...Object.fromEntries(new FormData(form)) }; }
@@ -333,8 +366,11 @@
           if (action === 'remove-gift-logo' || action === 'remove-gift-photo') { const key = action.endsWith('logo') ? 'logo' : 'photo'; local().giftDesign = { ...readDesign(), [key]: '' }; updateGiftPreview(); return; }
           if (action === 'copy-gift-url' || action === 'copy-gift-iframe') { const input = document.getElementById(action.endsWith('url') ? 'naiteaGiftURL' : 'naiteaGiftIframe'); try { await navigator.clipboard.writeText(input.value); deps.toast('Copié.'); } catch { input.focus(); input.select(); deps.toast('Texte sélectionné. Utilise Ctrl ou Cmd C.'); } return; }
           if (action === 'buy-specific-gift' || action === 'buy-generic-gift') { deps.openGift(); if (action === 'buy-specific-gift') { const select = document.getElementById('berceauGiftOffer'); select.value = b.dataset.offer; select.dispatchEvent(new Event('change', { bubbles: true })); } return; }
-          if (action === 'toggle-chat') { const panel = document.getElementById('naiteaChat'), launcher = document.getElementById('naiteaChatLauncher'); panel.hidden = !panel.hidden; launcher.setAttribute('aria-expanded', String(!panel.hidden)); if (!panel.hidden) panel.querySelector('input').focus(); return; }
+          if (action === 'toggle-chat') return toggleChat();
           if (action === 'chat-prompt') return answerChat(b.dataset.question);
+          if (action === 'clear-chat') { chatContext = {}; chatHistory = []; document.getElementById('naiteaChatMessages').innerHTML = '<p class="naitea-chat-answer"><span class="naitea-chat-author">Assistant</span>Discussion effacée. Quelle information recherchez-vous sur cette fiche ?</p>'; document.querySelector('#naiteaChatForm input').focus(); return; }
+          if (action === 'chat-offers') return openChatDestination('v8ParentAppointments');
+          if (action === 'chat-contact') return openChatDestination('v12Contact');
           if (action === 'contact-email') { const form = document.getElementById('v12ContactForm'), data = Object.fromEntries(new FormData(form)), email = state().profile.email; if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '')) throw Error('L’adresse email de la professionnelle n’est pas renseignée.'); if (!data.message?.trim() || !data.name?.trim() || !data.email?.trim()) throw Error('Complétez votre prénom, votre email et votre question.'); location.href = 'mailto:' + encodeURIComponent(email) + '?subject=' + encodeURIComponent('Question depuis Naïtea') + '&body=' + encodeURIComponent(`Bonjour ${state().profile.first || ''},\n\n${data.message.slice(0, 1500)}\n\n${data.name}\n${data.email}\n\nMessage préparé depuis l’aperçu Naïtea. Vérifiez les données avant envoi.`); return; }
           if (action === 'connect-google') { b.disabled = true; const result = await api('start'); location.assign(result.url); return; }
           if (action === 'disconnect-google') { await api('disconnect', {}); connection.connected = false; googleReviews = []; document.getElementById('naiteaGoogleReviews').innerHTML = ''; document.getElementById('naiteaGoogleLocations').innerHTML = ''; paintGoogleStatus(); return; }

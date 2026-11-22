@@ -25,3 +25,5 @@ Mise à jour du 21 novembre : les captures et vidéos montrent désormais une ph
 `laureen-kidigital.png` est la photo réelle de Laureen, issue de son propre fichier Drive `Photo_Laureen_DEMAN.png`, intégrée à sa demande à la section « Créé au plus près de votre métier ». Elle n’est pas utilisée comme portrait fictif ni attribuée à un témoignage.
 
 Les deux vidéos intègrent une narration synthétique française (voix `fr-FR-DeniseNeural`, génération via `edge-tts`), sans imitation ni enregistrement de la voix de Laureen. Les textes sont ceux de la démonstration, sans données réelles. Les clips MP3, assemblages et textes sont dans `narration/`, et le script de reproduction est `tests/narrate-landing-videos.cjs`. Aucun service vocal n’est appelé par le site : les pistes AAC sont directement intégrées aux MP4. Les pistes VTT françaises sont activées par défaut et correspondent aux phrases prononcées.
+
+`laureen-brand.png` est la version adaptée à la charte Berceau utilisée depuis le 22 novembre. Sa source et l’édition sont documentées dans `laureen-brand.SOURCES.md`. L’original `laureen-kidigital.png` est conservé.

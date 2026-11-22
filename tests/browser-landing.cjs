@@ -51,7 +51,7 @@ const artifacts = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-landi
     assert.match(await page.locator('#outil-familles h3').innerText(), /CRM/);
     assert.match(await page.locator('#outil-ateliers').innerText(), /paiement en ligne/);
     assert.match(await page.locator('#outil-cadeaux').innerText(), /code cadeau/);
-    assert.match(await page.locator('#creatrice img').getAttribute('src'), /laureen-kidigital/);
+    assert.match(await page.locator('#creatrice img').getAttribute('src'), /laureen-brand/);
     // The desktop reading order alternates at every benefit; each tool opens.
     for (const [index, row] of (await page.locator('.feature-row').all()).entries()) {
       const order = await row.evaluate(el => ({ copy: el.querySelector('.feature-copy').getBoundingClientRect().x, preview: el.querySelector('.feature-preview').getBoundingClientRect().x }));

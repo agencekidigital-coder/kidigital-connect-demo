@@ -11,6 +11,11 @@ let browser, p;
   const pins = fs.readdirSync(dir).filter(f => f.endsWith('.crt')).map(f => createHash('sha256').update(new X509Certificate(fs.readFileSync(path.join(dir, f))).publicKey.export({ type: 'spki', format: 'der' })).digest('base64')).join(',');
   browser = await chromium.launch({ executablePath: '/usr/bin/chromium', args: ['--no-sandbox', '--ignore-certificate-errors-spki-list=' + pins] });
   const context = await browser.newContext({ viewport: { width: 1500, height: 1000 }, locale: 'fr-FR', timezoneId: 'Europe/Paris' });
+  await context.route('**/api/public-config', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }));
+  await context.route('**/*', route => {
+    if (route.request().method() !== 'GET' && !route.request().url().startsWith(new URL(BASE).origin)) return route.abort();
+    return route.fallback();
+  });
   p = await context.newPage(); p.setDefaultTimeout(20000);
   const errors = [], writes = [], results = {};
   p.on('pageerror', e => errors.push(e.message));
@@ -57,6 +62,10 @@ let browser, p;
   for (const [name, value] of Object.entries({ firstName: 'Parent', lastName: 'Atelier fictif', email: 'workshop@example.test', phone: '0600000000' })) await p.locator('#bookEvent [name="' + name + '"]').fill(value);
   await p.locator('#bookEvent [name="billingAddressOpposed"]').check(); await p.locator('#bookEvent [type="submit"]').click();
   assert.equal((await state()).billingDemo.documents.length, 2); assert.equal((await state()).billingDemo.pending.length, 1);
+  const awaitingPayment = (await state()).billingDemo.pending[0];
+  assert.equal(awaitingPayment.name, 'Parent Atelier fictif');
+  assert.equal(awaitingPayment.billingAddressOpposed, 'on');
+  for (const field of ['phone', 'childName', 'childAge', 'homeStreet', 'newsletter', 'bookingModality', 'firstName', 'lastName']) assert.equal(field in awaitingPayment, false, 'pending billing record excludes ' + field);
   assert((await p.locator('.modal').innerText()).includes('après le règlement simulé'));
   await close(); await mode('pro'); await nav('facturation');
   await p.locator('[data-billing="pay"]').click();
@@ -78,6 +87,38 @@ let browser, p;
   assert.equal(await p.locator('[data-billing="credit"][data-id="' + invoice.id + '"]').count(), 0);
   await p.screenshot({ path: path.join(out, 'facturation-desktop.png'), fullPage: true });
   results.immutableOriginalCreditAndReloadDeduplication = true;
+
+  // Free attendance and waiting lists are not purchases. They must not collect a
+  // billing address or prepare a payment/document just to book a place.
+  await p.evaluate(() => {
+    const key = 'kidigital-connect-v1', value = JSON.parse(localStorage.getItem(key));
+    value.events.push({ ...value.events[0], id: 'billing-free', title: 'Atelier découverte gratuit', price: 0, capacity: 6 });
+    value.events.push({ ...value.events[0], id: 'billing-full', title: 'Atelier complet de test', price: 25, capacity: 1 });
+    value.signups.push({ id: 'billing-occupied', eventId: 'billing-full', status: 'confirmed', name: 'Famille fictive', email: 'occupied@example.test' });
+    value.offers.find(offer => offer.id === 'o2').price = 0;
+    localStorage.setItem(key, JSON.stringify(value));
+  });
+  await p.reload(); await mode('parent');
+  for (const [id, email, expectedStatus] of [['billing-free', 'free@example.test', 'confirmed'], ['billing-full', 'waiting@example.test', 'waitlist']]) {
+    await p.locator('[data-action="book"][data-id="' + id + '"]').click();
+    assert.equal(await p.locator('#bookEvent .billing-address').count(), 0);
+    assert.equal(await p.locator('#bookEvent [name="billingPayment"]').count(), 0);
+    for (const [name, value] of Object.entries({ firstName: 'Parent', lastName: 'Test gratuit', email, phone: '0600000000' })) await p.locator('#bookEvent [name="' + name + '"]').fill(value);
+    await p.locator('#bookEvent [type="submit"]').click();
+    const snapshot = await state();
+    assert.equal(snapshot.signups.find(signup => signup.email === email)?.status, expectedStatus);
+    assert.equal(snapshot.billingDemo.documents.length, 4); assert.equal(snapshot.billingDemo.pending.length, 0);
+    await close();
+  }
+  await p.locator('#v8ParentAppointments [data-v8="book-appointment"][data-id="o2"]').click();
+  await p.locator('.v8-slots button').first().click();
+  assert.equal(await p.locator('#v8BookAppointment .billing-address').count(), 0);
+  for (const [name, value] of Object.entries({ firstName: 'Parent', lastName: 'Séance gratuite', email: 'free-appointment@example.test', phone: '0600000000' })) await p.locator('#v8BookAppointment [name="' + name + '"]').fill(value);
+  await p.locator('#v8BookAppointment [name="consent"]').check();
+  await p.locator('#v8BookAppointment [type="submit"]').click();
+  assert.equal((await state()).billingDemo.documents.length, 4); assert.equal((await state()).billingDemo.pending.length, 0);
+  await close(); await mode('pro'); await nav('facturation');
+  results.freeBookingsAndWaitlistsHaveNoInvoiceOrBillingAddress = true;
 
   await p.setViewportSize({ width: 390, height: 844 }); await p.evaluate(() => scrollTo(0, 0));
   assert(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));

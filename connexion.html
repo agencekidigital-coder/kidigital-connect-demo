@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#FEF8ED">
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" type="image/png" href="/assets/berceau/logos/naitea-symbole-berceau.png">
+<link rel="icon" href="/_vercel/image?url=%2Fassets%2Flanding%2Ffavicon-transparent.png&amp;w=64&amp;q=80">
 <title>Connexion | Naïtéa</title>
 <style>
 @font-face{font-family:'DM Sans';font-style:normal;font-weight:400;font-display:swap;src:url('/assets/dm-sans-400.ttf') format('truetype')}
@@ -65,6 +65,7 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required>
 <button id="submitBtn" class="primary" type="submit" disabled>Chargement…</button>
 </form>
+<section id="confirmationPanel" hidden><h2>Confirmez votre adresse email.</h2><p class="intro">Ouvrez le message reçu à <strong id="confirmationEmail"></strong>, puis cliquez sur le lien de confirmation.</p><p><a class="secondary" id="confirmedLogin" href="/connexion.html?mode=login">J’ai confirmé mon email</a></p><p><a class="textlink" href="/pro">Explorer la démonstration en attendant</a></p></section>
 <p id="forgotRow" class="forgot"><button type="button" class="textlink" id="forgotBtn">Mot de passe oublié ?</button></p>
 <div id="forgotPanel" hidden>
 <h2>Retrouver mon accès</h2>
@@ -92,19 +93,25 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <h1>Mon compte Naïtea</h1>
 <p class="intro">Votre compte est créé. Les données de démonstration restent enregistrées dans ce navigateur.</p>
 <div class="account"><strong>Connectée en tant que</strong><span id="accountEmail"></span></div>
-<p><a class="secondary" href="/">Ouvrir la démo actuelle</a></p>
+<p><a id="accountWelcome" class="secondary" href="/bienvenue.html">Commencer mon parcours Naïtea</a></p>
 <button class="primary" type="button" id="logoutBtn">Se déconnecter</button>
 </section>
 <div id="status" class="status" role="status" aria-live="polite">Chargement du formulaire…</div>
 <p class="note">Version de test : ne saisissez aucune donnée réelle concernant des familles ou des enfants. Les paiements sont simulés.</p>
-<div class="footer"><a id="backLink" href="/">Retour à la démo</a></div>
+<div class="footer"><a id="backLink" href="/decouvrir">Retour à Naïtea</a></div>
 </div>
 </main>
+<script src="/assets/tester-onboarding.js"></script>
 <script type="module">
+const T = window.NaiteaTester;
 let client = null;
-let mode = new URLSearchParams(location.search).get('mode') === 'signup' ? 'signup' : 'login';
-const requestedOffer = new URLSearchParams(location.search).get('offre');
-let recoveryMode = false;
+const params = new URLSearchParams(location.search);
+let mode = params.get('mode') === 'signup' ? 'signup' : 'login';
+let preferenceStorage; try { preferenceStorage = window.localStorage; } catch {}
+const requestedOffer = T.offer(params.get('offre')) || T.recall(preferenceStorage);
+if (requestedOffer) T.remember(preferenceStorage, requestedOffer);
+let recoveryMode = new URLSearchParams(location.hash.slice(1)).get('type') === 'recovery';
+let redirecting = false;
 const $ = (id) => document.getElementById(id);
 function status(message, type) {
   $('status').textContent = message;
@@ -122,6 +129,7 @@ function selectMode(next) {
   $('offerSummary').textContent = requestedOffer === 'fiche' ? 'Ma fiche : gratuit. Présentez votre activité, vos coordonnées et vos liens.' : 'Naïtea Complet : essai de 30 jours sans carte bancaire. Tarif prévu : 14,90 € TTC/mois ; lancement à 9,90 € pendant 12 mois pour les 50 premières abonnées. Cet aperçu ne déclenche aucun abonnement.';
   $('forgotRow').hidden = mode !== 'login';
   $('forgotPanel').hidden = true;
+  $('confirmationPanel').hidden = true;
   $('authForm').hidden = false;
   $('fullName').required = mode === 'signup';
   $('password').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
@@ -129,15 +137,30 @@ function selectMode(next) {
   status(mode === 'signup' ? 'Choisissez un mot de passe de 12 caractères minimum.' : 'Renseignez votre email et votre mot de passe.');
 }
 async function showAccount() {
-  if (recoveryMode) return;
+  if (recoveryMode || redirecting) return;
   const { data, error } = await client.auth.getUser();
+  if (recoveryMode || redirecting) return;
   const user = !error && data && data.user;
   $('authPanel').hidden = !!user;
   $('accountPanel').hidden = !user;
   if (user) {
     $('accountEmail').textContent = user.email || 'Compte connecté';
-    status('Connexion réussie !', 'success');
+    $('accountWelcome').href = T.destination(location.origin, requestedOffer);
+    status('Connexion réussie. Ouverture de votre parcours Naïtea…', 'success');
+    redirecting = true;
+    location.replace(T.destination(location.origin, requestedOffer));
   }
+}
+async function showRecovery() {
+  if (!client || !recoveryMode) return;
+  const { data, error } = await client.auth.getUser();
+  if (error || !data?.user) {
+    $('resetPanel').hidden = true; $('authPanel').hidden = false;
+    status('Ce lien de réinitialisation n’est plus valide. Demandez un nouveau lien depuis « Mot de passe oublié ? ».', 'error');
+    return;
+  }
+  $('authPanel').hidden = true; $('accountPanel').hidden = true; $('resetPanel').hidden = false;
+  status('Choisissez un nouveau mot de passe de 12 caractères minimum.');
 }
 async function init() {
   selectMode(mode);
@@ -149,31 +172,26 @@ async function init() {
     if (!config.url || !config.publishableKey) throw new Error('Le service de connexion est momentanément indisponible.');
     const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     client = sdk.createClient(config.url, config.publishableKey);
-    $('submitBtn').disabled = false;
-    selectMode(mode);
-    if (window.location.hash.includes('type=recovery')) {
-      // Le SDK traite automatiquement le jeton reçu dans l'URL.
-      // Ne pas afficher l'espace connecté tant que la récupération est en cours.
-      recoveryMode = true;
-    }
-    if (!recoveryMode) await showAccount();
     client.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
         recoveryMode = true;
-        $('authPanel').hidden = true;
-        $('accountPanel').hidden = true;
-        $('resetPanel').hidden = false;
-        status('Lien de réinitialisation reconnu. Tu peux choisir ton nouveau mot de passe.', 'success');
+        setTimeout(() => { showRecovery().catch(() => status('Impossible de vérifier ce lien. Demandez une nouvelle réinitialisation.', 'error')); }, 0);
         return;
       }
       if (!recoveryMode) setTimeout(() => { showAccount().catch(() => {}); }, 0);
     });
+    $('submitBtn').disabled = false;
+    selectMode(mode);
+    if (recoveryMode) await showRecovery(); else await showAccount();
+    const callbackError = new URLSearchParams(location.hash.slice(1)).get('error') || params.get('error');
+    if (callbackError && !redirecting) status('Ce lien de confirmation a expiré ou a déjà été utilisé. Connectez-vous avec votre email, ou relancez votre inscription si votre adresse n’a pas encore été confirmée.', 'error');
   } catch (err) {
     status(err.message || 'Impossible de charger le service de connexion.', 'error');
   }
 }
-$('loginTab').addEventListener('click', () => selectMode('login'));
-$('signupTab').addEventListener('click', () => selectMode('signup'));
+function switchMode(next) { recoveryMode = false; $('resetPanel').hidden = true; selectMode(next); }
+$('loginTab').addEventListener('click', () => switchMode('login'));
+$('signupTab').addEventListener('click', () => switchMode('signup'));
 $('forgotBtn').addEventListener('click', () => {
   $('forgotPanel').hidden = false;
   $('authForm').hidden = true;
@@ -195,7 +213,7 @@ $('forgotForm').addEventListener('submit', async (event) => {
   btn.disabled = true;
   try {
     const { error } = await client.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/connexion.html'
+      redirectTo: T.confirmationURL(location.origin)
     });
     if (error) throw error;
     status('Si cette adresse correspond à un compte, un e-mail de réinitialisation va arriver. Vérifie aussi les spams.', 'success');
@@ -213,6 +231,8 @@ $('newPasswordForm').addEventListener('submit', async (event) => {
   const btn = $('savePasswordBtn');
   btn.disabled = true;
   try {
+    const verified = await client.auth.getUser();
+    if (verified.error || !verified.data?.user) throw Error('Ce lien a expiré. Demandez une nouvelle réinitialisation.');
     const { error } = await client.auth.updateUser({ password });
     if (error) throw error;
     recoveryMode = false;
@@ -242,13 +262,16 @@ $('authForm').addEventListener('submit', async (event) => {
         email, password,
         options: {
           data: { full_name: fullName },
-          emailRedirectTo: window.location.origin + '/connexion.html'
+          emailRedirectTo: T.confirmationURL(location.origin)
         }
       });
       if (error) throw error;
       if (data.session) {
         await showAccount();
       } else {
+        $('authForm').hidden = true; $('forgotRow').hidden = true;
+        $('confirmationPanel').hidden = false; $('confirmationEmail').textContent = email;
+        $('confirmedLogin').href = T.destination(location.origin, requestedOffer, '/connexion.html');
         status('Compte demandé. Vérifie ta boîte e-mail et confirme ton adresse avant de te connecter.', 'success');
       }
     } else {

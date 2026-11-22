@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#FEF8ED" />
-<link rel="icon" type="image/png" href="/assets/berceau/logos/naitea-symbole-berceau.png" />
+<link rel="icon" href="/_vercel/image?url=%2Fassets%2Flanding%2Ffavicon-transparent.png&amp;w=64&amp;q=80" />
 <title>Naïtéa</title>
 <style>
 
@@ -211,9 +211,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,
 <link rel="stylesheet" href="/assets/interface.css" />
 <link rel="stylesheet" href="/assets/workspace-v10.css" />
 <link rel="stylesheet" href="/assets/workspace-v11.css" />
+<link rel="stylesheet" href="/assets/editor-refinements.css" />
 <link rel="stylesheet" href="/assets/professional-profile.css" />
 <link rel="stylesheet" href="/assets/berceau.css" />
 <link rel="stylesheet" href="/assets/berceau-features.css" />
+<link rel="stylesheet" href="/assets/social-statistics.css">
+<script src="/assets/social-statistics.js" defer></script>
+<link rel="stylesheet" href="/assets/site-import.css">
+<script src="/assets/site-import-tools.js"></script>
+<script src="/assets/site-import-ui.js"></script>
 </head>
 <body>
 <div class="shell">
@@ -2846,6 +2852,12 @@ v8DesignCanvas = async function () {
     ctx.drawImage(im, W * 0.78, H * 0.02, im.width * r, im.height * r);
   }
   for (const l of v8Design.layers) {
+    ctx.save();
+    if (l.flipX || l.flipY) {
+      const x=W*l.x/100,y=H*l.y/100,w=W*l.w/100;
+      const h=l.type==='text' ? (l.frameHeight ? H*l.frameHeight/100 : NaiteaRichText.layout(l,w,(text,run)=>{ctx.font=`${run.italic?'italic ':''}${run.weight} ${run.size}px ${JSON.stringify(run.font)}`;return ctx.measureText(text).width;}).reduce((n,line)=>n+line.height,0)) : H*(l.h||30)/100;
+      ctx.translate(x+w/2,y+h/2);ctx.scale(l.flipX?-1:1,l.flipY?-1:1);ctx.translate(-x-w/2,-y-h/2);
+    }
     if (l.type === "image") {
       const im = await v3Img(l.src),
         x = (W * l.x) / 100,
@@ -2869,6 +2881,7 @@ v8DesignCanvas = async function () {
     } else {
       NaiteaRichText.draw(ctx, l, W * l.x / 100, H * l.y / 100, W * l.w / 100);
     }
+    ctx.restore();
   }
   return can;
 };
@@ -3462,30 +3475,8 @@ document.addEventListener(
       )
     )
       return;
-    const resize = event.target.closest("[data-v9-resize]"),
-      l = v8Design.layers.find((l) => l.id === element.dataset.designLayer),
-      stage = document.getElementById("v8DesignStage");
-    if (!l || !stage) return;
-    v9CommitText();
-    v9Select(l.id);
-    v8DesignSnapshot();
-    v9Gesture = {
-      id: l.id,
-      element,
-      resize: !!resize,
-      startX: event.clientX,
-      startY: event.clientY,
-      x: l.x,
-      y: l.y,
-      w: l.w,
-      h: l.h || 20,
-      size: l.size || 24,
-      richRuns: l.type === "text" ? NaiteaRichText.runs(l) : null,
-      rect: stage.getBoundingClientRect(),
-      moved: false,
-    };
-    element.setPointerCapture(event.pointerId);
-    event.preventDefault();
+    const l = v8Design.layers.find(l => l.id === element.dataset.designLayer), stage = document.getElementById("v8DesignStage");
+    if (l && stage) v14BeginGesture(event, element, l, stage);
   },
   true,
 );
@@ -3494,32 +3485,7 @@ document.addEventListener(
   (event) => {
     const g = v9Gesture;
     if (!g) return;
-    const l = v8Design.layers.find((l) => l.id === g.id),
-      dx = event.clientX - g.startX,
-      dy = event.clientY - g.startY;
-    if (Math.abs(dx) + Math.abs(dy) > 3) g.moved = true;
-    if (!g.moved) return;
-    if (g.resize) {
-      l.w = Math.max(5, Math.min(100 - l.x, g.w + (100 * dx) / g.rect.width));
-      if (["image", "shape"].includes(l.type)) {
-        l.h = Math.max(
-          5,
-          Math.min(100 - l.y, g.h + (100 * dy) / g.rect.height),
-        );
-        g.element.style.height = l.h + "%";
-      } else {
-        l.size = Math.max(12, Math.min(480, (g.size * l.w) / g.w));
-        if (l.runs && g.richRuns) l.runs = g.richRuns.map(r => ({...r, size:r.size*l.size/g.size, letterSpacing:r.letterSpacing*l.size/g.size}));
-        g.element.style.fontSize = (l.size / v8DesignSize()[0]) * 100 + "cqw";
-      }
-      g.element.style.width = l.w + "%";
-      if (l.type === "image" && typeof v11PositionImage === "function") v11PositionImage(g.element, l);
-    } else {
-      l.x = Math.max(l.type === "image" ? -100 : 0, Math.min(l.type === "image" ? 100 : 100 - l.w, g.x + (100 * dx) / g.rect.width));
-      l.y = Math.max(l.type === "image" ? -100 : 0, Math.min(97, g.y + (100 * dy) / g.rect.height));
-      g.element.style.left = l.x + "%";
-      g.element.style.top = l.y + "%";
-    }
+    v14MoveGesture(event, g);
   },
   true,
 );
@@ -3533,6 +3499,7 @@ document.addEventListener(
       double =
         !g.moved &&
         !g.resize &&
+        v14Layers().length < 2 &&
         v9LastTap.id === g.id &&
         Date.now() - v9LastTap.time < 450;
     v9LastTap = { id: g.id, time: Date.now() };
@@ -4157,6 +4124,7 @@ function v11ResumeText(id, offsets) {
   node.setAttribute("role", "textbox"); node.setAttribute("aria-multiline", "true"); node.setAttribute("aria-label", "Texte du visuel");
   node.closest(".v9-object").classList.add("editing");
   v11Rich.writeDOM(node, layer);
+  node.closest(".v9-object").style.fontSize = (layer.size / v8DesignSize()[0]) * 100 + "cqw";
   node.focus({ preventScroll: true });
   const saved = offsets || { start: 0, end: layer.text.length };
   v11Rich.restore(node, saved); v11Selection = { ...saved, id };
@@ -4219,7 +4187,7 @@ v9FontPicker = layer => v11FontPickerBase(layer).replace(/<label class="field"><
 function v11OpenColors(target) {
   v11ColorTarget = target;
   const layer = v11Selected();
-  const current = target === "text" ? v11TextStyle()?.color : target === "shape" ? layer?.fill : v8Design[target];
+  const current = target === "highlight" ? v11TextStyle()?.highlight || state.brand.third : target === "text" ? v11TextStyle()?.color : target === "shape" ? layer?.fill : v8Design[target];
   const colors = [...new Set([state.brand.accent, state.brand.secondary, state.brand.third, state.brand.text, state.brand.background].filter(c => /^#[\da-f]{6}$/i.test(c)))];
   showModal("Choisir une couleur", "", `<p class="v11-color-heading">Ma charte graphique</p><div class="v11-color-swatches">${colors.map(c => `<button type="button" data-v11="pick-color" data-color="${c}" style="--swatch:${c}" aria-label="Couleur ${c}" title="${c}"></button>`).join("")}</div><label class="field"><span>Autre couleur</span><input type="color" id="v11CustomColor" value="${v11Rich.color(current)}"></label><label class="field"><span>Code HEX</span><input id="v11ColorHex" value="${v11Rich.color(current)}" maxlength="7" pattern="#[0-9a-fA-F]{6}"></label><button type="button" class="btn" data-v11="apply-custom-color">Appliquer</button>`);
   document.querySelector(".modal")?.classList.add("v11-color-modal");
@@ -4228,6 +4196,7 @@ function v11UseColor(value) {
   if (!/^#[\da-f]{6}$/i.test(value || "")) return toast("Saisis un code couleur au format #AABBCC.");
   closeModal();
   if (v11ColorTarget === "text") return v11ApplyStyle({ color: value });
+  if (v11ColorTarget === "highlight") return v11ApplyStyle({ highlight: value });
   v8DesignSnapshot();
   if (v11ColorTarget === "shape") { const layer = v11Selected(); if (layer) layer.fill = value; }
   else v8Design[v11ColorTarget] = value;
@@ -4432,7 +4401,7 @@ document.addEventListener("click", event => {
   if (action === "color") return v11OpenColors(b.dataset.target);
   if (action === "pick-color") return v11UseColor(b.dataset.color);
   if (action === "apply-custom-color") return v11UseColor(document.getElementById("v11ColorHex").value);
-  if (action === "select-object") { v9CommitText(); v8Selected = b.dataset.id; v11Selection = null; render(); document.querySelector(`[data-design-layer="${v8Selected}"]`)?.focus({ preventScroll: true }); return; }
+  if (action === "select-object") { v9CommitText(); v14Layers(); if(event.shiftKey || v14SelectMany) { if(v14Selection.has(b.dataset.id)) v14Selection.delete(b.dataset.id); else v14Selection.add(b.dataset.id); v8Selected=[...v14Selection].at(-1)||""; } else v14Select([b.dataset.id]); v11Selection = null; render(); document.querySelector(`[data-design-layer="${v8Selected}"]`)?.focus({ preventScroll: true }); return; }
   if (action === "copy-object") return v11CopyObject();
   if (action === "crop-mode") { v11Cropping = v11Cropping === v8Selected ? "" : v8Selected; render(); return; }
   if (action === "center-photo") { const layer = v11Selected(); if (layer?.type !== "image") return; v8DesignSnapshot(); Object.assign(layer, { cropX: 0, cropY: 0, cropZoom: 1, positionX: 50, positionY: 50 }); v8DesignSave(); render(); }
@@ -4650,6 +4619,126 @@ document.addEventListener("dblclick", event => {
   if (object && v8Design.layers.find(l => l.id === object.dataset.designLayer)?.type === "image") { v11Cropping = object.dataset.designLayer; v8Selected = v11Cropping; render(); }
 }, true);
 
+// Direct manipulation and grouped selection, independent from stored customer data.
+let v14Selection = new Set(), v14SelectMany = false;
+function v14Layers() {
+  const valid = new Set(v8Design.layers.map(l => l.id));
+  v14Selection = new Set([...v14Selection].filter(id => valid.has(id)));
+  if (!v14Selection.has(v8Selected)) v14Selection = new Set(v8Selected ? [v8Selected] : []);
+  return v8Design.layers.filter(l => v14Selection.has(l.id));
+}
+function v14Select(ids) {
+  v14Selection = new Set(ids); v8Selected = ids.at(-1) || '';
+  v11Selection = null; v9TextEditing = null;
+}
+function v14Paint(object, layer) {
+  Object.assign(object.style, {left:layer.x+'%',top:layer.y+'%',width:layer.w+'%'});
+  if (layer.type === 'text') {
+    object.style.fontSize = (layer.size / v8DesignSize()[0]) * 100 + 'cqw';
+    object.style.height = layer.frameHeight ? layer.frameHeight+'%' : '';
+    const text = object.querySelector('.v9-inline-text');
+    if (text) { v11Rich.writeDOM(text,layer); text.style.transform = `scale(${layer.flipX ? -1 : 1},${layer.flipY ? -1 : 1})`; }
+  } else {
+    object.style.height = layer.h+'%';
+    const content = object.querySelector(layer.type === 'image' ? '.v11-image-clip' : '.v10-shape');
+    if (content) content.style.transform = `scale(${layer.flipX ? -1 : 1},${layer.flipY ? -1 : 1})`;
+    if (layer.type === 'image') v11PositionImage(object,layer);
+  }
+}
+function v14BeginGesture(event, element, layer, stage) {
+  const handle = event.target.closest('[data-v9-resize],[data-v14-resize]');
+  v9CommitText(); v14Layers();
+  if (!handle && (event.shiftKey || v14SelectMany)) {
+    if (v14Selection.has(layer.id)) v14Selection.delete(layer.id); else v14Selection.add(layer.id);
+    v8Selected = [...v14Selection].at(-1) || ''; v11Selection = null; render(); event.preventDefault(); return;
+  }
+  if (handle || !v14Selection.has(layer.id)) v14Select([layer.id]);
+  else v8Selected = layer.id;
+  v9Select(layer.id);
+  document.querySelectorAll('[data-design-layer]').forEach(n=>n.classList.toggle('selected',v14Selection.has(n.dataset.designLayer)));
+  v8DesignSnapshot();
+  const rect = stage.getBoundingClientRect();
+  v9Gesture = {id:layer.id,element,resize:!!handle,direction:handle?.dataset.resizeDir || 'se',startX:event.clientX,startY:event.clientY,x:layer.x,y:layer.y,w:layer.w,h:layer.type==='text' ? (layer.frameHeight || element.getBoundingClientRect().height / rect.height * 100) : layer.h || 20,size:layer.size || 24,richRuns:layer.type==='text'?v11Rich.runs(layer):null,rect,moved:false,group:v14Layers().map(l=>({id:l.id,x:l.x,y:l.y}))};
+  element.setPointerCapture(event.pointerId); event.preventDefault();
+}
+function v14MoveGesture(event,g) {
+  const layer = v8Design.layers.find(l=>l.id===g.id); if(!layer)return;
+  const dx=100*(event.clientX-g.startX)/g.rect.width,dy=100*(event.clientY-g.startY)/g.rect.height;
+  if(Math.abs(event.clientX-g.startX)+Math.abs(event.clientY-g.startY)>3)g.moved=true;
+  if(!g.moved)return;
+  if(!g.resize){
+    const layers=g.group.map(p=>({origin:p,layer:v8Design.layers.find(l=>l.id===p.id)})).filter(p=>p.layer);
+    const mx=Math.max(...layers.map(p=>(p.layer.type==='image'?-100:0)-p.origin.x));
+    const Mx=Math.min(...layers.map(p=>(p.layer.type==='image'?100:100-p.layer.w)-p.origin.x));
+    const my=Math.max(...layers.map(p=>(p.layer.type==='image'?-100:0)-p.origin.y));
+    const My=Math.min(...layers.map(p=>97-p.origin.y));
+    for(const p of layers){p.layer.x=p.origin.x+Math.max(mx,Math.min(Mx,dx));p.layer.y=p.origin.y+Math.max(my,Math.min(My,dy));const n=document.querySelector(`[data-design-layer="${p.layer.id}"]`);if(n)v14Paint(n,p.layer);}
+    return;
+  }
+  const dir=g.direction,west=dir.includes('w'),east=dir.includes('e'),north=dir.includes('n'),south=dir.includes('s');
+  const min=2;
+  let w=Math.max(min,Math.min(200,g.w+(east?dx:west?-dx:0))),h=Math.max(min,Math.min(200,g.h+(south?dy:north?-dy:0)));
+  if(layer.type==='text' && dir.length===2){
+    const ratioX=w/g.w,ratioY=h/g.h,ratio=Math.max(.1,Math.abs(ratioX-1)>=Math.abs(ratioY-1)?ratioX:ratioY);
+    w=Math.max(min,Math.min(200,g.w*ratio));h=Math.max(min,Math.min(200,g.h*ratio));
+    const scale=Math.max(8,Math.min(480,g.size*ratio))/g.size;
+    layer.size=g.size*scale;
+    if(g.richRuns)layer.runs=g.richRuns.map(r=>({...r,size:Math.max(8,Math.min(480,r.size*scale)),letterSpacing:r.letterSpacing*scale}));
+  }
+  layer.x=west?g.x+g.w-w:g.x;layer.y=north?g.y+g.h-h:g.y;layer.w=w;
+  if(layer.type==='text'){if(dir.length===1||layer.frameHeight)layer.frameHeight=h;}
+  else layer.h=h;
+  v14Paint(g.element,layer);
+}
+const v14ApplyStyleBase=v11ApplyStyle;
+v11ApplyStyle=function(patch){
+  const selected=v14Layers();
+  if(selected.length<=1)return v14ApplyStyleBase(patch);
+  v9CommitText();v8DesignSnapshot();
+  for(const layer of selected.filter(l=>l.type==='text'))Object.assign(layer,v11Rich.apply(layer,0,layer.text.length,patch));
+  v8DesignSave();render();
+};
+const v14CopyBase=v11CopyObject;
+v11CopyObject=function(event){const layers=v14Layers();if(layers.length<2)return v14CopyBase(event);const payload=JSON.stringify({type:'naitea-objects',version:1,layers:structuredClone(layers)});if(event?.clipboardData){event.clipboardData.setData('application/x-naitea-object',payload);event.clipboardData.setData('text/plain',payload);event.preventDefault();}else navigator.clipboard?.writeText(payload).then(()=>toast('Sélection copiée.')).catch(()=>toast('Utilise Ctrl ou Cmd C pour copier la sélection.'));};
+document.addEventListener('paste',event=>{if(event.target.closest('input,textarea,select,[contenteditable="true"]')||!document.getElementById('v8DesignStage')||document.querySelector('.modal'))return;let data;try{data=JSON.parse(event.clipboardData?.getData('application/x-naitea-object')||event.clipboardData?.getData('text/plain')||'');}catch{return;}if(data?.type!=='naitea-objects'||data.version!==1||!Array.isArray(data.layers))return;event.preventDefault();const source=data.layers.slice(0,30).filter(l=>['text','image','shape'].includes(l?.type)&& (l.type!=='image'||/^(data:image\/(png|jpeg|webp);base64,|\/assets\/)/.test(l.src||'')));if(!source.length)return;v9CommitText();v8DesignSnapshot();const copies=source.map(l=>{const next={...structuredClone(l),id:uid(),x:Math.max(-100,Math.min(95,(+l.x||0)+3)),y:Math.max(-100,Math.min(95,(+l.y||0)+3)),w:Math.max(2,Math.min(200,+l.w||40))};if(next.type==='text'){next.text=String(next.text||'').slice(0,12000);next.runs=v11Rich.runs(next);}return next;});v8Design.layers.push(...copies);v14Select(copies.map(l=>l.id));v8DesignSave();render();},true);
+const v14DeleteBase=v9DeleteObject;
+v9DeleteObject=function(id=v8Selected){const selected=v14Layers();if(selected.length<2||!v14Selection.has(id))return v14DeleteBase(id);v9CommitText();v8DesignSnapshot();const ids=new Set(selected.map(l=>l.id));v8Design.layers=v8Design.layers.filter(l=>!ids.has(l.id));v14Select([]);v8DesignSave();render();document.getElementById('v8DesignStage')?.focus();};
+const v14DesignerBase=v8DesignerPage;
+v8DesignerPage=function(kind){
+  const box=document.createElement('div');box.innerHTML=v14DesignerBase(kind);const stage=box.querySelector('#v8DesignStage');if(!stage)return box.innerHTML;
+  const chosen=v14Layers(),selected=v11Selected();
+  stage.querySelectorAll('[data-design-layer]').forEach(object=>{
+    const layer=v8Design.layers.find(l=>l.id===object.dataset.designLayer);if(!layer)return;
+    object.classList.toggle('selected',v14Selection.has(layer.id));object.setAttribute('aria-selected',String(v14Selection.has(layer.id)));v14Paint(object,layer);
+    const original=object.querySelector('[data-v9-resize]');if(original){original.dataset.resizeDir='se';original.classList.add('v14-resize');original.innerHTML='';}
+    for(const dir of ['nw','n','ne','e','s','sw','w']){const b=document.createElement('button');b.type='button';b.className='v14-resize';b.dataset.v14Resize=dir;b.dataset.resizeDir=dir;b.setAttribute('aria-label','Redimensionner '+({nw:'en haut à gauche',n:'en haut',ne:'en haut à droite',e:'à droite',s:'en bas',sw:'en bas à gauche',w:'à gauche'}[dir]));object.append(b);}
+  });
+  const preview=box.querySelector('.v8-design-preview');
+  preview?.insertAdjacentHTML('afterbegin',`<div class="v14-selection-toolbar" role="toolbar" aria-label="Sélection des éléments"><button type="button" class="btn secondary small" data-v14="select-many" aria-pressed="${v14SelectMany}">Sélection multiple</button><button type="button" class="btn secondary small" data-v14="select-all">Tout sélectionner</button><span role="status">${chosen.length} élément${chosen.length>1?'s':''}</span>${chosen.length>1?'<button type="button" class="btn secondary small" data-v14="duplicate-many">Dupliquer la sélection</button><button type="button" class="btn ghost small" data-v14="delete-many">Supprimer la sélection</button>':''}</div>`);
+  const toolbar=box.querySelector('#v11TextToolbar');
+  toolbar?.insertAdjacentHTML('beforeend',`<button type="button" class="v11-format-button" data-v14="bullets" aria-label="Liste à puces" title="Liste à puces">☷</button><button type="button" class="btn secondary small" data-v14="highlight">Surligner</button><button type="button" class="btn ghost small" data-v14="clear-highlight">Sans surlignage</button><label class="v14-effect"><span>Effet</span><select data-v14-effect aria-label="Effet du texte"><option value="none" ${selected?.effect==='none'?'selected':''}>Aucun</option><option value="shadow" ${v11TextStyle()?.effect==='shadow'?'selected':''}>Ombre</option><option value="outline" ${v11TextStyle()?.effect==='outline'?'selected':''}>Contour</option></select></label>`);
+  box.querySelector('.v9-object-toolbar')?.insertAdjacentHTML('beforeend','<button type="button" class="btn secondary small" data-v14="flip-x">Retourner horizontalement</button><button type="button" class="btn secondary small" data-v14="flip-y">Retourner verticalement</button>');
+  box.querySelector('.v8-design-controls')?.insertAdjacentHTML('beforeend','<button type="button" class="btn secondary full" data-v14="icons">Pictogrammes libres</button>');
+  return box.innerHTML;
+};
+const v14IconNames={heart:'Cœur',sun:'Soleil',star:'Étoile',gift:'Cadeau',calendar:'Calendrier','message-circle':'Discussion',smile:'Sourire',home:'Maison'};
+document.addEventListener('change',event=>{if(event.target.matches('[data-v14-effect]'))v11ApplyStyle({effect:event.target.value});},true);
+document.addEventListener('keydown',event=>{if(!document.getElementById('v8DesignStage')||event.target.closest('input,textarea,select,[contenteditable="true"]')||document.querySelector('.modal'))return;if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='a'){event.preventDefault();v9CommitText();v14Select(v8Design.layers.map(l=>l.id));render();document.getElementById('v8DesignStage')?.focus();}},true);
+document.addEventListener('click',async event=>{
+  const b=event.target.closest('[data-v14]');if(!b)return;event.preventDefault();const action=b.dataset.v14;
+  if(action==='select-many'){v14SelectMany=!v14SelectMany;render();return;}
+  if(action==='select-all'){v9CommitText();v14Select(v8Design.layers.map(l=>l.id));render();return;}
+  if(action==='icons'){showModal('Pictogrammes libres','',`<div class="v14-icon-grid">${Object.entries(v14IconNames).map(([key,name])=>`<button type="button" class="btn secondary" data-v14="insert-icon" data-icon="${key}"><img src="/assets/editor-icons/${key}.svg" alt="" width="48" height="48">${name}</button>`).join('')}</div><p class="fine">Collection Feather, licence MIT. Ces pictogrammes sont disponibles pour vos créations.</p>`);return;}
+  if(action==='insert-icon'){if(!Object.hasOwn(v14IconNames,b.dataset.icon))return;closeModal();await v9AddPhoto('/assets/editor-icons/'+b.dataset.icon+'.svg',v14IconNames[b.dataset.icon],true,'contain');return;}
+  const selected=v14Layers();
+  if(action==='delete-many')return v9DeleteObject(v8Selected);
+  if(action==='highlight')return v11OpenColors('highlight');
+  if(action==='clear-highlight')return v11ApplyStyle({highlight:''});
+  if(action==='bullets'){v9CommitText();v8DesignSnapshot();for(const l of selected.filter(l=>l.type==='text')){const r=selected.length===1&&v11Selection?.id===l.id?v11Selection:null;Object.assign(l,v11Rich.toggleBullets(l,r?.start||0,r?.end??l.text.length));}v11Selection=null;v8DesignSave();render();return;}
+  if(action==='duplicate-many'){v9CommitText();v8DesignSnapshot();const copies=selected.map(l=>({...structuredClone(l),id:uid(),x:l.x+3,y:l.y+3}));v8Design.layers.push(...copies);v14Select(copies.map(l=>l.id));v8DesignSave();render();return;}
+  if(action==='flip-x'||action==='flip-y'){v9CommitText();v8DesignSnapshot();const key=action==='flip-x'?'flipX':'flipY';for(const l of selected)l[key]=!l[key];v8DesignSave();render();}
+},true);
+
 // Enrich the professional page without changing the existing booking/storage flows.
 const professionalPage = NaiteaProfessionalProfile.create({
   getState: () => state, save, render: () => render(), esc, ic, money, fmtDate,
@@ -4740,6 +4829,7 @@ render = function () {
   berceauBrand.afterRender(); berceauWorkspace.afterRender(); reviewAssistant.afterRender();
 };
 const billingDemo = NaiteaBilling.create({
+  currentOffer: () => state.offers.find(o => o.id === v8BookingOffer),
   getState: () => state, restoreState: snapshot => { state = snapshot; }, esc, save, toast, spots,
   demo: v8Demo, render: () => render(), showModal: (...args) => showModal(...args), download: v9Download,
 });
@@ -4762,6 +4852,7 @@ render = function () {
   } else billingRenderBase();
 };
 const platform = NaiteaPlatform.create({
+  nextDate: id => v9NextAvailable(id), slots: (id, date) => v8Slots(id, date),
   getState: () => state, esc, ic, save, toast, uid, money, demo: v8Demo,
   render: () => render(), mode: () => mode, page: () => page,
   showModal: (...args) => showModal(...args), closeModal, download: v9Download,
@@ -4799,9 +4890,17 @@ render = function () {
     document.getElementById('app').innerHTML = platform.giftShop();
   } else { platformRenderBase(); platform.afterRender(); }
 };
-if (new URLSearchParams(location.search).get("vue") === "parents" && !v8Shared) {
+// The beta importer reads only content deliberately provided on this device.
+const siteImporter = NaiteaSiteImport.create({
+  getState: () => state, save, render: () => render(), uid, esc, toast, navigate: id => navigate(id),
+});
+v6ImportScreen = () => siteImporter.screen();
+v6ImportPreview = () => siteImporter.analyse();
+v6ImportConfirm = () => siteImporter.confirm();
+if ((new URLSearchParams(location.search).get("vue") === "parents" || /^\/familles\/?$/.test(location.pathname)) && !v8Shared) {
   mode = "parent"; page = "parent";
 }
+if (/^\/pro\/?$/.test(location.pathname)) { mode = "pro"; page = "dashboard"; }
 if (new URLSearchParams(location.search).has('google') && !giftPreviewMode) { mode = 'pro'; page = 'personnaliser'; v8ProfileTab = 'profil'; }
 if (!berceauExistingWorkspace && state.brand.titleFont === "Naitea Titres") v10ApplyTemplate("rencontre", "studio");
 render();

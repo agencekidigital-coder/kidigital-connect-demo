@@ -29,7 +29,7 @@ function createHandler({ env = process.env, readTemplate = () => fs.readFileSync
       res.setHeader('Content-Type', format === 'robots' ? 'text/plain; charset=utf-8' : 'application/xml; charset=utf-8');
       return res.status(200).end(req.method === 'HEAD' ? undefined : content);
     }
-    const summaryItems = ['Ateliers, rendez-vous et réservations en ligne.', 'Un CRM pour suivre vos familles.', 'Publications, bons cadeaux et facturation.'];
+    const summaryItems = ['Ateliers, rendez-vous et réservations en ligne.', 'Un CRM pour suivre vos familles.', 'Communication, bons cadeaux et facturation.'];
     const summary = 'Naïtea, logiciel tout en 1 pour les pros de la périnatalité, de la parentalité et de la petite enfance. ' + summaryItems.join(' ') + ' Cet aperçu utilise des données fictives, sans paiement ni email réel.';
     const schema = { '@context': 'https://schema.org', '@graph': [
       { '@type': 'Organization', '@id': canonical + '#organisation', name: 'Naïtea', url: canonical, logo: origin + '/assets/berceau/transparent/naitea-logo.png', founder: { '@type': 'Person', name: 'Laureen' } },

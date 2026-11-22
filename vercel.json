@@ -4,6 +4,11 @@
     { "source": "/marketing/landing.html", "destination": "/decouvrir", "permanent": false }
   ],
   "rewrites": [
+    { "source": "/pro", "destination": "/index.html" },
+    { "source": "/pro/", "destination": "/index.html" },
+    { "source": "/familles", "destination": "/index.html" },
+    { "source": "/familles/", "destination": "/index.html" },
+    { "source": "/bienvenue", "destination": "/bienvenue.html" },
     { "source": "/decouvrir", "destination": "/api/landing" },
     { "source": "/decouvrir/", "destination": "/api/landing" },
     { "source": "/robots.txt", "destination": "/api/landing?format=robots" },

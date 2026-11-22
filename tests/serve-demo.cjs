@@ -7,6 +7,8 @@ http.createServer(async (req, res) => {
   const u = new URL(req.url, 'http://localhost:' + port); req.query = Object.fromEntries(u.searchParams);
   res.status = n => (res.statusCode = n, res); res.json = data => (res.setHeader('Content-Type', 'application/json'), res.end(JSON.stringify(data)));
   if (u.pathname === '/api/public-config') return res.status(503).json({ error: 'Local demonstration' });
+  if (['/pro', '/pro/', '/familles', '/familles/'].includes(u.pathname)) u.pathname = '/index.html';
+  if (u.pathname === '/bienvenue') u.pathname = '/bienvenue.html';
   if (u.pathname === '/marketing/landing.html') { res.setHeader('Location', '/decouvrir'); return res.status(307).end(); }
   if (u.pathname === '/decouvrir' || u.pathname === '/decouvrir/') return routes['/api/landing'](req, res);
   if (u.pathname === '/robots.txt' || u.pathname === '/sitemap.xml') { req.query.format = u.pathname === '/robots.txt' ? 'robots' : 'sitemap'; return routes['/api/landing'](req, res); }

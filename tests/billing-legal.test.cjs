@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const L = require('../assets/billing-legal.js');
-const { createDocument, createCredit, pdfBytes } = require('../assets/billing-demo.js');
+const { createDocument, createCredit, pdfBytes, emailFor } = require('../assets/billing-demo.js');
 require('../assets/billing-fonts.js');
 const seller = { name: 'Professionnelle de test', entity: 'ei', street: 'Adresse fictive', postalCode: '00000', city: 'Ville fictive', country: 'France', taxRegime: 'taxed', vatId: 'FR00000000000', vatRate: 20, giftTaxMode: 'single', giftTaxKnown: true };
 const purchase = { key: 'gift:legal-test', sourceId: 'DEMO-LEGAL-TEST', kind: 'gift', title: 'Bon cadeau : accompagnement', coveredService: 'Séance de démonstration', recipient: 'Bénéficiaire fictif', name: 'Acheteur fictif', email: 'test@example.test', totalCents: 12000, billingAddressOpposed: true };
@@ -34,6 +34,8 @@ test('a redeemed single-purpose gift is excluded from the VAT base and only its 
   const d = createDocument([], p, seller, now);
   assert.equal(L.amount(d), 3000); assert.equal(L.documentTitle(d), 'Facture du complément');
   assert.equal(d.legal.tax.netCents, 2500); assert.equal(d.legal.tax.vatCents, 500);
+  assert.match(emailFor(d).body, /Montant du document fictif : 30,00\s€\./);
+  assert(!emailFor(d).body.includes('150,00'));
   const credit = createCredit([d], d, now); assert.equal(credit.totalCents, 3000); assert.equal(credit.giftCents, 0);
   const full = createDocument([], { ...p, totalCents: 12000 }, seller, now);
   assert.equal(L.amount(full), 0); assert.equal(L.documentTitle(full), 'Attestation d’utilisation du bon'); assert.equal(createCredit([full], full, now), null);

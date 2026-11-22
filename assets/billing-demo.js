@@ -30,7 +30,7 @@
     return doc ? { ...doc, type: 'credit', originalId: invoice.id, legal } : null;
   }
   function emailFor(doc) {
-    return { id: 'billing-' + doc.id, invoiceId: doc.id, to: doc.buyer.email, subject: Legal.documentTitle(doc) + ' ' + doc.number, body: `Bonjour ${doc.buyer.name},\n\nVotre ${doc.type === 'credit' ? 'avoir' : 'document d’achat'} de démonstration ${doc.number} pour « ${doc.title} » est préparé.\nMontant fictif : ${euro(doc.totalCents)}.\n\nLe PDF est disponible dans Facturation et dans la confirmation d’achat. Ce document est sans valeur fiscale. Aucun débit, remboursement ni email réel.\n\n${doc.seller.name}`, attachments: [{ name: doc.number + '.pdf', type: 'application/pdf', documentId: doc.id }], status: 'Préparé, non envoyé', date: doc.issuedAt };
+    return { id: 'billing-' + doc.id, invoiceId: doc.id, to: doc.buyer.email, subject: Legal.documentTitle(doc) + ' ' + doc.number, body: `Bonjour ${doc.buyer.name},\n\nVotre ${doc.type === 'credit' ? 'avoir' : 'document d’achat'} de démonstration ${doc.number} pour « ${doc.title} » est préparé.\nMontant du document fictif : ${euro(Legal.amount(doc))}.\n\nLe PDF est disponible dans Facturation et dans la confirmation d’achat. Ce document est sans valeur fiscale. Aucun débit, remboursement ni email réel.\n\n${doc.seller.name}`, attachments: [{ name: doc.number + '.pdf', type: 'application/pdf', documentId: doc.id }], status: 'Préparé, non envoyé', date: doc.issuedAt };
   }
   // Hex-encoded WinAnsi text keeps user input out of PDF operators.
   function pdfBytes(doc, fonts = globalThis.NaiteaBillingFonts) {
@@ -81,7 +81,7 @@
       return doc;
     }
     function summary(doc) {
-      return `<section class="billing-receipt"><h3>${Legal.documentTitle(doc)}</h3><p>${esc(doc.number)} · ${euro(doc.totalCents)}</p><p>${local().email === false ? 'L’email automatique est désactivé dans la démo.' : 'L’email avec le PDF est préparé, non envoyé.'}</p><button type="button" class="btn secondary" data-billing="download" data-id="${esc(doc.id)}">Télécharger le PDF de démonstration</button><p class="fine">Sans valeur fiscale. Aucun envoi ni paiement réel.</p></section>`;
+      return `<section class="billing-receipt"><h3>${Legal.documentTitle(doc)}</h3><p>${esc(doc.number)} · ${euro(Legal.amount(doc))}</p><p>${local().email === false ? 'L’email automatique est désactivé dans la démo.' : 'L’email avec le PDF est préparé, non envoyé.'}</p><button type="button" class="btn secondary" data-billing="download" data-id="${esc(doc.id)}">Télécharger le PDF de démonstration</button><p class="fine">Sans valeur fiscale. Aucun envoi ni paiement réel.</p></section>`;
     }
     function show(doc) {
       if (!doc) return;
@@ -108,7 +108,11 @@
         purchase = { key: kind + ':' + row.id, sourceId: row.id, kind, title: event.title, name: row.name, email: row.email, totalCents, giftCents: row.gift?.amountCents || 0, serviceDate: row.date || event.date, redeemedGift: { amountCents: row.gift?.amountCents || 0, singlePurpose: state().berceau.gifts.find(g => g.code === row.gift?.code)?.taxAtIssue?.mode === 'single' && state().berceau.gifts.find(g => g.code === row.gift?.code)?.taxAtIssue?.ready === true } };
       }
       if (!purchase) return;
-      purchase = { ...before.data, ...purchase };
+      // Only the billing details belong in a pending purchase. Booking contact,
+      // home-visit, co-parent and child fields are already held by their own flow.
+      const billingFields = ['billingStreet', 'billingPostalCode', 'billingCity', 'billingCountry', 'billingAddressOpposed', 'orderNumber'];
+      const billingData = Object.fromEntries(billingFields.filter(key => key in before.data).map(key => [key, before.data[key]]));
+      purchase = { ...billingData, ...purchase };
       const previous = structuredClone(state());
       if (before.method !== 'simulated' && (purchase.giftCents || 0) < purchase.totalCents) {
         if (!local().pending.some(p => p.key === purchase.key)) local().pending.push(purchase);
@@ -123,14 +127,17 @@
     }
     function decorateBooking() {
       const booking = document.querySelector('#berceauBuyGift,#v8BookAppointment,#bookEvent');
-      if (booking && !booking.querySelector('.billing-address')) {
+      const event = booking?.id === 'bookEvent' ? state().events.find(e => e.id === booking.elements.eventId?.value) : null;
+      const offer = booking?.id === 'v8BookAppointment' ? deps.currentOffer?.() : null;
+      const billable = booking?.id === 'berceauBuyGift' || booking?.id === 'bookEvent' && event?.price > 0 && deps.spots(event) > 0 || booking?.id === 'v8BookAppointment' && (!offer || offer.price > 0);
+      if (booking && !billable) booking.querySelector('.billing-address')?.remove();
+      if (booking && billable && !booking.querySelector('.billing-address')) {
         const target = booking.querySelector('.modalfooter') || booking.querySelector('button[type="submit"]');
         target?.insertAdjacentHTML('beforebegin', `<fieldset class="billing-address"><legend>Adresse de facturation</legend><p class="fine">Utilisez une adresse fictive pour le test. Elle sert au document d’achat et n’est pas affichée sur la fiche.</p><label class="checkline"><input type="checkbox" name="billingAddressOpposed"> Je ne souhaite pas communiquer mon adresse sur la facture (achat en tant que particulier).</label><div class="billing-address-fields"><label class="field"><span>Numéro et rue</span><input name="billingStreet" required maxlength="200" autocomplete="billing street-address"></label><div class="inputgrid"><label class="field"><span>Code postal</span><input name="billingPostalCode" required maxlength="20" autocomplete="billing postal-code"></label><label class="field"><span>Ville</span><input name="billingCity" required maxlength="100" autocomplete="billing address-level2"></label></div><label class="field"><span>Pays</span><input name="billingCountry" value="France" required maxlength="80" autocomplete="billing country-name"></label></div><label class="field"><span>Numéro de bon de commande, si vous en avez un</span><input name="orderNumber" maxlength="80"></label></fieldset>`);
       }
       const form = document.getElementById('bookEvent');
       if (!form || form.querySelector('[name="billingPayment"]')) return;
-      const event = state().events.find(e => e.id === form.elements.eventId?.value);
-      if (!event || event.price <= 0 || deps.spots(event) <= 0) return;
+      if (!event || event.price <= 0 || deps.spots(event) <= 0) { form.querySelector('.billing-payment')?.remove(); return; }
       const target = form.querySelector('.modalfooter') || form.querySelector('button[type="submit"]');
       target?.insertAdjacentHTML('beforebegin', `<label class="field billing-payment"><span>Mode de règlement dans la démo</span><select name="billingPayment"><option value="simulated">Paiement en ligne simulé</option><option value="onsite">Règlement sur place prévu</option></select><small>Le PDF et son email sont préparés après le paiement simulé. Aucun débit ni envoi réel.</small></label>`);
     }
@@ -144,7 +151,7 @@
         const rows = p.kind === 'offer' ? state().v8.appointments : state().signups;
         return rows.some(r => r.id === p.sourceId && r.status === 'confirmed');
       });
-      return `<div class="billing-page"><div class="headrow"><h1 class="h1">Facturation</h1></div>${deps.demo}<section class="card"><h2>Un document après chaque achat</h2><p>Factures de prestations et de bons à usage unique ; reçus sans TVA à l’émission des bons à usages multiples. Les PDF sont préparés avec leur email après le règlement simulé.</p><form id="billingSettings"><label class="checkline"><input type="checkbox" name="email" ${local().email !== false ? 'checked' : ''}> Préparer automatiquement l’email avec le PDF</label><button class="btn" type="submit">Enregistrer</button></form><p class="fine">Démonstration locale, sans envoi réel. Les documents restent sans valeur fiscale.</p></section>${legalSettings()}${paid.length ? `<section class="card"><h2>Règlements sur place à confirmer</h2>${paid.map(p => `<article class="billing-row"><div><strong>${esc(p.title)}</strong><p>${esc(p.name)} · ${euro(p.totalCents - (p.giftCents || 0))} à régler</p></div><button class="btn secondary" type="button" data-billing="pay" data-key="${esc(p.key)}">Simuler le règlement</button></article>`).join('')}</section>` : ''}<section class="card"><h2>Documents de démonstration</h2>${docs.map(doc => `<article class="billing-row"><div><strong>${esc(doc.number)} · ${Legal.documentTitle(doc)}</strong><p>${esc(doc.title)} · ${esc(doc.buyer.name)}</p><p>${date(doc.issuedAt)} · ${euro(doc.totalCents)} · ${state().v8.emails.some(e => e.invoiceId === doc.id) ? 'Email préparé, non envoyé' : 'Email non préparé'}</p></div><div class="berceau-toolbar"><button class="btn secondary small" data-billing="view" data-id="${esc(doc.id)}">Voir</button><button class="btn secondary small" data-billing="download" data-id="${esc(doc.id)}">PDF</button>${doc.type === 'invoice' && Legal.amount(doc) > 0 && !docs.some(d => d.originalId === doc.id) ? `<button class="btn secondary small" data-billing="credit" data-id="${esc(doc.id)}">Préparer un avoir</button>` : ''}</div></article>`).join('') || '<p>Aucun document. Teste un nouvel achat depuis la fiche parents. Les anciennes réservations ne sont pas considérées comme payées.</p>'}</section></div>`;
+      return `<div class="billing-page"><div class="headrow"><h1 class="h1">Facturation</h1></div>${deps.demo}<section class="card"><h2>Un document après chaque achat</h2><p>Factures de prestations et de bons à usage unique ; reçus sans TVA à l’émission des bons à usages multiples. Les PDF sont préparés avec leur email après le règlement simulé.</p><form id="billingSettings"><label class="checkline"><input type="checkbox" name="email" ${local().email !== false ? 'checked' : ''}> Préparer automatiquement l’email avec le PDF</label><button class="btn" type="submit">Enregistrer</button></form><p class="fine">Démonstration locale, sans envoi réel. Les documents restent sans valeur fiscale.</p></section>${legalSettings()}${paid.length ? `<section class="card"><h2>Règlements sur place à confirmer</h2>${paid.map(p => `<article class="billing-row"><div><strong>${esc(p.title)}</strong><p>${esc(p.name)} · ${euro(p.totalCents - (p.giftCents || 0))} à régler</p></div><button class="btn secondary" type="button" data-billing="pay" data-key="${esc(p.key)}">Simuler le règlement</button></article>`).join('')}</section>` : ''}<section class="card"><h2>Documents de démonstration</h2>${docs.map(doc => `<article class="billing-row"><div><strong>${esc(doc.number)} · ${Legal.documentTitle(doc)}</strong><p>${esc(doc.title)} · ${esc(doc.buyer.name)}</p><p>${date(doc.issuedAt)} · ${euro(Legal.amount(doc))} · ${state().v8.emails.some(e => e.invoiceId === doc.id) ? 'Email préparé, non envoyé' : 'Email non préparé'}</p></div><div class="berceau-toolbar"><button class="btn secondary small" data-billing="view" data-id="${esc(doc.id)}">Voir</button><button class="btn secondary small" data-billing="download" data-id="${esc(doc.id)}">PDF</button>${doc.type === 'invoice' && Legal.amount(doc) > 0 && !docs.some(d => d.originalId === doc.id) ? `<button class="btn secondary small" data-billing="credit" data-id="${esc(doc.id)}">Préparer un avoir</button>` : ''}</div></article>`).join('') || '<p>Aucun document. Teste un nouvel achat depuis la fiche parents. Les anciennes réservations ne sont pas considérées comme payées.</p>'}</section></div>`;
     }
     function submit(form) {
       if (form.id === 'billingLegalSettings') {

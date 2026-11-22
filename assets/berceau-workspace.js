@@ -39,7 +39,7 @@
         if (result.changed) { local().gifts = result.gifts; deps.save(); }
       }
       function giftBanner() {
-        return `<section id="berceauGifts" class="berceau-gift-banner"><img src="/assets/berceau/transparent/prendre-soin-de-soi.png" alt=""><div><h2>Offrir un bon cadeau</h2><p>Un montant ou un accompagnement à offrir. La famille choisit ensuite le moment qui lui convient.</p><div class="berceau-toolbar"><button type="button" class="btn" data-berceau="buy-gift">Offrir un bon cadeau</button><button type="button" class="btn secondary" data-berceau="check-gift">J’ai un bon cadeau</button></div><p class="fine">Achat et utilisation simulés, sans débit réel.</p></div></section>`;
+        return `<section id="berceauGifts" class="berceau-gift-banner"><img src="/assets/landing/brand-additions/cadeau-3d.png" alt=""><div><h2>Offrir un bon cadeau</h2><p>Un montant ou un accompagnement à offrir. La famille choisit ensuite le moment qui lui convient.</p><div class="berceau-toolbar"><button type="button" class="btn" data-berceau="buy-gift">Offrir un bon cadeau</button><button type="button" class="btn secondary" data-berceau="check-gift">J’ai un bon cadeau</button></div><p class="fine">Achat et utilisation simulés, sans débit réel.</p></div></section>`;
       }
       function giftPage() {
         reconcileGifts();

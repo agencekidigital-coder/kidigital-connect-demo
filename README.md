@@ -1,26 +1,29 @@
 # Naïtéa — démonstration professionnelle et familles
 
-Démo statique autonome de Kidigital Connect. `index.html` est le point d'entrée du site.
+Application de démonstration Naïtea, espace professionnel et parcours familles. Les données métier restent locales au navigateur ; l’identification utilise Supabase.
 
-## Publication sur GitHub et Vercel
+## Prévisualisation et points d’entrée
 
-1. Créer un dépôt GitHub privé, par exemple `kidigital-connect-demo`.
-2. Dans le dépôt, cliquer sur **Add file → Upload files** et importer `index.html` à la racine, puis valider avec **Commit changes**.
-3. Dans Vercel, cliquer sur **Add New → Project**, importer le dépôt GitHub et choisir le framework **Other** (ou aucune détection), avec le répertoire racine `./`. Laisser la commande de build vide.
-4. Cliquer sur **Deploy**. Vercel fournit une URL de type `*.vercel.app`.
+Le dépôt est déjà connecté à Vercel. Les changements sont publiés sur la branche `feature/naitea-supabase-auth-foundation` et déployés en aperçu. Ne pas fusionner ni déployer en production sans accord explicite.
+
+- `/decouvrir` : landing professionnelle.
+- `/connexion.html` : inscription, connexion et récupération du mot de passe.
+- `/bienvenue.html` : accueil avec tutoriel après vérification du compte.
+- `/pro` : nouvel espace de démonstration professionnel.
+- `/familles` : aperçu de la fiche publique et des réservations.
+- `/` : point d’entrée historique de la démonstration.
 
 ## Limites de la démo
 
-- Pas de serveur, base de données ni comptes réels.
-- Les données enregistrées dans le navigateur (localStorage) ne sont pas partagées entre appareils ou utilisateurs.
-- Les services IA, emails, paiements, publications et réservations réelles ne sont pas connectés.
-- Ne pas saisir de données réelles de familles ou d'enfants.
-- Ne pas confondre dépôt GitHub privé et site web privé : l'URL déployée peut être accessible à des tiers. Activer la protection d'accès Vercel si nécessaire, selon le plan.
-- Les polices Google Fonts nécessitent une connexion Internet.
+- L’authentification est réelle, mais les données métier dans localStorage ne sont pas synchronisées entre appareils ni isolées par un backend métier multi-comptes.
+- Les réservations, factures, emails de réservation et paiements restent fictifs ou simulés. Ne pas saisir de données réelles de familles ou d’enfants.
+- Google, Meta et l’IA distante ne sont pas configurés. Le partage social natif et l’import de statistiques CSV ne sont pas une publication ou une synchronisation API.
+- Une URL de prévisualisation peut être publique. Les routes `/pro` et `/familles` ne constituent pas une protection serveur.
+- Les polices de marque sont hébergées sur Naïtea ; le catalogue complémentaire utilise le service de polices du projet.
 
 ## Authentification Supabase (branche de test)
 
-Cette branche ajoute, sans remplacer la démo V8 :
+Cette branche conserve la fondation d’authentification et enrichit l’interface actuelle :
 - connexion.html : création de compte, connexion e-mail/mot de passe et déconnexion.
 - api/public-config.js : fonction Vercel exposant uniquement SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY (valeurs publiques).
 - supabase/02-auth-profile-trigger.sql : création automatique du profil après inscription Supabase Auth.
@@ -28,10 +31,10 @@ Cette branche ajoute, sans remplacer la démo V8 :
 
 ### Avant de tester
 
-1. Dans Supabase > SQL Editor, exécuter supabase/02-auth-profile-trigger.sql. Vérifier que les quatre tables ont rls_enabled = true.
-2. Dans Supabase > Authentication > URL Configuration, conserver https://kidigital-connect-demo.vercel.app comme Site URL, et ajouter https://kidigital-connect-demo.vercel.app/connexion.html dans Redirect URLs.
+1. Les scripts SQL sont historiques : ne pas les réexécuter pour cette passe d’interface. Vérifier les politiques et l’isolation avant une future ouverture à des données réelles.
+2. La configuration historiquement documentée utilisait https://kidigital-connect-demo.vercel.app comme Site URL et https://kidigital-connect-demo.vercel.app/connexion.html dans Redirect URLs. Vérifier les valeurs effectives dans Authentication → URL Configuration. Autoriser le callback exact d’un aperçu stable dans le cadre de la configuration bêta ; ne pas remplacer l’adresse de production pour réparer un aperçu.
 3. Vérifier SUPABASE_URL et SUPABASE_PUBLISHABLE_KEY sur Vercel, pour Production et Preview. Ne jamais placer de clé secrète dans une page HTML ou une API publique.
-4. Après revue et fusion de la PR, déployer et tester /connexion.html avec un compte de test. Pour une URL Vercel Preview, ajouter son adresse de redirection exacte à Supabase.
+4. Tester d’abord les parcours dans l’aperçu de branche. Les tests automatiques substituent le SDK et ne créent aucun compte réel. Aucun changement Supabase ou déploiement de production n’est réalisé par cette livraison.
 
 ### Limites de cette étape
 
@@ -63,3 +66,5 @@ La [landing professionnelle](docs/naitea-landing.md), accessible sur `/decouvrir
 La mise à jour du 21 novembre ajoute la hero centrée sur le produit, deux vidéos Pro/Familles, l’avant/avec Naïtea, la présentation de Laureen, la FAQ ouverte et les tarifs validés (fiche gratuite, Complet à 14,90 € TTC/mois, lancement à 9,90 € pour les 50 premières pendant 12 mois, essai de 30 jours). Les exemples de témoignages sont indiqués fictifs et exclus du rendu en production. Aucun abonnement ni prélèvement réel n’est activé.
 
 La dernière passe de la landing ajoute un résumé lisible par les IA dans le HTML initial, un titre sur trois lignes maximum et six grands encarts avec captures agrandissables, alternant texte et image sur ordinateur. Les espaces et marges sont augmentés, avec la charte Berceau conservée. Les tests de navigateur couvrent de 320 à 1920 px et la lecture du résumé sans JavaScript.
+
+La [préparation des testeuses](docs/naitea-tester-onboarding.md) ajoute l’accueil avec tutoriel, les routes explicites et le diagnostic des retours d’email vers l’ancienne production. Le [studio](docs/naitea-editor-v14.md) corrige les tailles et ajoute multisélection, poignées latérales, puces, effets et SVG libres. Le [profil et son assistant](docs/naitea-public-assistant.md) intègrent réseaux, politique facultative et conversation locale contextualisée. Les [statistiques sociales](docs/naitea-social-statistics.md) reposent sur des exports réellement importés. Les [prérequis de bêta connectée](docs/naitea-beta-readiness.md) distinguent ce qui est livré des connexions et contrôles serveur restant à construire.

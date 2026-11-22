@@ -18,6 +18,8 @@
       weight: clamp(value.weight ?? fallback.weight, 100, 900, 400),
       italic: Boolean(value.italic ?? fallback.italic),
       underline: Boolean(value.underline ?? fallback.underline),
+      highlight: value.highlight === '' ? '' : (value.highlight || fallback.highlight ? color(value.highlight || fallback.highlight, '#F3D893') : ''),
+      effect: ['none', 'shadow', 'outline'].includes(value.effect) ? value.effect : (['shadow', 'outline'].includes(fallback.effect) ? fallback.effect : 'none'),
       color: color(value.color, color(fallback.color)),
       letterSpacing: clamp(value.letterSpacing ?? fallback.letterSpacing, -5, 30, 0),
     };
@@ -86,7 +88,10 @@
       if (css.fontWeight) next.weight = css.fontWeight === "bold" ? 700 : clamp(css.fontWeight, 100, 900, next.weight);
       if (css.fontStyle) next.italic = css.fontStyle === "italic";
       if (css.textDecoration || css.textDecorationLine) next.underline = (css.textDecorationLine || css.textDecoration).includes("underline");
-      if (css.color) next.color = color(css.color, next.color);
+      if (node.dataset?.runColor) next.color = color(node.dataset.runColor, next.color);
+      else if (css.color) next.color = color(css.color, next.color);
+      if (node.dataset?.runHighlight !== undefined) next.highlight = node.dataset.runHighlight;
+      if (node.dataset?.runEffect) next.effect = node.dataset.runEffect;
       if (css.fontFamily) next.font = css.fontFamily.replace(/^["']|["']$/g, "");
       if (node.dataset?.runSize) next.size = +node.dataset.runSize;
       else if (css.fontSize) next.size = css.fontSize.endsWith("%") ? next.size * parseFloat(css.fontSize) / 100 : parseFloat(css.fontSize);
@@ -111,7 +116,13 @@
       span.textContent = run.text;
       span.dataset.runSize = run.size;
       span.dataset.runSpacing = run.letterSpacing;
+      span.dataset.runColor = run.color;
+      span.dataset.runHighlight = run.highlight;
+      span.dataset.runEffect = run.effect;
       Object.assign(span.style, { fontFamily: JSON.stringify(run.font), fontSize: run.size / style(layer).size * 100 + "%", fontWeight: String(run.weight), fontStyle: run.italic ? "italic" : "normal", textDecoration: run.underline ? "underline" : "none", color: run.color, letterSpacing: run.letterSpacing / run.size + "em" });
+      if (run.highlight) span.style.backgroundColor = run.highlight;
+      if (run.effect === 'shadow') span.style.textShadow = '.05em .06em .08em #59042566';
+      if (run.effect === 'outline') { span.style.webkitTextStroke = '.025em ' + run.color; span.style.color = 'transparent'; }
       fragment.append(span);
     }
     root.replaceChildren(fragment);
@@ -191,15 +202,29 @@
       ctx.font = font(run); ctx.fillStyle = run.color;
       const top = y + line.y + (line.height - line.maxSize) / 2;
       let left = x + segment.x;
+      if (run.highlight) { ctx.fillStyle = run.highlight; ctx.fillRect(left, y + line.y, segment.width, line.height); ctx.fillStyle = run.color; }
+      if (run.effect === 'shadow') { ctx.shadowColor = '#59042566'; ctx.shadowOffsetX = run.size * .05; ctx.shadowOffsetY = run.size * .06; ctx.shadowBlur = run.size * .08; }
       for (const character of segment.text) {
-        ctx.fillText(character, left, top + line.maxSize - run.size);
+        if (run.effect === 'outline') { ctx.strokeStyle = run.color; ctx.lineWidth = Math.max(.6, run.size * .025); ctx.strokeText(character, left, top + line.maxSize - run.size); }
+        else ctx.fillText(character, left, top + line.maxSize - run.size);
         const w = ctx.measureText(character).width + run.letterSpacing;
         if (run.underline && character !== "\n") ctx.fillRect(left, top + line.maxSize + run.size * .06, Math.max(w, 0), Math.max(1, run.size * .05));
         left += Math.max(0, w);
       }
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
     }
     ctx.restore();
     return lines;
   }
-  return { style, runs, merge, at, apply, replace, setText, readDOM, writeDOM, selection, restore, layout, draw, color };
+  function toggleBullets(layer, start = 0, end = String(layer.text || '').length) {
+    const text = String(layer.text || ''), first = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+    const after = text.indexOf('\n', Math.max(start, end - 1)), last = after < 0 ? text.length : after;
+    const lines = text.slice(first, last).split('\n'), remove = lines.filter(line => line.trim()).every(line => line.startsWith('• '));
+    let offset = first; const edits = [];
+    for (const line of lines) { if (line.trim()) edits.push({ start: offset, end: offset + (remove && line.startsWith('• ') ? 2 : 0), text: remove ? '' : line.startsWith('• ') ? '' : '• ' }); offset += line.length + 1; }
+    let result = layer;
+    for (const edit of edits.reverse()) if (edit.end !== edit.start || edit.text) result = replace(result, edit.start, edit.end, edit.text);
+    return result;
+  }
+  return { style, runs, merge, at, apply, replace, setText, readDOM, writeDOM, selection, restore, layout, draw, color, toggleBullets };
 });

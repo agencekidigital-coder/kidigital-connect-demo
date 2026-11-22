@@ -44,3 +44,21 @@ test('category and date identify the same registered workshop', () => {
   assert.equal(tools.filterFamilies(state, { category: 'Massage bébé' }).length, 2);
   assert.deepEqual(tools.filterFamilies(state, { category: 'Massage bébé', date: '2026-12-08' }).map(f => f.id), ['two']);
 });
+test('highlight and effects stay confined to the selected words and survive text edits', () => {
+  const styled = rich.apply(text, 0, 14, { highlight: '#D89328', effect: 'shadow' });
+  assert.equal(rich.at(styled, 2).highlight, '#D89328');
+  assert.equal(rich.at(styled, 20).highlight, '');
+  const changed = rich.setText(styled, 'Première ligne\nAutre ligne');
+  assert.equal(rich.at(changed, 2).effect, 'shadow');
+  assert.equal(rich.at(changed, 20).effect, 'none');
+  assert.equal(rich.at(rich.apply(styled, 0, 14, { highlight: '' }), 2).highlight, '');
+});
+test('bullets apply to selected paragraphs and preserve the other paragraphs and their formatting', () => {
+  const styled = rich.apply(text, 15, 29, { italic: true });
+  const one = rich.toggleBullets(styled, 2, 8);
+  assert.equal(one.text, '• Première ligne\nDeuxième ligne');
+  assert.equal(rich.at(one, 23).italic, true);
+  const restored = rich.toggleBullets(one, 2, 8);
+  assert.equal(restored.text, text.text);
+  assert.equal(rich.at(restored, 21).italic, true);
+});
