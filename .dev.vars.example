@@ -1,6 +1,8 @@
 # Configuration locale uniquement. Ne jamais versionner .dev.vars.
 # L’authentification reste inactive tant que SMTP et callbacks ne sont pas validés.
 NAITEA_AUTH_ENABLED=false
+# La sauvegarde des deux champs du compte exige les deux flags actifs.
+NAITEA_PROFILE_ENABLED=false
 # SUPABASE_URL=https://PROJECT.supabase.co
 # SUPABASE_PUBLISHABLE_KEY=sb_publishable_PUBLIC_KEY
 # Aucune clé Supabase service_role/secret, Stripe, Google ou IA pour cet aperçu.

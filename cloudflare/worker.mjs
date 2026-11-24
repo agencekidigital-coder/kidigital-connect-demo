@@ -1,4 +1,5 @@
 import publicConfig from '../server/public-config.cjs';
+import { createAccountHandler } from '../server/account-profile.mjs';
 import fontHandler from '../api/font.js';
 import videoSizes from '../dist/video-sizes.json' with { type: 'json' };
 
@@ -11,8 +12,9 @@ const PLACEHOLDER = 'https://naitea-render.invalid';
 const JSON_HEADERS = { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' };
 const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(body), { status, headers: { ...JSON_HEADERS, ...headers } });
 const unavailable = () => json({ error: 'Bientôt disponible. Cette fonction est désactivée dans cet aperçu.', code: 'FEATURE_UNAVAILABLE' }, 423);
+const accountHandler = createAccountHandler();
 
-function guard(response, request, { embed = false, auth = false } = {}) {
+function guard(response, request, { embed = false, auth = false, account = false } = {}) {
   const headers = new Headers(response.headers);
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -20,6 +22,7 @@ function guard(response, request, { embed = false, auth = false } = {}) {
   headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   // Compatible with the existing inline editor. This is not a complete XSS policy.
   headers.set('Content-Security-Policy', "base-uri 'self'; object-src 'none'" + (embed ? '' : "; frame-ancestors " + (auth ? "'none'" : "'self'")));
+  if (account) headers.set('Content-Security-Policy', "default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://*.supabase.co");
   if (auth) headers.set('X-Frame-Options', 'DENY');
   if (headers.get('Content-Type')?.includes('text/html')) headers.set('Cache-Control', 'no-store');
   return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, statusText: response.statusText, headers });
@@ -128,8 +131,9 @@ async function font(request, env, ctx) {
 async function route(request, env, ctx, pathname) {
   const url = new URL(request.url);
   if (!pathname) return json({ error: 'Adresse invalide.' }, 400);
+  if (pathname === '/api/account') return accountHandler(request, env);
   if (!['GET', 'HEAD'].includes(request.method)) return json({ error: 'Méthode non autorisée.' }, 405, { Allow: 'GET, HEAD' });
-  if (pathname === '/api/deployment') return json(capabilities);
+  if (pathname === '/api/deployment') return json({ ...capabilities, accountProfile: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_PROFILE_ENABLED === 'true' && !!publicConfig.readPublicConfig(env) });
   if (pathname === '/api/public-config') {
     const config = env.NAITEA_AUTH_ENABLED === 'true' ? publicConfig.readPublicConfig(env) : null;
     return config ? json(config) : json({ error: 'La connexion sera ouverte après validation de sa configuration.' }, 503);
@@ -152,6 +156,7 @@ async function route(request, env, ctx, pathname) {
   if (['/pro', '/pro/', '/index.html', '/familles', '/familles/', '/pro.html'].includes(pathname) || pathname === '/' && shared) return asset(env, request, '/pro.html');
   if (pathname === '/connexion.html') return asset(env, request, '/connexion.html');
   if (['/bienvenue', '/bienvenue.html'].includes(pathname)) return asset(env, request, '/bienvenue.html');
+  if (['/compte', '/compte.html'].includes(pathname)) return asset(env, request, '/compte.html');
   if (pathname.startsWith('/assets/')) return asset(env, request, pathname);
   return new Response('Page introuvable.', { status: 404, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });
 }
@@ -164,7 +169,8 @@ export default {
     try { response = await route(request, env, ctx, pathname); }
     catch { response = json({ error: 'Le service est temporairement indisponible.' }, 503); }
     return guard(response, request, {
-      auth: ['/connexion.html', '/bienvenue', '/bienvenue.html'].includes(pathname),
+      auth: ['/connexion.html', '/bienvenue', '/bienvenue.html', '/compte', '/compte.html'].includes(pathname),
+      account: ['/compte', '/compte.html'].includes(pathname),
       embed: ['/', '/pro', '/pro/', '/familles', '/familles/', '/index.html', '/pro.html'].includes(pathname) && (url.searchParams.has('embed') || url.searchParams.get('boutique-cadeaux') === '1'),
     });
   },

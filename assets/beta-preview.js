@@ -61,6 +61,10 @@
       status.timer = browser.setTimeout(() => { status.hidden = true; }, 8000);
     };
     function decorate() {
+      // The account page and its API belong to the Cloudflare beta only.
+      for (const link of doc.querySelectorAll('a.naitea-login-link, .nav a[href="/connexion.html"]')) {
+        link.setAttribute('href', '/compte'); link.setAttribute('title', 'Mon compte Naïtea');
+      }
       for (const selector of selectors) for (const element of doc.querySelectorAll(selector)) {
         if (element.dataset.naiteaBetaLocked) continue;
         const key = featureFor(attributesFor(element)); if (!key) continue;

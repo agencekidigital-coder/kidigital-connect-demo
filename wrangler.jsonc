@@ -13,6 +13,6 @@
     "not_found_handling": "none"
   },
   "build": { "command": "npm run build:cloudflare" },
-  "vars": { "NAITEA_AUTH_ENABLED": "false" },
+  "vars": { "NAITEA_AUTH_ENABLED": "false", "NAITEA_PROFILE_ENABLED": "false" },
   "observability": { "enabled": false }
 }

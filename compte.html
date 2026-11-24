@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#FEF8ED">
+  <title>Mon compte | Naïtea</title>
+  <link rel="icon" href="/assets/landing/favicon-transparent.png">
+  <link rel="stylesheet" href="/assets/tester-onboarding.css">
+  <link rel="stylesheet" href="/assets/account-profile.css">
+  <script src="/assets/account-profile.js" defer></script>
+</head>
+<body data-page="account-profile">
+  <header class="tester-header"><a href="/" aria-label="Naïtea, accueil"><img src="/assets/berceau/transparent/naitea-logo.png" alt="Naïtea" width="180" height="60"></a><a href="/pro">Voir la démonstration</a></header>
+  <main class="tester-main account-main">
+    <h1>Mon compte</h1>
+    <p class="account-intro">Vos coordonnées de compte. La fiche et les ateliers de démonstration restent fictifs.</p>
+    <section class="account-panel" id="accountNotice" aria-labelledby="accountNoticeTitle">
+      <h2 id="accountNoticeTitle">Vérification de votre connexion…</h2>
+      <p id="accountMessage" role="status" aria-live="polite"></p>
+      <div class="tester-actions">
+        <a class="tester-button" id="accountLogin" href="/connexion.html?mode=login" hidden>Me connecter</a>
+        <button class="tester-button secondary" id="accountRetry" type="button" hidden>Réessayer</button>
+      </div>
+    </section>
+    <section class="account-panel" id="accountDetails" hidden aria-labelledby="accountTitle">
+      <h2 id="accountTitle">Mes informations</h2>
+      <p id="accountEmail" class="account-email"></p>
+      <form id="accountForm">
+        <label for="accountFullName">Nom et prénom</label>
+        <input id="accountFullName" name="full_name" type="text" autocomplete="name" maxlength="120" required>
+        <label for="accountBusinessName">Nom professionnel</label>
+        <input id="accountBusinessName" name="business_name" type="text" autocomplete="organization" maxlength="160" aria-describedby="accountBusinessHelp">
+        <p id="accountBusinessHelp" class="account-help">Facultatif. Le nom de votre activité ou de votre établissement.</p>
+        <button class="tester-button" id="accountSave" type="submit">Enregistrer</button>
+      </form>
+      <p id="accountSaveStatus" role="status" aria-live="polite"></p>
+    </section>
+    <button class="account-logout" id="accountLogout" type="button" hidden>Se déconnecter</button>
+    <p class="account-return"><a href="/bienvenue">Revenir au parcours de découverte</a></p>
+  </main>
+  <noscript><p class="tester-noscript">Activez JavaScript pour vérifier votre compte. <a href="/pro">La démonstration publique</a> reste accessible.</p></noscript>
+</body>
+</html>

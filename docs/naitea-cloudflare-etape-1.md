@@ -74,6 +74,8 @@ Dans le projet Supabase déjà utilisé par Naïtea : **SQL Editor → New query
 
 ### Raccordement et ouverture réelle
 
+Le premier résultat de métadonnées a été reçu le 24 novembre : les quatre tables ont RLS activé, avec les règles de propriétaire attendues, mais les réservations ne disposent que de la lecture. Les privilèges et le déclencheur d’inscription ne sont pas couverts par ce premier export. [Le contrôle ciblé et la préparation de la page compte](naitea-account-profile.md) décrivent la prochaine étape ; connexion et sauvegarde restent désactivées par défaut.
+
 1. Examiner le projet Supabase existant, ses sauvegardes, les tables et les politiques effectives. Préparer une migration versionnée et sa procédure de retour arrière avant toute modification.
 2. Stabiliser l’origine de la bêta. Configurer uniquement ses URL de confirmation/récupération exactes, un SMTP approprié et les protections anti-abus. Ne pas corriger un aperçu en remplaçant aveuglément la Site URL de production.
 3. Enregistrer chaque fiche, offre, disponibilité, famille et réservation avec un propriétaire vérifié côté serveur. Refuser les identifiants de compte fournis comme preuve par le navigateur.

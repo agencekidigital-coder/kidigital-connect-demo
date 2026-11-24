@@ -25,8 +25,8 @@ test('legacy fragment links retain their workshop without creating an open redir
 });
 
 test('the Cloudflare build publishes only selected pages and resources, never repository internals', () => {
-  for (const file of ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html', 'assets/landing/favicon-transparent.png', 'assets/landing/demo-pro.mp4', 'assets/berceau/transparent/naitea-logo.png']) assert(manifest.files.includes(file));
-  assert(manifest.files.every(f => f.startsWith('assets/') || ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html'].includes(f)));
+  for (const file of ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html', 'compte.html', 'assets/landing/favicon-transparent.png', 'assets/landing/demo-pro.mp4', 'assets/berceau/transparent/naitea-logo.png']) assert(manifest.files.includes(file));
+  assert(manifest.files.every(f => f.startsWith('assets/') || ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html', 'compte.html'].includes(f)));
   assert(!manifest.files.some(f => /(^|\/)(\.git|server|supabase|api|tests|docs|node_modules|\.env|\.dev.vars)(\/|$)/.test(f) || f.endsWith('.zip')));
   assert(!manifest.files.some(f => f.endsWith('.md') || f.startsWith('assets/landing/narration/')));
   const html = fs.readFileSync(path.join(OUTPUT, 'index.html'), 'utf8');
@@ -57,7 +57,7 @@ test('landing and app routes remain distinct and every preview is excluded from 
 });
 
 test('auth is frame protected and HEAD never returns a body', async () => {
-  for (const route of ['/', '/pro', '/connexion.html', '/bienvenue', '/bienvenue.html']) {
+  for (const route of ['/', '/pro', '/connexion.html', '/bienvenue', '/bienvenue.html', '/compte', '/compte.html']) {
     const response = await request(route, {}, 'HEAD');
     assert.equal(response.status, 200); assert.equal(await response.text(), '');
     assert.equal(response.headers.get('X-Content-Type-Options'), 'nosniff');
@@ -69,6 +69,10 @@ test('auth is frame protected and HEAD never returns a body', async () => {
   assert((await request('/connexion.html')).headers.get('Content-Security-Policy').includes("frame-ancestors 'none'"));
   assert(!(await request('/?embed=e1')).headers.get('Content-Security-Policy').includes('frame-ancestors'));
   assert.equal((await request('/?embed=e1')).headers.get('X-Frame-Options'), null);
+  const account = await request('/compte?embed=1');
+  assert.equal(account.headers.get('X-Frame-Options'), 'DENY');
+  assert(account.headers.get('Content-Security-Policy').includes("default-src 'none'"));
+  assert.equal((await request('/compt%65.html')).headers.get('X-Frame-Options'), 'DENY');
 });
 
 test('public configuration is closed by default and privileged keys cannot be exposed by an accidental environment change', async () => {
@@ -80,6 +84,24 @@ test('public configuration is closed by default and privileged keys cannot be ex
   const denied = await request('/api/public-config', { ...valid, NAITEA_AUTH_ENABLED: 'true', SUPABASE_PUBLISHABLE_KEY: secret });
   assert.equal(denied.status, 503); assert(!(await denied.text()).includes(secret));
   assert.equal(denied.headers.get('Cache-Control'), 'no-store');
+});
+
+test('account routes remain inactive until both flags and public credentials are valid', async () => {
+  for (const method of ['GET', 'HEAD', 'PATCH']) {
+    const response = await request('/api/account', {}, method);
+    assert.equal(response.status, 423);
+    assert.match(response.headers.get('Cache-Control'), /no-store/);
+    if (method === 'HEAD') assert.equal(await response.text(), '');
+  }
+  const valid = { SUPABASE_URL: 'https://exampleproject.supabase.co', SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_' + 'p'.repeat(30) };
+  for (const flags of [{}, { NAITEA_AUTH_ENABLED: 'true' }, { NAITEA_PROFILE_ENABLED: 'true' }]) {
+    assert.equal((await (await request('/api/deployment', { ...valid, ...flags })).json()).accountProfile, false);
+    assert.equal((await request('/api/account', { ...valid, ...flags })).status, 423);
+  }
+  const enabled = { ...valid, NAITEA_AUTH_ENABLED: 'true', NAITEA_PROFILE_ENABLED: 'true' };
+  assert.equal((await (await request('/api/deployment', enabled)).json()).accountProfile, true);
+  assert.equal((await request('/api/account', enabled)).status, 401);
+  assert.equal((await (await request('/api/deployment', { ...enabled, SUPABASE_PUBLISHABLE_KEY: 'sb_secret_private' })).json()).accountProfile, false);
 });
 
 test('Google, AI, payment and admin routes stay blocked independently of their environment values', async () => {
