@@ -50,6 +50,8 @@ Vérifier que la double authentification est activée sur les comptes Cloudflare
 
 Le 24 novembre, la fondatrice a confirmé dans son tableau de bord : Worker `naitea-beta`, dépôt et branche ci-dessus, commandes correspondantes, racine `/`. L’adresse créée est **https://naitea-beta.agence-kidigital.workers.dev/**. Le premier build est déclenché par le push qui documente cette connexion.
 
+Le déploiement a ensuite été vérifié sur cette URL : landing, pages pro/familles, images, vidéos et contrôles en 1440 et 390 px, sans erreur JavaScript ni requête d’écriture. Les fichiers privés répondent 404, les API réelles reportées 423 et la configuration de connexion 503. `/api/deployment` annonce bien `preview` et données locales fictives. Grandiflora One a également été chargée par le proxy de polices en WOFF2, sans appel du navigateur à Google Fonts. Le domaine IONOS, les emails réels, Supabase et Stripe n’ont pas été modifiés par cette vérification.
+
 Les réglages sont donnés pour la version préparée dans ce dépôt : ils ne doivent pas être appliqués à une ancienne révision. Aucune activation de facturation ou dépense récurrente n’est prévue par ces fichiers.
 
 Un aperçu `workers.dev` n’est pas privé par défaut. Avant d’inviter les testeuses, définir l’accès à la bêta (invitation vérifiée au serveur ou protection Cloudflare Access selon le compte) et contrôler également l’URL alternative `workers.dev`. Ne jamais utiliser `robots.txt` ou une URL difficile à deviner comme protection.
@@ -63,6 +65,14 @@ Créer et vérifier la boîte IONOS : envoyer un message vers une adresse extér
 Le domaine peut rester enregistré et renouvelé chez IONOS pendant que Cloudflare gère son DNS et son hébergement. Le raccordement DNS sera réalisé après validation de l’aperçu et de l’inventaire email.
 
 ## Étapes suivantes pour de vraies réservations
+
+### Première vérification Supabase : lecture seule
+
+Le fichier [03-beta-audit-readonly.sql](../supabase/03-beta-audit-readonly.sql) est **une seule requête SELECT de métadonnées**. Il n’exécute aucun CREATE, ALTER, INSERT, UPDATE ou DELETE et ne lit pas les lignes des familles ou des utilisateurs. Les expressions de politiques et contraintes sont décrites pour vérifier l’isolation ; elles ne sont pas exécutées comme du code métier.
+
+Dans le projet Supabase déjà utilisé par Naïtea : **SQL Editor → New query**, coller uniquement ce fichier, puis **Run**. Copier ou exporter la cellule JSON `audit_metadata` retournée. Elle contient six sections : tables, colonnes, politiques, contraintes, index et noms de triggers. Ne pas réexécuter le script historique `02-auth-profile-trigger.sql`. Ne transmettre aucune clé ou mot de passe. Ce script a été relu, mais n’a pas été exécuté sur Supabase pendant cette livraison.
+
+### Raccordement et ouverture réelle
 
 1. Examiner le projet Supabase existant, ses sauvegardes, les tables et les politiques effectives. Préparer une migration versionnée et sa procédure de retour arrière avant toute modification.
 2. Stabiliser l’origine de la bêta. Configurer uniquement ses URL de confirmation/récupération exactes, un SMTP approprié et les protections anti-abus. Ne pas corriger un aperçu en remplaçant aveuglément la Site URL de production.

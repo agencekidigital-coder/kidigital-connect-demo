@@ -3,19 +3,36 @@ const { chromium } = require('playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { X509Certificate, createHash } = require('node:crypto');
 const BASE = process.env.BASE_URL || 'http://127.0.0.1:4194';
 const OUT = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-cloudflare-etape-1';
+// Read through the browser's own network route, including the managed proxy.
+const readRequest = (page, route, options = {}) => page.evaluate(async ({ route, options }) => {
+  const response = await fetch(route, { credentials: 'omit', cache: 'no-store', ...options });
+  return { status: response.status, bytes: (await response.arrayBuffer()).byteLength };
+}, { route, options });
 
 (async () => {
   fs.mkdirSync(OUT, { recursive: true });
-  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args: ['--no-sandbox'] });
-  const results = [], errors = [], external = [];
+  const args = ['--no-sandbox'];
+  // Trust only CA public keys already installed by the managed test environment.
+  // Keep ordinary certificate validation for every other certificate chain.
+  const certDirectory = '/usr/local/share/ca-certificates';
+  if (fs.existsSync(certDirectory)) {
+    const pins = fs.readdirSync(certDirectory).filter(f => f.endsWith('.crt')).map(f => createHash('sha256').update(new X509Certificate(fs.readFileSync(path.join(certDirectory, f))).publicKey.export({ type: 'spki', format: 'der' })).digest('base64'));
+    if (pins.length) args.push('--ignore-certificate-errors-spki-list=' + pins.join(','));
+  }
+  const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium', args });
+  const results = [], errors = [], external = [], writes = [];
   try {
     for (const viewport of [{ width: 1440, height: 1000 }, { width: 390, height: 844 }]) {
       const context = await browser.newContext({ viewport, locale: 'fr-FR', timezoneId: 'Europe/Paris' });
       const page = await context.newPage(); page.setDefaultTimeout(15000);
       page.on('pageerror', e => errors.push(e.message));
-      page.on('request', r => { if (/^https?:/.test(r.url()) && !r.url().startsWith(BASE + '/')) external.push(r.url()); });
+      page.on('request', r => {
+        if (/^https?:/.test(r.url()) && !r.url().startsWith(BASE + '/')) external.push(r.url());
+        if (!['GET', 'HEAD', 'OPTIONS'].includes(r.method())) writes.push({ method: r.method(), url: r.url() });
+      });
       let response = await page.goto(BASE + '/', { waitUntil: 'domcontentloaded' });
       assert.equal(response.status(), 200);
       assert.equal(response.headers()['x-robots-tag'], 'noindex, nofollow');
@@ -61,18 +78,20 @@ const OUT = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-cloudflare-
       assert((await page.locator('#status').innerText()).includes('momentanément indisponible'));
       assert(await page.locator('#submitBtn').isDisabled());
       assert.equal(await page.locator('#naiteaBetaPreviewNotice').count(), 0);
-      const api = await context.request.get(BASE + '/api/google?action=connect');
-      assert.equal(api.status(), 423);
-      for (const hidden of ['/server/public-config.cjs', '/supabase/02-auth-profile-trigger.sql', '/.git/config', '/package.json', '/Kidigital-Connect-V8-deploiement.zip']) assert.equal((await context.request.get(BASE + hidden)).status(), 404);
-      assert.equal((await context.request.head(BASE + '/pro')).status(), 200);
-      const video = await context.request.get(BASE + '/assets/landing/demo-pro.mp4', { headers: { Range: 'bytes=0-1023' } });
-      assert.equal(video.status(), 206); assert.equal((await video.body()).length, 1024);
+      const api = await readRequest(page, '/api/google?action=connect');
+      assert.equal(api.status, 423);
+      for (const hidden of ['/server/public-config.cjs', '/supabase/02-auth-profile-trigger.sql', '/.git/config', '/package.json', '/Kidigital-Connect-V8-deploiement.zip']) assert.equal((await readRequest(page, hidden)).status, 404);
+      assert.equal((await readRequest(page, '/pro', { method: 'HEAD' })).status, 200);
+      const video = await readRequest(page, '/assets/landing/demo-pro.mp4', { headers: { Range: 'bytes=0-1023' } });
+      assert.equal(video.status, 206); assert.equal(video.bytes, 1024);
       results.push({ viewport, landing: true, app: true, locks: true, authClosed: true, privateFilesClosed: true, videoRange: true });
       await context.close();
     }
     assert.deepEqual(errors, []);
     assert.deepEqual(external, []);
-    const result = { runtime: 'Cloudflare workerd, local only', liveWrites: 0, errors, external, results };
+    assert.deepEqual(writes, []);
+    const local = ['localhost', '127.0.0.1', '[::1]'].includes(new URL(BASE).hostname);
+    const result = { runtime: local ? 'Cloudflare workerd, local only' : 'Cloudflare Workers, deployed preview', baseURL: BASE, liveWrites: writes.length, errors, external, results };
     fs.writeFileSync(path.join(OUT, 'verification.json'), JSON.stringify(result, null, 2));
     process.stdout.write(JSON.stringify(result) + '\n');
   } finally { await browser.close(); }
