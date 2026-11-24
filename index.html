@@ -907,13 +907,19 @@ v5EmbedURL = (e) => v8SharedURL(e, true);
 function v8LoadShared() {
   const q = new URLSearchParams(location.search),
     packed = q.get("event");
+  const invalidLink = "Ce lien est incomplet ou invalide. Demandez un nouveau lien à votre accompagnante.";
   let id = q.get("atelier") || q.get("embed");
   if (!id && location.hash.startsWith("#atelier=")) {
     try {
-      id = decodeURIComponent(location.hash.slice(8));
-    } catch {}
+      id = decodeURIComponent(location.hash.slice("#atelier=".length));
+    } catch { return { id: "", embed: q.has("embed"), error: invalidLink }; }
   }
-  if (!id) return;
+  if (!id) return q.has("atelier") || q.has("embed") || location.hash.startsWith("#atelier=")
+    ? { id: "", embed: q.has("embed"), error: invalidLink } : undefined;
+  // Shared IDs are later used in HTML attributes. Reject unsafe input before it can
+  // enter the local workspace, including links without a packed event payload.
+  if (typeof id !== "string" || !/^[A-Za-z0-9_-]{1,80}$/.test(id))
+    return { id: "", embed: q.has("embed"), error: invalidLink };
   let error = "";
   if (packed) {
     try {
@@ -944,7 +950,7 @@ function v8LoadShared() {
         category: String(e.category || "Atelier").slice(0, 80),
         date: e.date,
         time: e.time,
-        duration: String(e.duration || ""),
+        duration: String(e.duration || "").slice(0, 80),
         place: String(e.place || "").slice(0, 180),
         capacity: e.capacity,
         price: e.price,

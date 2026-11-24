@@ -2,6 +2,12 @@
 
 Application de démonstration Naïtea, espace professionnel et parcours familles. Les données métier restent locales au navigateur ; l’identification utilise Supabase.
 
+## Préparation Cloudflare du 24 novembre
+
+La [première étape Cloudflare](docs/naitea-cloudflare-etape-1.md) prépare un Worker `naitea-beta` sur le compte de la fondatrice, sans déploiement ni changement DNS/Supabase/Stripe. Commandes : `npm ci --ignore-scripts`, `npm test`, `npm run check:cloudflare` (compilation sans publication), `npm run dev:cloudflare`.
+
+Sur cet aperçu Cloudflare, `/` ouvre la landing ; `/pro` et `/familles` restent des démonstrations à données fictives avec des fonctions reportées verrouillées. La connexion est désactivée par défaut, jusqu’à la validation de ses emails et redirections. Ne pas confondre cet aperçu avec une bêta métier isolée au serveur ou un back-office opérationnel. Le routage Vercel ci-dessous reste conservé.
+
 ## Prévisualisation et points d’entrée
 
 Le dépôt est déjà connecté à Vercel. Les changements sont publiés sur la branche `feature/naitea-supabase-auth-foundation` et déployés en aperçu. Ne pas fusionner ni déployer en production sans accord explicite.

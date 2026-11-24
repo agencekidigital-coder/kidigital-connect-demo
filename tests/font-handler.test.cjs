@@ -119,3 +119,19 @@ test("license requests use the public font repository", async () => {
     global.fetch = original;
   }
 });
+
+test("upstream redirects are refused using a mode supported by Cloudflare Workers", async () => {
+  const original = global.fetch, originalError = console.error;
+  const calls = [];
+  global.fetch = async (url, options) => {
+    calls.push(String(url));
+    assert.equal(options.redirect, 'manual');
+    return new Response(null, { status: 302, headers: { Location: 'https://outside.example/font' } });
+  };
+  console.error = () => {};
+  try {
+    const res = response();
+    await handler({ method: 'GET', query: { family: 'Montserrat', weight: '400' } }, res);
+    assert.equal(res.statusCode, 502); assert.equal(calls.length, 1);
+  } finally { global.fetch = original; console.error = originalError; }
+});

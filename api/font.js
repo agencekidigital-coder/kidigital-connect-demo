@@ -29,7 +29,7 @@ module.exports = async function handler(req, res) {
       ]) {
         const license = await fetch(
           "https://raw.githubusercontent.com/google/fonts/main/" + path,
-          { signal: AbortSignal.timeout(8000) },
+          { signal: AbortSignal.timeout(8000), redirect: "manual" },
         );
         if (license.ok) {
           res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -53,7 +53,7 @@ module.exports = async function handler(req, res) {
           "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
       },
       signal: AbortSignal.timeout(12000),
-      redirect: "error",
+      redirect: "manual",
     });
     if (!css.ok) throw new Error("font-styles-unavailable");
     const sources = [
@@ -70,7 +70,7 @@ module.exports = async function handler(req, res) {
       assetURL.hostname !== "fonts.gstatic.com"
     )
       throw new Error("invalid-source");
-    const asset = await fetch(assetURL, { signal: AbortSignal.timeout(12000) });
+    const asset = await fetch(assetURL, { signal: AbortSignal.timeout(12000), redirect: "manual" });
     if (!asset.ok) throw new Error("font-file-unavailable");
     const content = Buffer.from(await asset.arrayBuffer());
     if (content.length > 4_000_000)
