@@ -4,7 +4,7 @@ Préparation du 24 novembre 2026. Domaine confirmé par la fondatrice : `naitea.
 
 ## Périmètre livré
 
-Cette étape prépare un **aperçu technique à données fictives**, sur le compte Cloudflare de la fondatrice. Elle ne déploie aucun site, ne modifie aucun DNS, aucune donnée ou configuration Supabase et aucun réglage Stripe. La branche reste `feature/naitea-supabase-auth-foundation`.
+Cette étape prépare un **aperçu technique à données fictives**, sur le compte Cloudflare de la fondatrice. Sa publication se fait uniquement sur un Worker de test dédié, sans modifier les DNS, les données ou la configuration Supabase, les réglages Stripe ou la production existante. La branche reste `feature/naitea-supabase-auth-foundation`.
 
 - Worker `naitea-beta`, ressources publiques dans `dist/public`, dépendance Wrangler figée et fichier de verrouillage npm.
 - `/` et `/decouvrir` affichent la landing ; `/pro` et `/familles` affichent la démonstration ; les pages de connexion et d’accueil sont conservées.
@@ -40,13 +40,15 @@ Validation effectuée localement : 107 tests unitaires réussis ; compilation Wr
 
 Vérifier que la double authentification est activée sur les comptes Cloudflare et GitHub, et conserver leurs codes de récupération en lieu sûr. Ne jamais transmettre les mots de passe ou les clés dans le chat.
 
-1. Ouvrir **Workers & Pages**, puis l’import d’un dépôt GitHub.
-2. Autoriser l’application Cloudflare à accéder uniquement à `agencekidigital-coder/kidigital-connect-demo`.
-3. Nommer le Worker **`naitea-beta`**. Sélectionner explicitement **`feature/naitea-supabase-auth-foundation`** comme branche de déploiement de cet aperçu, et non `main`. Si l’assistant ne permet pas de choisir la branche avant sa création, ne pas lancer le premier déploiement sur la branche par défaut ; créer d’abord le Worker sans domaine puis configurer la bonne branche.
-4. Utiliser le fichier `wrangler.jsonc` du dépôt. Le projet est un Worker avec ressources statiques, pas un site WordPress. Racine : dépôt. Commande de compilation : `npm run build:cloudflare`. Commande de déploiement : `npx wrangler deploy`. Le fichier Wrangler lance également la compilation pour les déploiements CLI.
+1. Ouvrir **Workers & Pages → Create application**. Si l’import GitHub ne permet pas de choisir la branche avant son premier déploiement, créer d’abord un Worker depuis **Hello World**, nommé **`naitea-beta`**, sans domaine personnalisé.
+2. Ouvrir le Worker créé, puis **Settings → Builds → Connect**. Autoriser l’application Cloudflare à accéder uniquement à `agencekidigital-coder/kidigital-connect-demo` et sélectionner ce dépôt.
+3. Sélectionner explicitement **`feature/naitea-supabase-auth-foundation`** dans **Git branch / Production branch**, et non `main`. Ce réglage désigne uniquement la branche du Worker de test, pas une publication sur `naitea.fr`.
+4. Utiliser le fichier `wrangler.jsonc` du dépôt. Racine : `/` ou racine du dépôt. Commande de compilation : `npm run build:cloudflare`. Commande de déploiement : `npx wrangler deploy`. Le fichier Wrangler lance également la compilation pour les déploiements CLI.
 5. Conserver l’offre Workers Free. Aucun domaine personnalisé, aucune route sur `naitea.fr`, aucune clé fournisseur et aucun stockage Cloudflare supplémentaire ne sont nécessaires pour le premier aperçu.
-6. Vérifier le récapitulatif et la branche avant le premier déploiement sur l’adresse dédiée `*.workers.dev`. Cela ne raccorde pas `naitea.fr` et ne remplace pas la production existante.
-7. Lire le résultat du build et tester `/`, `/pro`, `/familles`, `/connexion.html`, les images et vidéos. Confirmer que `/api/deployment` indique `preview` et `realBookings: false`.
+6. Après sauvegarde de la connexion GitHub d’un Worker existant, **pousser un nouveau commit sur la branche sélectionnée** pour déclencher le premier build. Une connexion réussie ne remplace pas automatiquement Hello World. Suivre **Deployments → View build history** ; ne pas relancer un ancien build de `main`.
+7. Lire le résultat du build et tester `/`, `/pro`, `/familles`, `/connexion.html`, les images et vidéos. Confirmer que `/api/deployment` retourne un JSON avec `mode: preview` et `realBookings: false`, et non le texte Hello World.
+
+Le 24 novembre, la fondatrice a confirmé dans son tableau de bord : Worker `naitea-beta`, dépôt et branche ci-dessus, commandes correspondantes, racine `/`. L’adresse créée est **https://naitea-beta.agence-kidigital.workers.dev/**. Le premier build est déclenché par le push qui documente cette connexion.
 
 Les réglages sont donnés pour la version préparée dans ce dépôt : ils ne doivent pas être appliqués à une ancienne révision. Aucune activation de facturation ou dépense récurrente n’est prévue par ces fichiers.
 

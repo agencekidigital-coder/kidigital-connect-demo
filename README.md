@@ -4,7 +4,9 @@ Application de démonstration Naïtea, espace professionnel et parcours familles
 
 ## Préparation Cloudflare du 24 novembre
 
-La [première étape Cloudflare](docs/naitea-cloudflare-etape-1.md) prépare un Worker `naitea-beta` sur le compte de la fondatrice, sans déploiement ni changement DNS/Supabase/Stripe. Commandes : `npm ci --ignore-scripts`, `npm test`, `npm run check:cloudflare` (compilation sans publication), `npm run dev:cloudflare`.
+La [première étape Cloudflare](docs/naitea-cloudflare-etape-1.md) prépare un Worker `naitea-beta` sur le compte de la fondatrice, indépendant de `naitea.fr`, sans changement DNS/Supabase/Stripe. Commandes : `npm ci --ignore-scripts`, `npm test`, `npm run check:cloudflare` (compilation sans publication), `npm run dev:cloudflare`.
+
+Le Worker de test créé est accessible sur https://naitea-beta.agence-kidigital.workers.dev/. Après connexion GitHub, un nouveau push sur `feature/naitea-supabase-auth-foundation` déclenche son premier build. Tant que `/api/deployment` ne retourne pas le JSON `mode: preview`, la page « Hello World! » peut encore être la version active. Ne pas raccorder le domaine de production à ce stade.
 
 Sur cet aperçu Cloudflare, `/` ouvre la landing ; `/pro` et `/familles` restent des démonstrations à données fictives avec des fonctions reportées verrouillées. La connexion est désactivée par défaut, jusqu’à la validation de ses emails et redirections. Ne pas confondre cet aperçu avec une bêta métier isolée au serveur ou un back-office opérationnel. Le routage Vercel ci-dessous reste conservé.
 
