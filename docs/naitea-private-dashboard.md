@@ -1,0 +1,6 @@
+# Tableau de bord et calendrier privés — 25/11/2026
+Les deux ateliers de test ont été confirmés en base; le formulaire enrichi enregistre notamment le fuseau, la visioconférence, le public et les âges. La branche Preview garde son URL Supabase déclarée dans wrangler.
+- Réutilisation du tableau de bord et du calendrier existants, vues mois/semaine/jour, navigation et charte. Les données privées proviennent uniquement de la liste authentifiée /api/workshops en mémoire; aucun mélange avec state.events ni localStorage.
+- Compteur et liste des prochains brouillons, activité récente limitée aux créations réellement connues, clic sur un brouillon pour le modifier, recalcul après sauvegarde. Rendez-vous, inscriptions, contacts et newsletter affichent un tiret plutôt qu'une statistique fictive. Les autres rubriques restent en démo, sans publication ni réservations réelles.
+- Calendrier en heure locale de l'appareil, limite actuelle 100 ateliers affichée si dépassée, pas de synchronisation Google. Création/modification en présentiel, changement de compte, rechargement, vues calendrier, absence de données privées dans les pages familles à valider en navigateur avant ouverture.
+- Aucun changement de schéma, droits SQL, configuration Cloudflare ou branche de production pour cette étape.

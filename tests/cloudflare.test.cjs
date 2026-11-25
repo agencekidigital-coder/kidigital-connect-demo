@@ -158,3 +158,11 @@ test('workshop preview page is frame protected and API is closed by default', as
   assert.equal((await request('/api/workshops')).status, 423);
   assert.equal((await (await request('/api/deployment')).json()).workshopPersistence, false);
 });
+
+test('private dashboard bridge is injected into pro without modifying the source demo state',()=>{
+  const html=fs.readFileSync(path.join(OUTPUT,'pro.html'),'utf8');
+  assert(html.includes('/assets/pro-workshops.js'));
+  assert(html.includes("['ateliers','dashboard'].includes(page)"));
+  assert(html.includes('calendarState: () => ({date:v8CalDate,view:v8CalView})'));
+  assert(manifest.files.includes('assets/pro-workshops.js'));
+});

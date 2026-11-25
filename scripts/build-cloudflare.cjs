@@ -49,7 +49,8 @@ function build() {
   const privateWorkshopRender = render;
   const privateWorkshops = NaiteaProWorkshops.create({
     tools: NaiteaPlatformTools, getClient: () => berceauAuthClient,
-    isPage: () => mode === 'pro' && page === 'ateliers',
+    isPage: () => mode === 'pro' && !v8Shared && !platform.giftShopMode() && ['ateliers','dashboard'].includes(page),
+    page: () => page, calendarState: () => ({date:v8CalDate,view:v8CalView}),
     render: () => render(), formHtml: e => platform.eventForm(platformEventFormBase(e),e),
     showModal: (...args) => showModal(...args), closeModal,
     escape: esc,
