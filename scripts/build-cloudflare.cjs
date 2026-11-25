@@ -37,7 +37,7 @@ function build() {
   fs.mkdirSync(path.join(OUTPUT, 'assets'), { recursive: true });
   copyAssets(path.join(ROOT, 'assets'), path.join(OUTPUT, 'assets'), files);
   const extra = '<link rel="stylesheet" href="/assets/beta-preview.css"><script src="/assets/beta-preview.js" defer></script>';
-  for (const file of ['connexion.html', 'bienvenue.html', 'compte.html']) {
+  for (const file of ['connexion.html', 'bienvenue.html', 'compte.html', 'mes-ateliers.html']) {
     let html = fs.readFileSync(path.join(ROOT, file), 'utf8');
     if (file === 'bienvenue.html') html = html.replace('<p class="tester-demo">', '<p class="tester-account"><a href="/compte">Gérer mon compte</a></p><p class="tester-demo">');
     fs.writeFileSync(path.join(OUTPUT, file), html); files.push(file);
