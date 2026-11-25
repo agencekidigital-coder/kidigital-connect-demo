@@ -248,13 +248,20 @@ function create(d){
     const pro=el('naiteaPreviewProfessional'),version=revision,uid=owner;
     (async()=>{
       try{
-        const {data,error}=await client.from('naitea_profiles').select('business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url').eq('id',uid).single();
+        const {data,error}=await client.from('naitea_profiles').select('business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url,google_reviews_visible,google_rating,google_review_count,google_reviews_updated_at').eq('id',uid).single();
         if(error||!data||!data.business_name||version!==revision||!pro?.isConnected)return;
         const details=document.createElement('div'),name=text('p','Proposé par '+data.business_name);name.className='naitea-public-provider';details.append(name);
         if(data.public_details_enabled){
           const contacts=document.createElement('div');contacts.className='naitea-public-contacts';
           for(const [label,value] of [['',data.public_email],['',data.public_phone],['Site internet',data.public_website],['Avis Google',data.public_google_url]])if(value)contacts.append(text('span',label||value));
           details.append(contacts);
+          if(data.google_reviews_visible&&data.public_google_url&&data.google_rating!=null&&Number.isInteger(data.google_review_count)){
+            const score=Number(data.google_rating), review=text('p',score.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'/5 · '+data.google_review_count.toLocaleString('fr-FR')+' avis Google');review.className='naitea-review-score';
+            const stars=text('span','★★★★★');stars.className='naitea-review-stars';stars.setAttribute('aria-hidden','true');stars.style.setProperty('--rating-width',(score/5*100)+'%');review.prepend(stars,document.createTextNode(' '));
+            const stamp=data.google_reviews_updated_at?new Date(data.google_reviews_updated_at).toLocaleDateString('fr-FR'):'';
+            const note=text('small','Note déclarée par la professionnelle, non vérifiée par Naïtéa.'+(stamp?' Mise à jour le '+stamp+'.':''));note.className='naitea-review-note';
+            details.append(review,note);
+          }
         }
         pro.replaceChildren(details);pro.hidden=false;
         if(!data.public_details_enabled)return;
@@ -316,7 +323,7 @@ function create(d){
   async function editPublicProfile(){
     if(!ready||busy||!owner||!d.isPage())return;
     const version=revision,uid=owner;
-    const keys='business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url,google_place_id';
+    const keys='business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url,google_place_id,google_reviews_visible,google_rating,google_review_count,google_reviews_updated_at';
     try{
       const {data,error}=await client.from('naitea_profiles').select(keys).eq('id',uid).single();
       if(error||!data||version!==revision||!d.isPage())throw Error('Profil indisponible');
@@ -330,8 +337,11 @@ function create(d){
       input('public_phone','Téléphone professionnel public','tel',data.public_phone,40);
       input('public_website','Site internet (https://)','url',data.public_website,500);
       input('public_google_url','Lien vers les avis Google (https://)','url',data.public_google_url,500);
-      input('google_place_id','Identifiant de la fiche Google (Place ID)','text',data.google_place_id,255);
-      const googleHelp=text('p','Facultatif. L’affichage automatique de la note et du nombre d’avis sera activé après configuration officielle de Google.');googleHelp.className='fine';form.append(googleHelp);
+      const reviewConsent=document.createElement('input');reviewConsent.type='checkbox';reviewConsent.id='publicProfileReviewsVisible';if(data.google_reviews_visible)reviewConsent.setAttribute('checked','');
+      const reviewLabel=text('label',' Afficher ma note et mon nombre d’avis Google');reviewLabel.prepend(reviewConsent);form.append(reviewLabel);
+      const rating=input('google_rating','Note moyenne sur 5','number',data.google_rating,5);rating.min='1';rating.max='5';rating.step='0.1';rating.setAttribute('min','1');rating.setAttribute('max','5');rating.setAttribute('step','0.1');
+      const count=input('google_review_count','Nombre total d’avis','number',data.google_review_count,8);count.min='1';count.max='10000000';count.step='1';count.setAttribute('min','1');count.setAttribute('max','10000000');count.setAttribute('step','1');
+      const googleHelp=text('p','Recopie les valeurs de ta fiche Google. Elles ne sont pas synchronisées ni vérifiées par Naïtéa. Pense à les vérifier chaque mois.'+(data.google_reviews_updated_at?' Dernière modification : '+new Date(data.google_reviews_updated_at).toLocaleDateString('fr-FR')+'.':''));googleHelp.className='fine';form.append(googleHelp);
       const label=text('label','Photo professionnelle');label.htmlFor='publicProfilePortrait';const file=document.createElement('input');file.type='file';file.id=label.htmlFor;file.accept='image/jpeg,image/png,image/webp';form.append(label,file);
       const remove=document.createElement('input');remove.type='checkbox';remove.id='publicProfileRemove';const rl=text('label','Retirer la photo professionnelle');rl.prepend(remove);form.append(rl);
       const consent=document.createElement('input');consent.type='checkbox';consent.id='publicProfileConsent';if(data.public_details_enabled)consent.setAttribute('checked','');
@@ -342,10 +352,15 @@ function create(d){
       active.addEventListener('submit',async e=>{
         e.preventDefault();e.stopImmediatePropagation();if(busy||version!==revision||owner!==uid)return;
         const st=el('publicProfileStatus'),fd=new FormData(active);
-        const patch=Object.fromEntries(['business_name','public_email','public_phone','public_website','public_google_url','google_place_id'].map(k=>[k,String(fd.get(k)||'').trim()||null]));
+        const patch=Object.fromEntries(['business_name','public_email','public_phone','public_website','public_google_url'].map(k=>[k,String(fd.get(k)||'').trim()||null]));
         for(const k of ['public_website','public_google_url'])if(patch[k]){try{const u=new URL(patch[k]);if(u.protocol!=='https:'||u.username||u.password)throw Error();}catch{st.textContent='Indique une adresse HTTPS valide.';return;}}
         if(patch.public_phone&&!/^[+0-9 ().-]+$/.test(patch.public_phone)){st.textContent='Vérifie le téléphone.';return;}
-        if(patch.google_place_id&&!/^[A-Za-z0-9_-]{1,255}$/.test(patch.google_place_id)){st.textContent='Vérifie le Place ID Google.';return;}
+        const scoreRaw=String(fd.get('google_rating')||'').trim(),countRaw=String(fd.get('google_review_count')||'').trim();
+        const score=scoreRaw===''?null:Number(scoreRaw),count=countRaw===''?null:Number(countRaw);
+        patch.google_reviews_visible=el('publicProfileReviewsVisible').checked;
+        if((score===null)!==(count===null)||(score!==null&&(!Number.isFinite(score)||score<1||score>5||Math.abs(score*10-Math.round(score*10))>1e-8||!Number.isInteger(count)||count<1||count>10000000))){st.textContent='Indique une note de 1 à 5 (une décimale maximum) et un nombre entier d’avis, ou laisse les deux champs vides.';return;}
+        if(patch.google_reviews_visible&&(score===null||!patch.public_google_url||!/^https:\/\/(maps\.app\.goo\.gl|g\.page|([a-z0-9-]+\.)*google\.(com|fr)|goo\.gl)(\/|$)/.test(patch.public_google_url))){st.textContent='Pour afficher les avis, renseigne une note, le nombre d’avis et un lien Google valide.';return;}
+        patch.google_rating=score;patch.google_review_count=count;
         patch.public_details_enabled=el('publicProfileConsent').checked;
         const portrait=el('publicProfilePortrait').files[0],removePhoto=el('publicProfileRemove').checked;
         busy=true;for(const field of active.elements)field.disabled=true;st.textContent='Enregistrement…';

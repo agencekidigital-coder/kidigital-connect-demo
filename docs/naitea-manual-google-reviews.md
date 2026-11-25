@@ -1,0 +1,2 @@
+# Avis Google déclaratifs
+Note de 1 à 5, une décimale, nombre d'avis entier positif, lien Google obligatoire pour affichage, consentement séparé et consentement public du profil. Date calculée en base lors du changement des valeurs/du lien ou activation. Affichage dans la fiche atelier, son aperçu privé et le catalogue, y compris les iframes. Mention explicite non vérifiée. Aucun appel Google ni frais d'API. Aucun Place ID nécessaire. Vérification mensuelle suggérée, aucun rappel automatique. Tests SQL transactionnels validés; vérifier Cloudflare et navigateur.

@@ -1,5 +1,5 @@
 import publicConfig from './public-config.cjs';
-import {esc,headers,html,bytes,format,safeURL,SLUG} from './public-workshop.mjs';
+import {esc,headers,html,bytes,format,safeURL,SLUG,renderManualGoogleReviews} from './public-workshop.mjs';
 const unavailable=(status=404)=>html(status,'Ateliers indisponibles','<div class="card empty"><h1>Ateliers indisponibles</h1><p>Ce lien ne correspond pas à un espace ateliers actif.</p><a href="/decouvrir" class="btn">Découvrir Naïtéa</a></div>');
 const safeSlug=s=>typeof s==='string'&&s.length<=180&&SLUG.test(s);
 export function createPublicCatalogHandler({fetchImpl=globalThis.fetch}={}){
@@ -35,7 +35,7 @@ export function createPublicCatalogHandler({fetchImpl=globalThis.fetch}={}){
     }).join('');
     const nav='<nav class="naitea-catalog-filters" aria-label="Filtrer les ateliers">'+[['Tous les ateliers','all'],['En présentiel','venue'],['À distance','video']].map(([label,m])=>filter(label,href(m,period),m===mode)).join('')+'</nav><nav class="naitea-catalog-filters" aria-label="Période">'+filter('À venir',href(mode,'upcoming'),period==='upcoming')+filter('Déjà passés',href(mode,'past'),period==='past')+'</nav>';
     const paging='<nav class="naitea-catalog-filters" aria-label="Pagination">'+(index>1?filter('Précédent',href(mode,period,index-1),false):'')+(data.workshops.length===25&&index<100?filter('Suivant',href(mode,period,index+1),false):'')+'</nav>';
-    const body='<section class="naitea-catalog"><header><h1>Les ateliers de '+esc(name)+'</h1><p>Découvrez les ateliers et les moments de partage proposés aux familles.</p>'+(google?'<a href="'+esc(google)+'" target="_blank" rel="noopener noreferrer">Consulter les avis Google</a>':'')+'</header>'+nav+(cards?'<div class="naitea-catalog-grid">'+cards+'</div>':'<div class="card empty"><p>Aucun atelier '+(period==='upcoming'?'à venir':'passé')+' pour le moment.</p></div>')+paging+'</section>';
+    const body='<section class="naitea-catalog"><header><h1>Les ateliers de '+esc(name)+'</h1><p>Découvrez les ateliers et les moments de partage proposés aux familles.</p>' +renderManualGoogleReviews(data)+'</header>'+nav+(cards?'<div class="naitea-catalog-grid">'+cards+'</div>':'<div class="card empty"><p>Aucun atelier '+(period==='upcoming'?'à venir':'passé')+' pour le moment.</p></div>')+paging+'</section>';
     const meta='<link rel="canonical" href="'+esc(new URL(path,request.url).href)+'"><meta property="og:title" content="'+esc('Les ateliers de '+name)+'">';
     return html(200,'Les ateliers de '+name,body,meta,embed);
   }catch{return unavailable(503);}

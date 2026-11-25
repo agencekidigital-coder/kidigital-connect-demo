@@ -27,6 +27,19 @@ function format(w){
  const price=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(w.price_cents/100);
  return {date,location,age,price};
 }
+export function renderManualGoogleReviews(data){
+ const url=safeURL(data.public_google_url);
+ if(!url)return '';
+ const link='<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Consulter les avis Google</a>';
+ const score=Number(data.google_rating),count=data.google_review_count;
+ if(data.google_rating==null||!Number.isFinite(score)||score<1||score>5||!Number.isInteger(count)||count<1)return link;
+ const value=score.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1}),total=count.toLocaleString('fr-FR');
+ const date=Date.parse(data.google_reviews_updated_at||'');
+ const stamp=Number.isFinite(date)?' Mise à jour le '+new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris'}).format(date)+'.':'';
+ const full=Math.floor(score),partial=Math.round((score-full)*100);
+ const stars=Array.from({length:5},(_,i)=>'<span class="naitea-review-star '+(i<full?'full':i===full&&partial>=50?'half':'empty')+'">★</span>').join('');
+ return '<div class="naitea-manual-reviews"><div class="naitea-review-score"><span class="naitea-review-stars" aria-hidden="true">'+stars+'</span> <strong>'+esc(value)+'/5</strong> · '+esc(total)+' avis Google</div>'+link+'<small class="naitea-review-note">Note déclarée par la professionnelle, non vérifiée par Naïtéa.'+esc(stamp)+'</small></div>';
+}
 export {esc,headers,html,bytes,format,safeURL,SLUG};
 export function createPublicWorkshopHandler({fetchImpl=globalThis.fetch}={}){
  return async(request,env,id,photo=false,portrait=false)=>{
@@ -64,7 +77,7 @@ export function createPublicWorkshopHandler({fetchImpl=globalThis.fetch}={}){
    const email=typeof w.public_email==='string'&&/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(w.public_email)?w.public_email:'';
    const phone=typeof w.public_phone==='string'&&/^[+0-9 ().-]+$/.test(w.public_phone)?w.public_phone:'';
    const link=(url,label)=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+'</a>';
-   const pro=w.business_name?'<section class="naitea-public-pro">'+(portraitAvailable?'<img src="'+canonical+'/portrait" alt="Photo professionnelle">':'')+'<div><p class="naitea-public-provider">Proposé par <strong>'+esc(w.business_name)+'</strong></p><div class="naitea-public-contacts">'+(email?link('mailto:'+email,email):'')+(phone?link('tel:'+phone.replace(/[^+0-9]/g,''),phone):'')+(website?link(website,'Site internet'):'')+(google?link(google,'Avis Google'):'')+'</div></div></section>':'';
+   const pro=w.business_name?'<section class="naitea-public-pro">'+(portraitAvailable?'<img src="'+canonical+'/portrait" alt="Photo professionnelle">':'')+'<div><p class="naitea-public-provider">Proposé par <strong>'+esc(w.business_name)+'</strong></p><div class="naitea-public-contacts">'+(email?link('mailto:'+email,email):'')+(phone?link('tel:'+phone.replace(/[^+0-9]/g,''),phone):'')+(website?link(website,'Site internet'):'')+'</div>'+renderManualGoogleReviews(w)+'</div></section>':'';
    const body='<div class="v8-public-event">'+(cover?'<img class="naitea-public-cover" src="'+photoPath+'" alt="Photo de couverture de '+esc(w.title)+'">':'')+'<div class="card"><span class="tag">'+esc(w.category)+'</span><h1>'+esc(w.title)+'</h1>'+pro+'<p class="naitea-public-date">'+esc(date)+(w.duration_label?' · '+esc(w.duration_label):'')+'</p><p class="naitea-public-description">'+esc(w.description)+'</p><p>'+esc(location)+'</p>'+(publicAudiences?'<p><strong>Pour qui ?</strong> '+publicAudiences+'</p>':'')+'<p class="naitea-public-price"><strong>'+esc(price)+' / duo</strong> · '+esc(w.capacity)+' places au total</p><button type="button" class="btn" disabled>Réservation bientôt disponible</button><p class="fine">Les réservations en ligne ne sont pas encore ouvertes sur Naïtéa.</p></div></div>';
    return html(200,w.title,body,meta,embed);
   }catch{return absent(photo||portrait,503);}
