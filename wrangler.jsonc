@@ -34,7 +34,8 @@
       "NAITEA_WORKSHOPS_ENABLED": "true",
       "SUPABASE_URL": "https://eedbpqawsrkopoonqpbx.supabase.co",
       "NAITEA_PUBLICATION_ENABLED": "true",
-      "NAITEA_BOOKINGS_ENABLED": "false"
+      "NAITEA_BOOKINGS_ENABLED": "false",
+      "NAITEA_TURNSTILE_SITE_KEY": "0x4AAAAAAGTHf55e8Mb1ah3c"
     }
   }
 }
