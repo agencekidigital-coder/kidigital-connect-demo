@@ -16,3 +16,10 @@ test('photo is proxied only for published projection and exact validated JPEG',a
  const res=await s.handler(request,env,id,true);assert.equal(res.status,200);assert.equal(res.headers.get('Content-Type'),'image/jpeg');assert.equal(s.calls.length,2);
  const invalid=setup({...workshop,cover_path:'https://evil.test/a.jpg'});assert.equal((await invalid.handler(request,env,id,true)).status,404);assert.equal(invalid.calls.length,1);
 });
+
+test('published readable slug resolves and UUID redirects without changing photo endpoint',async()=>{
+ const slug='atelier-eveil-kidigital-lille',row={...workshop,slug};
+ const s=setup(row);const r=await s.handler(request,env,id);assert.equal(r.status,302);assert.equal(r.headers.get('Location'),'/atelier/'+slug);
+ const s2=setup(row);const page=await s2.handler(new Request('https://beta.example/atelier/'+slug+'?embed=1'),env,slug);
+ assert.equal(page.status,200);const html=await page.text();assert(html.includes('naitea-public-embedded'));assert(html.includes('naitea-public-date'));assert(html.includes('naitea-public-price'));assert.deepEqual(JSON.parse(s2.calls[0][1].body),{p_slug:slug});
+});

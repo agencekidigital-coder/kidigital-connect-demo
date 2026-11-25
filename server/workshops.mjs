@@ -1,7 +1,7 @@
 import publicConfig from './public-config.cjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EXTRA = ['category','duration_label','timezone_name','modality','venue_name','venue_street','venue_postal_code','venue_city','video_platform','target_audiences','child_age_min','child_age_max','child_age_unit'];
-const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at',...EXTRA].join(',');
+const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at','public_slug',...EXTRA].join(',');
 const AUDIENCES = new Set(['Future maman','Futurs parents','Jeune maman','Jeunes parents','Co-parent','Bébés','Enfants','Adolescents','Toute la famille']);
 function extraFields(input) {
   if(!EXTRA.some(k=>Object.hasOwn(input,k)))return {};

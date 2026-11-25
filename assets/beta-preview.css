@@ -23,3 +23,15 @@
 #naiteaCropExisting{margin-top:8px}
 
 #naiteaPrivatePublicPreviewCover{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:14px 14px 0 0}#naiteaPrivatePublicPreviewCover[hidden],#naiteaPublishedShare[hidden]{display:none!important}.naitea-public-description{white-space:pre-wrap;overflow-wrap:anywhere}
+
+.v8-public-event .naitea-public-date{font-size:clamp(19px,3vw,24px);font-weight:700;color:#590425;line-height:1.4;margin:18px 0}
+.v8-public-event .naitea-public-price{font-size:clamp(19px,3vw,23px);font-weight:600;color:#590425;line-height:1.4;margin:20px 0}
+.naitea-public-pro{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid #e7d6c8}
+.naitea-public-pro>img{width:64px;height:64px;flex:none;border-radius:50%;object-fit:cover}
+.naitea-public-pro .naitea-public-provider{margin:0 0 6px}
+.naitea-public-contacts{display:flex;flex-wrap:wrap;gap:8px 14px;overflow-wrap:anywhere}
+.naitea-public-contacts a{text-decoration:underline;text-underline-offset:3px}
+.naitea-public-embedded .naitea-public-header,.naitea-public-embedded .naitea-public-footer{display:none}
+.naitea-public-embedded .naitea-public-main{padding:12px}
+#naiteaPublicProfileForm{display:grid;gap:10px}
+#naiteaPublicProfileForm input[type=checkbox]{width:auto;margin-right:8px}

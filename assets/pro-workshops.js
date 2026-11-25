@@ -93,7 +93,7 @@ function create(d){
     getCover(w).then(url=>{if(url&&version===revision&&img.isConnected&&d.isPage()&&stillCurrent()){img.src=url;img.hidden=false;}});
   }
   const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
-  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm')||el('naiteaPrivatePublicPreviewCover')||el('naiteaPublishedLink'))d.closeModal();}
+  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm')||el('naiteaPrivatePublicPreviewCover')||el('naiteaPublishedLink')||el('naiteaPublicProfileForm'))d.closeModal();}
   function clear(){revision++;controller?.abort();owner=null;rows=[];ready=false;busy=false;uncertain=false;truncated=false;resetCovers();closePrivate();}
   function invalidate(){clear();message='Vérification du compte…';if(d.isPage())decorate();}
   async function api(method,payload,version){
@@ -151,8 +151,7 @@ function create(d){
     form.id='naiteaPrivateWorkshopForm';
     revokePreview();
     const cover=form.querySelector('#v5CoverFile');const oldCover=cover?.closest('.field');if(!oldCover)throw Error('Champ photo introuvable.');
-    oldCover.innerHTML='<label for="naiteaCoverFile">Photo de couverture</label><img id="naiteaCoverPreview" class="v6-cover" alt="Aperçu de la photo de couverture" hidden><input id="naiteaCoverFile" type="file" accept="image/jpeg,image/png,image/webp"><button type="button" id="naiteaCropExisting" class="btn secondary small" hidden>Recadrer la photo actuelle</button><p class="fine">JPG, PNG ou WebP (12 Mo maximum). Compression automatique avant stockage privé.</p><div id="naiteaCropControls" class="naitea-cover-crop" hidden><p class="fine">Recadre ta photo au format de la carte (16:9).</p><label for="naiteaCropZoom">Zoom</label><input id="naiteaCropZoom" type="range" min="1" max="3" step="0.05" value="1"><label for="naiteaCropX">Position horizontale</label><input id="naiteaCropX" type="range" min="0" max="100" value="50"><label for="naiteaCropY">Position verticale</label><input id="naiteaCropY" type="range" min="0" max="100" value="50"><button type="button" class="btn secondary small" id="naiteaCropReset">Réinitialiser le cadrage</button></div><label class="checkline"><input type="checkbox" id="naiteaCoverRemove"> Retirer la photo actuelle</label><p class="fine" id="naiteaCoverStatus" role="status"></p>';
-    oldCover.querySelector('#naiteaCropExisting').hidden=!coversAvailable||!w||!knownCovers.has(w.id);
+    oldCover.innerHTML='<label for="naiteaCoverFile">Photo de couverture</label><img id="naiteaCoverPreview" class="v6-cover" alt="Aperçu de la photo de couverture" hidden><input id="naiteaCoverFile" type="file" accept="image/jpeg,image/png,image/webp"><p class="fine">JPG, PNG ou WebP (12 Mo maximum). Cadrage et compression automatiques.</p><label class="checkline"><input type="checkbox" id="naiteaCoverRemove"> Retirer la photo actuelle</label><p class="fine" id="naiteaCoverStatus" role="status"></p>';
     const remove=oldCover.querySelector('#naiteaCoverRemove');remove.closest('label').hidden=!w||!knownCovers.has(w.id);
     if(!coversAvailable){oldCover.querySelector('#naiteaCoverFile').disabled=true;remove.disabled=true;oldCover.querySelector('#naiteaCoverStatus').textContent='Stockage photo indisponible. Actualise la liste pour réessayer.';}
     for(const node of form.querySelectorAll('[data-v6],[data-action]:not([data-action="close-modal"])'))node.remove();
@@ -167,50 +166,22 @@ function create(d){
     const fileInput=active.querySelector('#naiteaCoverFile'), removeInput=active.querySelector('#naiteaCoverRemove'), preview=active.querySelector('#naiteaCoverPreview'), coverStatus=active.querySelector('#naiteaCoverStatus');
     attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);
     let selected=null,preparing=false,selection=0,sourceFile=null;
-    const controls=active.querySelector('#naiteaCropControls'),zoom=active.querySelector('#naiteaCropZoom'),x=active.querySelector('#naiteaCropX'),y=active.querySelector('#naiteaCropY');
-    const resetValues=()=>{zoom.value='1';x.value=y.value='50';};
-    function restore(){
-      selected=null;sourceFile=null;controls.hidden=true;fileInput.value='';revokePreview();preview.hidden=true;preview.removeAttribute('src');
-      attachCover(w,preview,()=>!sourceFile&&!removeInput.checked);
-    }
-    async function recrop(){
-      if(!sourceFile)return;
-      const number=++selection, version=revision,file=sourceFile;
-      selected=null;preparing=true;coverStatus.textContent='Préparation du cadrage…';
-      try{
-        const blob=await compressCover(file,{zoom:Number(zoom.value),x:Number(x.value),y:Number(y.value)});
-        if(version!==revision||number!==selection||!active.isConnected)return;
-        selected=blob;revokePreview();previewUrl=URL.createObjectURL(blob);preview.src=previewUrl;preview.hidden=false;coverStatus.textContent='Cadrage prêt à être enregistré.';
-      }catch(error){if(version===revision&&number===selection&&active.isConnected){restore();coverStatus.textContent=error.message;}}
-      finally{if(number===selection)preparing=false;}
-    }
-    fileInput.addEventListener('change',()=>{
-      selection++;preparing=false;selected=null;sourceFile=fileInput.files[0]||null;removeInput.checked=false;
-      resetValues();revokePreview();preview.hidden=true;preview.removeAttribute('src');controls.hidden=!sourceFile;
-      if(sourceFile)recrop();else{restore();coverStatus.textContent='';}
-    });
-    const existing=active.querySelector('#naiteaCropExisting');
-    existing.addEventListener('click',async()=>{
-      if(!w||busy||preparing||!owner)return;
+    fileInput.addEventListener('change',async()=>{
       const number=++selection,version=revision;
-      preparing=true;existing.disabled=true;coverStatus.textContent='Chargement de la photo actuelle…';
+      selected=null;sourceFile=fileInput.files[0]||null;removeInput.checked=false;
+      revokePreview();preview.hidden=true;preview.removeAttribute('src');
+      if(!sourceFile){preparing=false;attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);return;}
+      preparing=true;coverStatus.textContent='Préparation de la photo…';
       try{
-        const {data,error}=await client.storage.from(COVER_BUCKET).download(coverPath(owner,w.id));
+        const blob=await compressCover(sourceFile,{zoom:1,x:50,y:50});
         if(version!==revision||number!==selection||!active.isConnected)return;
-        if(error||!data||data.type!=='image/jpeg'||data.size>COVER_LIMIT)throw Error('Impossible de charger la photo.');
-        sourceFile=data;fileInput.value='';removeInput.checked=false;resetValues();controls.hidden=false;
-        await recrop();
-      }catch(error){if(version===revision&&number===selection&&active.isConnected)coverStatus.textContent=error.message;}
-      finally{if(number===selection)preparing=false;if(active.isConnected)existing.disabled=false;}
+        selected=blob;previewUrl=URL.createObjectURL(blob);preview.src=previewUrl;preview.hidden=false;coverStatus.textContent='Photo prête à être enregistrée.';
+      }catch(error){if(version===revision&&number===selection&&active.isConnected){sourceFile=null;fileInput.value='';coverStatus.textContent=error.message;attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);}}
+      finally{if(number===selection)preparing=false;}
     });
-    for(const input of [zoom,x,y]){
-      input.addEventListener('input',()=>{selected=null;coverStatus.textContent='Relâche le curseur pour actualiser l’aperçu.';});
-      input.addEventListener('change',recrop);
-    }
-    active.querySelector('#naiteaCropReset').addEventListener('click',()=>{resetValues();recrop();});
     removeInput.addEventListener('change',()=>{
-      if(removeInput.checked){selection++;preparing=false;restore();preview.hidden=true;preview.removeAttribute('src');coverStatus.textContent='La photo sera retirée à l’enregistrement.';}
-      else{coverStatus.textContent='';attachCover(w,preview,()=>!sourceFile&&!removeInput.checked);}
+      if(removeInput.checked){selection++;preparing=false;selected=null;sourceFile=null;fileInput.value='';revokePreview();preview.hidden=true;preview.removeAttribute('src');coverStatus.textContent='La photo sera retirée à l’enregistrement.';}
+      else{coverStatus.textContent='';attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);}
     });
     active.addEventListener('submit',async event=>{
       event.preventDefault();event.stopImmediatePropagation();if(busy||uncertain||!ready||!d.isPage())return;
@@ -251,7 +222,7 @@ function create(d){
     });
   }
   function button(label,action){const b=text('button',label);b.type='button';b.className='btn secondary';b.addEventListener('click',action);return b;}
-  function shareURL(w){return new URL('/atelier/'+w.id,location.origin).href;}
+  function shareURL(w){return new URL('/atelier/'+(w.public_slug||w.id),location.origin).href;}
   function complete(w){return !!(w.starts_at&&w.category&&w.timezone_name&&w.target_audiences?.length&&((w.modality==='venue'&&w.venue_name&&w.venue_street&&w.venue_postal_code&&w.venue_city)||(w.modality==='video'&&w.video_platform)));}
   function previewWorkshop(w){
     if(!ready||busy||!owner||!d.isPage())return;
@@ -263,9 +234,13 @@ function create(d){
     let when='Date à préciser';if(w.starts_at){try{when=new Intl.DateTimeFormat('fr-FR',{dateStyle:'full',timeStyle:'short',timeZone:w.timezone_name||'Europe/Paris'}).format(new Date(w.starts_at));}catch{}}
     const location=w.modality==='video'?'À distance · '+(w.video_platform||'Visioconférence'):[w.venue_name,w.venue_street,[w.venue_postal_code,w.venue_city].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
     const desc=text('p',w.description||'');desc.className='naitea-public-description';
-    const time=text('p',[when,w.duration_label].filter(Boolean).join(' · '));
-    body.append(tag,text('h1',w.title),desc,time,text('p',location),text('p',(w.target_audiences||[]).join(', ')),text('p',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+' / duo · '+w.capacity+' places au total'));
-    if(w.child_age_unit&&w.child_age_min!=null&&w.child_age_max!=null)body.append(text('p','De '+w.child_age_min+' à '+w.child_age_max+' '+(w.child_age_unit==='years'?'ans':'mois')));
+    const time=text('p',[when,w.duration_label].filter(Boolean).join(' · '));time.className='naitea-public-date';
+    const audiences=w.target_audiences||[],age=w.child_age_unit&&w.child_age_min!=null&&w.child_age_max!=null?'de '+w.child_age_min+' à '+w.child_age_max+' '+(w.child_age_unit==='years'?'ans':'mois'):'';
+    const audience=document.createElement('p');
+    audiences.forEach((label,i)=>{if(i)audience.append(document.createTextNode(', '));audience.append(document.createTextNode(label));if(label==='Bébés'&&age){audience.append(document.createTextNode(' '),text('em',age));}});
+    if(age&&!audiences.includes('Bébés'))audience.append(document.createTextNode(' · '),text('em',age));
+    const price=text('p',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+' / duo · '+w.capacity+' places au total');price.className='naitea-public-price';
+    body.append(tag,text('h1',w.title),time,desc,text('p',location),audience,price);
     const reserve=text('button','Réservation bientôt disponible');reserve.className='btn';reserve.disabled=true;body.append(reserve);root.append(body);
     d.showModal('Aperçu côté familles','Aperçu privé — le nom professionnel sera affiché sur la page publiée s’il est renseigné.',root.outerHTML);
     const active=el('naiteaPrivatePublicPreviewCover');if(active)attachCover(w,active);
@@ -292,10 +267,64 @@ function create(d){
     const share=text('button','Partager');share.id='naiteaPublishedShare';share.type='button';share.className='btn secondary';share.hidden=typeof navigator.share!=='function';
     const status=text('p','');status.id='naiteaPublishedStatus';status.setAttribute('role','status');
     const actions=document.createElement('div');actions.className='eventactions';actions.append(copy,link,share);
-    box.append(label,field,actions,status,text('p','Les réservations et les paiements restent désactivés.'));
+    const embedURL=new URL(url);embedURL.searchParams.set('embed','1');
+    const iframe='<iframe src="'+embedURL.href+'" title="Atelier Naïtéa" width="100%" height="900" style="border:0" loading="lazy"></iframe>';
+    const embedLabel=text('label','Code iframe pour ton site internet');embedLabel.htmlFor='naiteaPublishedIframe';
+    const embedField=document.createElement('textarea');embedField.id='naiteaPublishedIframe';embedField.readOnly=true;embedField.rows=4;embedField.textContent=iframe;
+    const embedCopy=text('button','Copier le code iframe');embedCopy.id='naiteaPublishedIframeCopy';embedCopy.type='button';embedCopy.className='btn secondary';
+    box.append(label,field,actions,embedLabel,embedField,embedCopy,status,text('p','Les réservations et les paiements restent désactivés.'));
     d.showModal('Partager cet atelier','Copie le lien pour ton site, tes réseaux sociaux ou tes messages.',box.outerHTML);
     el('naiteaPublishedCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);el('naiteaPublishedStatus').textContent='Lien copié !';}catch{el('naiteaPublishedLink').select();el('naiteaPublishedStatus').textContent='Sélectionne et copie le lien.';}});
+    el('naiteaPublishedIframeCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(iframe);el('naiteaPublishedStatus').textContent='Code iframe copié !';}catch{el('naiteaPublishedIframe').select();el('naiteaPublishedStatus').textContent='Sélectionne et copie le code.';}});
     el('naiteaPublishedShare').addEventListener('click',async()=>{try{await navigator.share({title:w.title,url});}catch{}});
+  }
+  async function editPublicProfile(){
+    if(!ready||busy||!owner||!d.isPage())return;
+    const version=revision,uid=owner;
+    const keys='business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url';
+    try{
+      const {data,error}=await client.from('naitea_profiles').select(keys).eq('id',uid).single();
+      if(error||!data||version!==revision||!d.isPage())throw Error('Profil indisponible');
+      const box=document.createElement('div'),form=document.createElement('form');form.id='naiteaPublicProfileForm';
+      function input(name,label,type,value,max){
+        const l=text('label',label);l.htmlFor='publicProfile'+name;
+        const i=document.createElement('input');i.id=l.htmlFor;i.name=name;i.type=type;i.maxLength=max;i.setAttribute('value',value||'');form.append(l,i);return i;
+      }
+      input('business_name','Nom professionnel','text',data.business_name,160);
+      input('public_email','Email professionnel public','email',data.public_email,254);
+      input('public_phone','Téléphone professionnel public','tel',data.public_phone,40);
+      input('public_website','Site internet (https://)','url',data.public_website,500);
+      input('public_google_url','Lien vers les avis Google (https://)','url',data.public_google_url,500);
+      const label=text('label','Photo professionnelle');label.htmlFor='publicProfilePortrait';const file=document.createElement('input');file.type='file';file.id=label.htmlFor;file.accept='image/jpeg,image/png,image/webp';form.append(label,file);
+      const remove=document.createElement('input');remove.type='checkbox';remove.id='publicProfileRemove';const rl=text('label','Retirer la photo professionnelle');rl.prepend(remove);form.append(rl);
+      const consent=document.createElement('input');consent.type='checkbox';consent.id='publicProfileConsent';if(data.public_details_enabled)consent.setAttribute('checked','');
+      const cl=text('label',' J’autorise l’affichage de ces coordonnées et de ma photo sur mes ateliers publiés.');cl.prepend(consent);form.append(cl);
+      const submit=text('button','Enregistrer');submit.type='submit';submit.className='btn';const status=text('p','');status.id='publicProfileStatus';status.setAttribute('role','status');form.append(submit,status);box.append(form);
+      d.showModal('Mes informations publiques','Ces champs sont facultatifs. Ils ne remplacent pas ton email de connexion.',box.outerHTML);
+      const active=el('naiteaPublicProfileForm');
+      active.addEventListener('submit',async e=>{
+        e.preventDefault();e.stopImmediatePropagation();if(busy||version!==revision||owner!==uid)return;
+        const st=el('publicProfileStatus'),fd=new FormData(active);
+        const patch=Object.fromEntries(['business_name','public_email','public_phone','public_website','public_google_url'].map(k=>[k,String(fd.get(k)||'').trim()||null]));
+        for(const k of ['public_website','public_google_url'])if(patch[k]){try{const u=new URL(patch[k]);if(u.protocol!=='https:'||u.username||u.password)throw Error();}catch{st.textContent='Indique une adresse HTTPS valide.';return;}}
+        if(patch.public_phone&&!/^[+0-9 ().-]+$/.test(patch.public_phone)){st.textContent='Vérifie le téléphone.';return;}
+        patch.public_details_enabled=el('publicProfileConsent').checked;
+        const portrait=el('publicProfilePortrait').files[0],removePhoto=el('publicProfileRemove').checked;
+        busy=true;for(const field of active.elements)field.disabled=true;st.textContent='Enregistrement…';
+        try{
+          const blob=portrait?await compressCover(portrait):null;
+          if(version!==revision)return;
+          const {data:session,error:authError}=await client.auth.getSession();if(version!==revision)return;
+          if(authError||session?.session?.user?.id!==uid)throw Error('Reconnecte-toi.');
+          const result=await client.from('naitea_profiles').update(patch).eq('id',uid).select(keys).single();
+          if(version!==revision)return;if(result.error||!result.data)throw Error('Profil non confirmé.');
+          const bucket=client.storage.from('naitea-professional-portraits');
+          if(blob||removePhoto){const result=blob?await bucket.upload(uid+'/profile.jpg',blob,{upsert:true,contentType:'image/jpeg',cacheControl:'0'}):await bucket.remove([uid+'/profile.jpg']);if(version!==revision)return;if(result.error)throw Error('Coordonnées enregistrées, photo non confirmée. Réessaie.');}
+          st.textContent='Informations enregistrées.';
+        }catch(error){if(version===revision&&active.isConnected)st.textContent=error.message||'Enregistrement non confirmé.';}
+        finally{if(version===revision){busy=false;for(const field of active.elements)field.disabled=false;}}
+      });
+    }catch{if(version===revision){message='Impossible de charger les informations publiques.';decorate();}}
   }
   function workshopCard(w){
     const card=document.createElement('article');card.className='card eventcard naitea-private-eventcard';
@@ -390,6 +419,7 @@ function create(d){
     panel.append(title,note);
     const createButton=button('Nouvel atelier',()=>open(null));createButton.className='btn';createButton.disabled=!ready||busy||uncertain;
     panel.append(createButton,button('Actualiser',()=>{if(client&&!busy)load();}));
+    if(publication){const pro=button('Mes informations publiques',editPublicProfile);pro.disabled=!ready||busy;panel.append(pro);}
     if(!owner){const login=text('a','Me connecter');login.href='/connexion.html?mode=login';login.className='btn secondary';panel.append(login);}
     if(ready&&!rows.length)panel.append(text('p','Tu n’as pas encore d’atelier enregistré.'));
     const grid=document.createElement('div');grid.className='events';

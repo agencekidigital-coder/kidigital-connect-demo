@@ -28,7 +28,9 @@ function guard(response, request, { embed = false, auth = false, account = false
   headers.set('Content-Security-Policy', "base-uri 'self'; object-src 'none'" + (embed ? '' : "; frame-ancestors " + (auth ? "'none'" : "'self'")));
   if (account) headers.set('Content-Security-Policy', "default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://*.supabase.co");
   if (new URL(request.url).pathname.startsWith('/atelier/')) {
-    headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
+    const u=new URL(request.url);
+    const publicEmbed=u.searchParams.get('embed')==='1'&&/^\/atelier\/[a-zA-Z0-9-]{1,180}$/.test(u.pathname);
+    headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors "+(publicEmbed?'https:':"'none'")+"; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
     headers.set('Referrer-Policy','no-referrer');
   }
   if (auth) headers.set('X-Frame-Options', 'DENY');
@@ -141,8 +143,8 @@ async function route(request, env, ctx, pathname) {
   if (!pathname) return json({ error: 'Adresse invalide.' }, 400);
   if (pathname === '/api/account') return accountHandler(request, env);
   if (pathname === '/api/workshops') return workshopsHandler(request, env);
-  const publicMatch=/^\/atelier\/([a-fA-F0-9-]{36})(\/photo)?$/.exec(pathname);
-  if(publicMatch)return publicWorkshopHandler(request,env,publicMatch[1],!!publicMatch[2]);
+  const publicMatch=/^\/atelier\/([a-zA-Z0-9-]{1,180})(?:\/(photo|portrait))?$/.exec(pathname);
+  if(publicMatch)return publicWorkshopHandler(request,env,publicMatch[1],publicMatch[2]==='photo',publicMatch[2]==='portrait');
   if (!['GET', 'HEAD'].includes(request.method)) return json({ error: 'Méthode non autorisée.' }, 405, { Allow: 'GET, HEAD' });
   if (pathname === '/api/deployment') return json({ ...capabilities, workshopPublication: env.NAITEA_PUBLICATION_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && env.NAITEA_AUTH_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), workshopPersistence: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), accountProfile: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_PROFILE_ENABLED === 'true' && !!publicConfig.readPublicConfig(env) });
   if (pathname === '/api/public-config') {
