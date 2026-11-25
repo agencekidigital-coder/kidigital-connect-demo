@@ -4941,7 +4941,7 @@ async function naiteaLoadAuth() {
     if (!response.ok) return;
     const config = await response.json();
     if (!config.url || !config.publishableKey) return;
-    const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm');
     const supabase = sdk.createClient(config.url, config.publishableKey);
     berceauAuthClient = supabase;
     await naiteaRefreshAccount(supabase);

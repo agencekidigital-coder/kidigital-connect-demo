@@ -170,7 +170,7 @@ async function init() {
     if (!response.ok) throw new Error('La création de compte est momentanément indisponible. Vous pouvez explorer la démo et réessayer plus tard.');
     const config = await response.json();
     if (!config.url || !config.publishableKey) throw new Error('Le service de connexion est momentanément indisponible.');
-    const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm');
     client = sdk.createClient(config.url, config.publishableKey);
     client.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {

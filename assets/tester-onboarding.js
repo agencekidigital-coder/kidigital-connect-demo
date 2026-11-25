@@ -50,7 +50,7 @@
       if (!response.ok) throw Error('Le service de connexion est momentanément indisponible. Vous pouvez explorer la démonstration publique.');
       const config = await response.json();
       if (!config.url || !config.publishableKey) throw Error('Le service de connexion est momentanément indisponible.');
-      const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm');
       client = sdk.createClient(config.url, config.publishableKey);
       // Validate the user with the auth provider; no local flag grants access.
       const { data, error } = await client.auth.getUser();

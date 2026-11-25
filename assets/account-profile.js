@@ -126,7 +126,7 @@
       if (!response.ok) throw Error('Configuration indisponible');
       const config = await response.json();
       if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(config.url) || typeof config.publishableKey !== 'string') throw Error('Configuration invalide');
-      const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+      const sdk = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.2/+esm');
       client = sdk.createClient(config.url, config.publishableKey);
       client.auth.onAuthStateChange((event, session) => {
         if (signingOut) return;

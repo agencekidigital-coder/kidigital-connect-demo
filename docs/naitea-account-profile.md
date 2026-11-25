@@ -18,7 +18,7 @@ Il s’agit d’un contrôle de métadonnées, pas d’une validation des accès
 
 Cloudflare expose `/compte` et `/compte.html`. La page est distincte de la fiche publique fictive. Elle ne copie jamais son contenu dans le stockage local commun de la démonstration. Le SDK Supabase conserve sa session selon son fonctionnement habituel ; les champs du profil restent dans la page.
 
-`/api/account` autorise GET, HEAD et PATCH sur **les deux champs existants** `full_name` et `business_name`. Il faut les deux variables `NAITEA_AUTH_ENABLED=true` et `NAITEA_PROFILE_ENABLED=true`, ainsi qu’une URL de projet et une clé publique valides. Les deux variables restent **false** dans le dépôt. Ajouter des clés sans activer les deux variables n’ouvre pas cette API.
+`/api/account` autorise GET, HEAD et PATCH sur **les deux champs existants** `full_name` et `business_name`. Il faut les deux variables `NAITEA_AUTH_ENABLED=true` et `NAITEA_PROFILE_ENABLED=true`, ainsi qu’une URL de projet et une clé publique valides. Le 25 novembre, Auth est ouvert pour un premier test personnel ; `NAITEA_PROFILE_ENABLED` reste **false**. L’API compte reste donc fermée. Les exemples locaux conservent les deux flags inactifs.
 
 Le serveur vérifie le jeton auprès de Supabase Auth. Il choisit l’identifiant renvoyé par ce service, puis utilise le même jeton utilisateur pour lire ou modifier la ligne avec RLS. Il n’accepte aucun identifiant de compte, rôle, email ou autre champ dans le PATCH. Il n’utilise ni clé privilégiée, ni INSERT, ni upsert. Un profil absent renvoie 404 et doit être diagnostiqué avant activation, sans création silencieuse par ce serveur.
 
