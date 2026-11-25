@@ -278,10 +278,24 @@ function create(d){
     }catch{if(version===revision){uncertain=true;message='Changement non confirmé. Actualise pour vérifier le statut avant de réessayer.';}}
     finally{if(version===revision){busy=false;decorate();}}
   }
+  async function shareCatalog(){
+    if(!publication||!ready||busy||!owner||!d.isPage())return;
+    const version=revision;busy=true;decorate();
+    try{
+      const {data,error}=await client.rpc('naitea_ensure_my_workshop_catalog');
+      if(version!==revision)return;
+      if(error||typeof data!=='string'||!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data)||data.length>180)throw Error('Renseigne ton nom professionnel dans Mes informations publiques puis réessaie.');
+      showShare(new URL('/ateliers/'+data,location.origin).href,'Mes ateliers',true);
+    }catch(error){if(version===revision)message=error.message||'Lien indisponible.';}
+    finally{if(version===revision){busy=false;decorate();}}
+  }
   function shareWorkshop(w){
     if(!publication||w.status!=='published'||!ready||busy||!owner)return;
-    const url=shareURL(w), box=document.createElement('div');
-    const label=text('label','Lien public de ton atelier');label.htmlFor='naiteaPublishedLink';
+    showShare(shareURL(w),w.title,false);
+  }
+  function showShare(url,title,collective){
+    const box=document.createElement('div');
+    const label=text('label',collective?'Mon lien public permanent':'Lien public de ton atelier');label.htmlFor='naiteaPublishedLink';
     const field=document.createElement('input');field.id='naiteaPublishedLink';field.value=url;field.readOnly=true;field.setAttribute('value',url);
     const copy=text('button','Copier le lien');copy.id='naiteaPublishedCopy';copy.className='btn secondary';copy.type='button';
     const link=text('a','Voir la page publique');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='btn secondary';
@@ -289,20 +303,20 @@ function create(d){
     const status=text('p','');status.id='naiteaPublishedStatus';status.setAttribute('role','status');
     const actions=document.createElement('div');actions.className='eventactions';actions.append(copy,link,share);
     const embedURL=new URL(url);embedURL.searchParams.set('embed','1');
-    const iframe='<iframe src="'+embedURL.href+'" title="Atelier Naïtéa" width="100%" height="900" style="border:0" loading="lazy"></iframe>';
+    const iframe='<iframe src="'+embedURL.href+'" title="'+(collective?'Mes ateliers Naïtéa':'Atelier Naïtéa')+'" width="100%" height="'+(collective?'1000':'900')+'" style="border:0" loading="lazy"></iframe>';
     const embedLabel=text('label','Code iframe pour ton site internet');embedLabel.htmlFor='naiteaPublishedIframe';
     const embedField=document.createElement('textarea');embedField.id='naiteaPublishedIframe';embedField.readOnly=true;embedField.rows=4;embedField.textContent=iframe;
     const embedCopy=text('button','Copier le code iframe');embedCopy.id='naiteaPublishedIframeCopy';embedCopy.type='button';embedCopy.className='btn secondary';
     box.append(label,field,actions,embedLabel,embedField,embedCopy,status,text('p','Les réservations et les paiements restent désactivés.'));
-    d.showModal('Partager cet atelier','Copie le lien pour ton site, tes réseaux sociaux ou tes messages.',box.outerHTML);
+    d.showModal(collective?'Partager mes ateliers':'Partager cet atelier',collective?'Tous tes ateliers publiés sont mis à jour automatiquement sur ce lien et dans l’iframe.':'Copie le lien pour ton site, tes réseaux sociaux ou tes messages.',box.outerHTML);
     el('naiteaPublishedCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);el('naiteaPublishedStatus').textContent='Lien copié !';}catch{el('naiteaPublishedLink').select();el('naiteaPublishedStatus').textContent='Sélectionne et copie le lien.';}});
     el('naiteaPublishedIframeCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(iframe);el('naiteaPublishedStatus').textContent='Code iframe copié !';}catch{el('naiteaPublishedIframe').select();el('naiteaPublishedStatus').textContent='Sélectionne et copie le code.';}});
-    el('naiteaPublishedShare').addEventListener('click',async()=>{try{await navigator.share({title:w.title,url});}catch{}});
+    el('naiteaPublishedShare').addEventListener('click',async()=>{try{await navigator.share({title,url});}catch{}});
   }
   async function editPublicProfile(){
     if(!ready||busy||!owner||!d.isPage())return;
     const version=revision,uid=owner;
-    const keys='business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url';
+    const keys='business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url,google_place_id';
     try{
       const {data,error}=await client.from('naitea_profiles').select(keys).eq('id',uid).single();
       if(error||!data||version!==revision||!d.isPage())throw Error('Profil indisponible');
@@ -316,6 +330,8 @@ function create(d){
       input('public_phone','Téléphone professionnel public','tel',data.public_phone,40);
       input('public_website','Site internet (https://)','url',data.public_website,500);
       input('public_google_url','Lien vers les avis Google (https://)','url',data.public_google_url,500);
+      input('google_place_id','Identifiant de la fiche Google (Place ID)','text',data.google_place_id,255);
+      const googleHelp=text('p','Facultatif. L’affichage automatique de la note et du nombre d’avis sera activé après configuration officielle de Google.');googleHelp.className='fine';form.append(googleHelp);
       const label=text('label','Photo professionnelle');label.htmlFor='publicProfilePortrait';const file=document.createElement('input');file.type='file';file.id=label.htmlFor;file.accept='image/jpeg,image/png,image/webp';form.append(label,file);
       const remove=document.createElement('input');remove.type='checkbox';remove.id='publicProfileRemove';const rl=text('label','Retirer la photo professionnelle');rl.prepend(remove);form.append(rl);
       const consent=document.createElement('input');consent.type='checkbox';consent.id='publicProfileConsent';if(data.public_details_enabled)consent.setAttribute('checked','');
@@ -326,9 +342,10 @@ function create(d){
       active.addEventListener('submit',async e=>{
         e.preventDefault();e.stopImmediatePropagation();if(busy||version!==revision||owner!==uid)return;
         const st=el('publicProfileStatus'),fd=new FormData(active);
-        const patch=Object.fromEntries(['business_name','public_email','public_phone','public_website','public_google_url'].map(k=>[k,String(fd.get(k)||'').trim()||null]));
+        const patch=Object.fromEntries(['business_name','public_email','public_phone','public_website','public_google_url','google_place_id'].map(k=>[k,String(fd.get(k)||'').trim()||null]));
         for(const k of ['public_website','public_google_url'])if(patch[k]){try{const u=new URL(patch[k]);if(u.protocol!=='https:'||u.username||u.password)throw Error();}catch{st.textContent='Indique une adresse HTTPS valide.';return;}}
         if(patch.public_phone&&!/^[+0-9 ().-]+$/.test(patch.public_phone)){st.textContent='Vérifie le téléphone.';return;}
+        if(patch.google_place_id&&!/^[A-Za-z0-9_-]{1,255}$/.test(patch.google_place_id)){st.textContent='Vérifie le Place ID Google.';return;}
         patch.public_details_enabled=el('publicProfileConsent').checked;
         const portrait=el('publicProfilePortrait').files[0],removePhoto=el('publicProfileRemove').checked;
         busy=true;for(const field of active.elements)field.disabled=true;st.textContent='Enregistrement…';
@@ -440,7 +457,7 @@ function create(d){
     panel.append(title,note);
     const createButton=button('Nouvel atelier',()=>open(null));createButton.className='btn';createButton.disabled=!ready||busy||uncertain;
     panel.append(createButton,button('Actualiser',()=>{if(client&&!busy)load();}));
-    if(publication){const pro=button('Mes informations publiques',editPublicProfile);pro.disabled=!ready||busy;panel.append(pro);}
+    if(publication){const pro=button('Mes informations publiques',editPublicProfile);pro.disabled=!ready||busy;const shareAll=button('Partager mes ateliers',shareCatalog);shareAll.disabled=!ready||busy||uncertain;panel.append(pro,shareAll);}
     if(!owner){const login=text('a','Me connecter');login.href='/connexion.html?mode=login';login.className='btn secondary';panel.append(login);}
     if(ready&&!rows.length)panel.append(text('p','Tu n’as pas encore d’atelier enregistré.'));
     const grid=document.createElement('div');grid.className='events';

@@ -27,6 +27,7 @@ function format(w){
  const price=new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(w.price_cents/100);
  return {date,location,age,price};
 }
+export {esc,headers,html,bytes,format,safeURL,SLUG};
 export function createPublicWorkshopHandler({fetchImpl=globalThis.fetch}={}){
  return async(request,env,id,photo=false,portrait=false)=>{
   if(!['GET','HEAD'].includes(request.method))return new Response(null,{status:405,headers:{...headers,Allow:'GET, HEAD'}});
