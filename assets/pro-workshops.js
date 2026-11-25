@@ -21,12 +21,72 @@ function upcomingRows(rows,now=Date.now()){
 function rowsOnDate(rows,date){
   return rows.filter(w=>w.status==='draft'&&w.starts_at&&localDate(w.starts_at).slice(0,10)===date).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||a.id.localeCompare(b.id));
 }
+const COVER_BUCKET='naitea-workshop-covers', COVER_LIMIT=2097152, INPUT_LIMIT=12*1024*1024;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function coverPath(owner,id){
+  if(!UUID.test(owner)||!UUID.test(id))throw Error('Identifiant de photo invalide.');
+  return owner.toLowerCase()+'/'+id.toLowerCase()+'.jpg';
+}
+function dimensions(width,height){
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<1||height<1||width*height>40000000)throw Error('Image trop grande ou illisible.');
+  const scale=Math.min(1,1600/Math.max(width,height));
+  return [Math.max(1,Math.round(width*scale)),Math.max(1,Math.round(height*scale))];
+}
+async function compressCover(file){
+  if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||!file.size||file.size>INPUT_LIMIT)throw Error('Choisis une image JPG, PNG ou WebP de 12 Mo maximum.');
+  const src=URL.createObjectURL(file);
+  try{
+    const image=new Image();
+    await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('Image illisible.'));image.src=src;});
+    const [width,height]=dimensions(image.naturalWidth,image.naturalHeight);
+    const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
+    const ctx=canvas.getContext('2d');if(!ctx)throw Error('Compression indisponible.');
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(image,0,0,width,height);
+    for(const quality of [.86,.72,.58,.42]){
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+      if(blob?.type==='image/jpeg'&&blob.size&&blob.size<=COVER_LIMIT)return blob;
+    }
+    throw Error('Impossible de compresser cette image sous 2 Mo.');
+  }finally{URL.revokeObjectURL(src);}
+}
 function create(d){
   let enabled=false, owner=null, client=null, revision=0, rows=[], ready=false, busy=false, truncated=false, message='', observed=false, uncertain=false, controller=null, timer=null;
+  const knownCovers=new Set(), coverUrls=new Map(), downloads=new Map();
+  let coversAvailable=false, previewUrl='';
   const el=id=>document.getElementById(id);
+  function revokePreview(){if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';}
+  function forgetCover(id){const url=coverUrls.get(id);if(url)URL.revokeObjectURL(url);coverUrls.delete(id);downloads.delete(id);}
+  function resetCovers(){for(const id of coverUrls.keys())forgetCover(id);downloads.clear();knownCovers.clear();coversAvailable=false;revokePreview();}
+  async function listCovers(version){
+    const {data,error}=await client.storage.from(COVER_BUCKET).list(owner,{limit:1000,sortBy:{column:'name',order:'asc'}});
+    if(version!==revision)return;
+    if(error||!Array.isArray(data))throw Error('Photos indisponibles.');
+    knownCovers.clear();
+    for(const file of data){const id=typeof file.name==='string'&&file.name.endsWith('.jpg')?file.name.slice(0,-4):'';if(UUID.test(id))knownCovers.add(id);}
+    coversAvailable=true;
+  }
+  async function getCover(w){
+    if(!owner||!knownCovers.has(w.id))return '';
+    if(coverUrls.has(w.id))return coverUrls.get(w.id);
+    if(downloads.has(w.id))return downloads.get(w.id);
+    const version=revision, key=coverPath(owner,w.id);
+    const promise=(async()=>{
+      try{
+        const {data,error}=await client.storage.from(COVER_BUCKET).download(key);
+        if(error||!data||!data.size||data.size>COVER_LIMIT||data.type!=='image/jpeg'||revision!==version||downloads.get(w.id)!==promise)return '';
+        const url=URL.createObjectURL(data);coverUrls.set(w.id,url);return url;
+      }catch{return '';}finally{if(downloads.get(w.id)===promise)downloads.delete(w.id);}
+    })();
+    downloads.set(w.id,promise);return promise;
+  }
+  function attachCover(w,img,stillCurrent=()=>true){
+    if(!w)return;
+    const version=revision;
+    getCover(w).then(url=>{if(url&&version===revision&&img.isConnected&&d.isPage()&&stillCurrent()){img.src=url;img.hidden=false;}});
+  }
   const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
-  function closePrivate(){if(el('naiteaPrivateWorkshopForm'))d.closeModal();}
-  function clear(){revision++;controller?.abort();owner=null;rows=[];ready=false;busy=false;uncertain=false;truncated=false;closePrivate();}
+  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm'))d.closeModal();}
+  function clear(){revision++;controller?.abort();owner=null;rows=[];ready=false;busy=false;uncertain=false;truncated=false;resetCovers();closePrivate();}
   function invalidate(){clear();message='Vérification du compte…';if(d.isPage())decorate();}
   async function api(method,payload,version){
     const {data,error}=await client.auth.getSession();
@@ -50,6 +110,7 @@ function create(d){
       owner=data.user.id;
       const result=await api('GET',null,version);if(!result)return;
       rows=result.workshops;truncated=result.truncated;ready=true;message='Tes brouillons sont enregistrés dans ton compte. Ils ne sont pas publics.';
+      try{await listCovers(version);}catch{if(version===revision)message+=' Photos indisponibles : actualise pour réessayer.';}
     }catch{if(version===revision)message='Impossible de charger les ateliers. Réessaie.';}
     finally{if(version===revision&&d.isPage())decorate();}
   }
@@ -79,18 +140,44 @@ function create(d){
     const container=document.createElement('div');container.innerHTML=d.formHtml(view(w));
     const form=container.querySelector('form');
     form.id='naiteaPrivateWorkshopForm';
-    const cover=form.querySelector('#v5CoverFile');cover?.closest('.field')?.remove();
+    revokePreview();
+    const cover=form.querySelector('#v5CoverFile');const oldCover=cover?.closest('.field');if(!oldCover)throw Error('Champ photo introuvable.');
+    oldCover.innerHTML='<label for="naiteaCoverFile">Photo de couverture</label><img id="naiteaCoverPreview" class="v6-cover" alt="Aperçu de la photo de couverture" hidden><input id="naiteaCoverFile" type="file" accept="image/jpeg,image/png,image/webp"><p class="fine">JPG, PNG ou WebP (12 Mo maximum). Compression automatique avant stockage privé.</p><label class="checkline"><input type="checkbox" id="naiteaCoverRemove"> Retirer la photo actuelle</label><p class="fine" id="naiteaCoverStatus" role="status"></p>';
+    const remove=oldCover.querySelector('#naiteaCoverRemove');remove.closest('label').hidden=!w||!knownCovers.has(w.id);
+    if(!coversAvailable){oldCover.querySelector('#naiteaCoverFile').disabled=true;remove.disabled=true;oldCover.querySelector('#naiteaCoverStatus').textContent='Stockage photo indisponible. Actualise la liste pour réessayer.';}
     for(const node of form.querySelectorAll('[data-v6],[data-action]:not([data-action="close-modal"])'))node.remove();
     form.querySelector('.naitea-description-tools')?.remove();
-    const helper=text('p','Photo de couverture : stockage sécurisé à venir. Heure locale de ton appareil.');helper.className='fine';form.querySelector('.modalfooter').before(helper);
+    const helper=text('p','Heure locale de ton appareil. Les photos restent privées.');helper.className='fine';form.querySelector('.modalfooter').before(helper);
     form.elements.price.step='0.01';
     form.querySelector('[type="submit"]').textContent='Enregistrer le brouillon';
     d.showModal(w?'Modifier mon atelier':'Créer un atelier','Les informations restent privées tant que la publication n’est pas ouverte.',container.innerHTML);
     const active=el('naiteaPrivateWorkshopForm');fields(active);
     active.addEventListener('change',()=>fields(active));
     const status=text('p','');status.setAttribute('role','status');active.append(status);
+    const fileInput=active.querySelector('#naiteaCoverFile'), removeInput=active.querySelector('#naiteaCoverRemove'), preview=active.querySelector('#naiteaCoverPreview'), coverStatus=active.querySelector('#naiteaCoverStatus');
+    attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);
+    let selected=null,preparing=false,selection=0;
+    fileInput.addEventListener('change',async()=>{
+      const number=++selection, version=revision;
+      revokePreview();selected=null;removeInput.checked=false;preview.hidden=true;preview.removeAttribute('src');
+      const file=fileInput.files[0];if(!file){preparing=false;coverStatus.textContent='';attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);return;}
+      preparing=true;coverStatus.textContent='Préparation de la photo…';
+      try{
+        const blob=await compressCover(file);
+        if(version!==revision||number!==selection||!active.isConnected)return;
+        selected=blob;previewUrl=URL.createObjectURL(blob);preview.src=previewUrl;preview.hidden=false;coverStatus.textContent='Photo prête à être enregistrée.';
+      }catch(error){if(version===revision&&number===selection&&active.isConnected){fileInput.value='';coverStatus.textContent=error.message;attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);}}
+      finally{if(number===selection)preparing=false;}
+    });
+    removeInput.addEventListener('change',()=>{
+      if(removeInput.checked){selection++;preparing=false;selected=null;fileInput.value='';revokePreview();preview.hidden=true;preview.removeAttribute('src');coverStatus.textContent='La photo sera retirée à l’enregistrement.';}
+      else {coverStatus.textContent='';attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);}
+    });
     active.addEventListener('submit',async event=>{
       event.preventDefault();event.stopImmediatePropagation();if(busy||uncertain||!ready||!d.isPage())return;
+      if(preparing){status.textContent='La photo est en cours de préparation.';return;}
+      if(fileInput.files.length&&!selected){status.textContent='La photo n’est pas prête.';return;}
+      const photo=selected, removePhoto=removeInput.checked;
       let payload;try{payload=toPayload(active,w);}catch(error){status.textContent=error.message;return;}
       const version=revision;busy=true;
       for(const field of active.elements)field.disabled=true;status.textContent='Enregistrement…';
@@ -98,6 +185,27 @@ function create(d){
         const result=await api(w?'PATCH':'POST',payload,version);if(!result)return;
         const saved=result.workshops[0];if(!saved)throw Error('Enregistrement non confirmé.');
         rows=[saved,...rows.filter(r=>r.id!==saved.id)];message='Brouillon enregistré dans ton compte.';
+        if(photo||removePhoto){
+          try{
+            const {data:sessionData,error:sessionError}=await client.auth.getSession();
+            if(version!==revision)return;
+            if(sessionError||sessionData?.session?.user?.id!==owner)throw Error('Session expirée.');
+            const bucket=client.storage.from(COVER_BUCKET),key=coverPath(owner,saved.id);
+            const result=photo?await bucket.upload(key,photo,{upsert:true,contentType:'image/jpeg',cacheControl:'0'}):await bucket.remove([key]);
+            if(version!==revision)return;
+            if(result.error)throw result.error;
+            forgetCover(saved.id);
+            if(photo){knownCovers.add(saved.id);coverUrls.set(saved.id,URL.createObjectURL(photo));}
+            else knownCovers.delete(saved.id);
+            message+=photo?' Photo enregistrée.':' Photo retirée.';
+          }catch{
+            if(version!==revision)return;
+            message+=' Photo non confirmée. Actualise puis modifie ce brouillon pour réessayer (ne crée pas de doublon).';
+            forgetCover(saved.id);
+            try{await listCovers(version);}catch{if(version===revision)coversAvailable=false;}
+          }
+        }
+        if(version!==revision)return;
         closePrivate();if(d.isPage())decorate();
       }catch{if(version===revision){uncertain=true;message='Enregistrement non confirmé. Actualise avant toute nouvelle tentative.';closePrivate();if(d.isPage())decorate();}}
       finally{if(version===revision){busy=false;if(d.isPage())decorate();}}
@@ -111,6 +219,10 @@ function create(d){
     const date=w.starts_at?new Date(w.starts_at).toLocaleString('fr-FR'):'Date à préciser';
     content.append(headline,text('p',[w.category,date,w.capacity+' places',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})].filter(Boolean).join(' · ')),text('p',w.status==='draft'?'Brouillon privé':w.status));
     if(w.status==='draft'){const edit=button('Modifier',()=>open(w));edit.disabled=!ready||busy||uncertain;content.append(edit);}
+    if(knownCovers.has(w.id)){
+      const img=document.createElement('img');img.className='v6-cover';img.alt='Photo de couverture de '+w.title;img.hidden=true;
+      card.append(img);attachCover(w,img);
+    }
     card.append(content);return card;
   }
   function decorateDashboard(app){
@@ -214,7 +326,7 @@ function create(d){
   window.addEventListener('pageshow',event=>{if(event.persisted&&client)load();});
   return {start,decorate};
 }
-const api={create,calendarDates,upcomingRows,rowsOnDate};
+const api={create,calendarDates,upcomingRows,rowsOnDate,coverPath,dimensions};
 if(typeof module==='object'&&module.exports)module.exports=api;
 else root.NaiteaProWorkshops=api;
 })(globalThis);
