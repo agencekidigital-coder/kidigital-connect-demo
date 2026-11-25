@@ -359,7 +359,7 @@ function create(d){
         const score=scoreRaw===''?null:Number(scoreRaw),count=countRaw===''?null:Number(countRaw);
         patch.google_reviews_visible=el('publicProfileReviewsVisible').checked;
         if((score===null)!==(count===null)||(score!==null&&(!Number.isFinite(score)||score<1||score>5||Math.abs(score*10-Math.round(score*10))>1e-8||!Number.isInteger(count)||count<1||count>10000000))){st.textContent='Indique une note de 1 à 5 (une décimale maximum) et un nombre entier d’avis, ou laisse les deux champs vides.';return;}
-        if(patch.google_reviews_visible&&(score===null||!patch.public_google_url||!/^https:\/\/(maps\.app\.goo\.gl|g\.page|([a-z0-9-]+\.)*google\.(com|fr)|goo\.gl)(\/|$)/.test(patch.public_google_url))){st.textContent='Pour afficher les avis, renseigne une note, le nombre d’avis et un lien Google valide.';return;}
+        if(patch.google_reviews_visible&&(score===null||!patch.public_google_url||!/^https:\/\/(share\.google|maps\.app\.goo\.gl|g\.page|([a-z0-9-]+\.)*google\.(com|fr)|goo\.gl)(\/|$)/.test(patch.public_google_url))){st.textContent='Pour afficher les avis, renseigne une note, le nombre d’avis et un lien Google valide.';return;}
         patch.google_rating=score;patch.google_review_count=count;
         patch.public_details_enabled=el('publicProfileConsent').checked;
         const portrait=el('publicProfilePortrait').files[0],removePhoto=el('publicProfileRemove').checked;
