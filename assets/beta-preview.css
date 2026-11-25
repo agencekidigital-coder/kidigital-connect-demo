@@ -9,3 +9,15 @@
 @media(max-width:600px){.naitea-beta-notice{padding:10px 14px;font-size:12px;text-align:left}.naitea-beta-lock-badge{font-size:10px}.naitea-beta-status{bottom:90px}}
 @media(max-width:760px){.naitea-beta-notice{top:72px}}
 @media(max-width:560px){body:not(.v8-parent-mode) .naitea-beta-notice{top:122px}}
+
+/* Private workshop cards and crop controls */
+.naitea-private-eventcard{overflow:hidden}
+.naitea-private-eventcard .naitea-private-card-cover{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:inherit;border-bottom-left-radius:0!important;border-bottom-right-radius:0!important;margin:0}
+.naitea-private-eventcard .naitea-private-card-cover[hidden],.naitea-cover-crop[hidden],#naiteaCropExisting[hidden],#naiteaCoverPreview[hidden]{display:none!important}
+#naiteaPrivateWorkshops>.events{margin-top:26px}
+#naiteaPrivateWorkshops>.btn{margin-right:8px}
+#naiteaCoverPreview{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;margin:8px 0 12px}
+.naitea-cover-crop{padding:16px;margin:12px 0;border:1px solid #e7d6c8;border-radius:12px}
+.naitea-cover-crop label{display:block;margin:10px 0 4px}
+.naitea-cover-crop input[type=range]{width:100%;accent-color:#590425;padding:0}
+#naiteaCropExisting{margin-top:8px}

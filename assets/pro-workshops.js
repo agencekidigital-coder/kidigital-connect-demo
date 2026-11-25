@@ -32,16 +32,24 @@ function dimensions(width,height){
   const scale=Math.min(1,1600/Math.max(width,height));
   return [Math.max(1,Math.round(width*scale)),Math.max(1,Math.round(height*scale))];
 }
-async function compressCover(file){
+function cropRect(width,height,zoom=1,x=50,y=50){
+  dimensions(width,height);
+  const clamp=(v,min,max)=>Math.max(min,Math.min(max,Number.isFinite(Number(v))?Number(v):min));
+  const z=clamp(zoom,1,3), ratio=16/9;
+  const w=Math.min(width,height*ratio)/z,h=w/ratio;
+  return [(width-w)*clamp(x,0,100)/100,(height-h)*clamp(y,0,100)/100,w,h];
+}
+async function compressCover(file,crop=null){
   if(!file||!['image/jpeg','image/png','image/webp'].includes(file.type)||!file.size||file.size>INPUT_LIMIT)throw Error('Choisis une image JPG, PNG ou WebP de 12 Mo maximum.');
   const src=URL.createObjectURL(file);
   try{
     const image=new Image();
     await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=()=>reject(Error('Image illisible.'));image.src=src;});
-    const [width,height]=dimensions(image.naturalWidth,image.naturalHeight);
+    const source=crop?cropRect(image.naturalWidth,image.naturalHeight,crop.zoom,crop.x,crop.y):[0,0,image.naturalWidth,image.naturalHeight];
+    const [width,height]=dimensions(source[2],source[3]);
     const canvas=document.createElement('canvas');canvas.width=width;canvas.height=height;
     const ctx=canvas.getContext('2d');if(!ctx)throw Error('Compression indisponible.');
-    ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(image,0,0,width,height);
+    ctx.fillStyle='#fff';ctx.fillRect(0,0,width,height);ctx.drawImage(image,...source,0,0,width,height);
     for(const quality of [.86,.72,.58,.42]){
       const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
       if(blob?.type==='image/jpeg'&&blob.size&&blob.size<=COVER_LIMIT)return blob;
@@ -142,7 +150,8 @@ function create(d){
     form.id='naiteaPrivateWorkshopForm';
     revokePreview();
     const cover=form.querySelector('#v5CoverFile');const oldCover=cover?.closest('.field');if(!oldCover)throw Error('Champ photo introuvable.');
-    oldCover.innerHTML='<label for="naiteaCoverFile">Photo de couverture</label><img id="naiteaCoverPreview" class="v6-cover" alt="Aperçu de la photo de couverture" hidden><input id="naiteaCoverFile" type="file" accept="image/jpeg,image/png,image/webp"><p class="fine">JPG, PNG ou WebP (12 Mo maximum). Compression automatique avant stockage privé.</p><label class="checkline"><input type="checkbox" id="naiteaCoverRemove"> Retirer la photo actuelle</label><p class="fine" id="naiteaCoverStatus" role="status"></p>';
+    oldCover.innerHTML='<label for="naiteaCoverFile">Photo de couverture</label><img id="naiteaCoverPreview" class="v6-cover" alt="Aperçu de la photo de couverture" hidden><input id="naiteaCoverFile" type="file" accept="image/jpeg,image/png,image/webp"><button type="button" id="naiteaCropExisting" class="btn secondary small" hidden>Recadrer la photo actuelle</button><p class="fine">JPG, PNG ou WebP (12 Mo maximum). Compression automatique avant stockage privé.</p><div id="naiteaCropControls" class="naitea-cover-crop" hidden><p class="fine">Recadre ta photo au format de la carte (16:9).</p><label for="naiteaCropZoom">Zoom</label><input id="naiteaCropZoom" type="range" min="1" max="3" step="0.05" value="1"><label for="naiteaCropX">Position horizontale</label><input id="naiteaCropX" type="range" min="0" max="100" value="50"><label for="naiteaCropY">Position verticale</label><input id="naiteaCropY" type="range" min="0" max="100" value="50"><button type="button" class="btn secondary small" id="naiteaCropReset">Réinitialiser le cadrage</button></div><label class="checkline"><input type="checkbox" id="naiteaCoverRemove"> Retirer la photo actuelle</label><p class="fine" id="naiteaCoverStatus" role="status"></p>';
+    oldCover.querySelector('#naiteaCropExisting').hidden=!coversAvailable||!w||!knownCovers.has(w.id);
     const remove=oldCover.querySelector('#naiteaCoverRemove');remove.closest('label').hidden=!w||!knownCovers.has(w.id);
     if(!coversAvailable){oldCover.querySelector('#naiteaCoverFile').disabled=true;remove.disabled=true;oldCover.querySelector('#naiteaCoverStatus').textContent='Stockage photo indisponible. Actualise la liste pour réessayer.';}
     for(const node of form.querySelectorAll('[data-v6],[data-action]:not([data-action="close-modal"])'))node.remove();
@@ -156,27 +165,56 @@ function create(d){
     const status=text('p','');status.setAttribute('role','status');active.append(status);
     const fileInput=active.querySelector('#naiteaCoverFile'), removeInput=active.querySelector('#naiteaCoverRemove'), preview=active.querySelector('#naiteaCoverPreview'), coverStatus=active.querySelector('#naiteaCoverStatus');
     attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);
-    let selected=null,preparing=false,selection=0;
-    fileInput.addEventListener('change',async()=>{
-      const number=++selection, version=revision;
-      revokePreview();selected=null;removeInput.checked=false;preview.hidden=true;preview.removeAttribute('src');
-      const file=fileInput.files[0];if(!file){preparing=false;coverStatus.textContent='';attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);return;}
-      preparing=true;coverStatus.textContent='Préparation de la photo…';
+    let selected=null,preparing=false,selection=0,sourceFile=null;
+    const controls=active.querySelector('#naiteaCropControls'),zoom=active.querySelector('#naiteaCropZoom'),x=active.querySelector('#naiteaCropX'),y=active.querySelector('#naiteaCropY');
+    const resetValues=()=>{zoom.value='1';x.value=y.value='50';};
+    function restore(){
+      selected=null;sourceFile=null;controls.hidden=true;fileInput.value='';revokePreview();preview.hidden=true;preview.removeAttribute('src');
+      attachCover(w,preview,()=>!sourceFile&&!removeInput.checked);
+    }
+    async function recrop(){
+      if(!sourceFile)return;
+      const number=++selection, version=revision,file=sourceFile;
+      selected=null;preparing=true;coverStatus.textContent='Préparation du cadrage…';
       try{
-        const blob=await compressCover(file);
+        const blob=await compressCover(file,{zoom:Number(zoom.value),x:Number(x.value),y:Number(y.value)});
         if(version!==revision||number!==selection||!active.isConnected)return;
-        selected=blob;previewUrl=URL.createObjectURL(blob);preview.src=previewUrl;preview.hidden=false;coverStatus.textContent='Photo prête à être enregistrée.';
-      }catch(error){if(version===revision&&number===selection&&active.isConnected){fileInput.value='';coverStatus.textContent=error.message;attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);}}
+        selected=blob;revokePreview();previewUrl=URL.createObjectURL(blob);preview.src=previewUrl;preview.hidden=false;coverStatus.textContent='Cadrage prêt à être enregistré.';
+      }catch(error){if(version===revision&&number===selection&&active.isConnected){restore();coverStatus.textContent=error.message;}}
       finally{if(number===selection)preparing=false;}
+    }
+    fileInput.addEventListener('change',()=>{
+      selection++;preparing=false;selected=null;sourceFile=fileInput.files[0]||null;removeInput.checked=false;
+      resetValues();revokePreview();preview.hidden=true;preview.removeAttribute('src');controls.hidden=!sourceFile;
+      if(sourceFile)recrop();else{restore();coverStatus.textContent='';}
     });
+    const existing=active.querySelector('#naiteaCropExisting');
+    existing.addEventListener('click',async()=>{
+      if(!w||busy||preparing||!owner)return;
+      const number=++selection,version=revision;
+      preparing=true;existing.disabled=true;coverStatus.textContent='Chargement de la photo actuelle…';
+      try{
+        const {data,error}=await client.storage.from(COVER_BUCKET).download(coverPath(owner,w.id));
+        if(version!==revision||number!==selection||!active.isConnected)return;
+        if(error||!data||data.type!=='image/jpeg'||data.size>COVER_LIMIT)throw Error('Impossible de charger la photo.');
+        sourceFile=data;fileInput.value='';removeInput.checked=false;resetValues();controls.hidden=false;
+        await recrop();
+      }catch(error){if(version===revision&&number===selection&&active.isConnected)coverStatus.textContent=error.message;}
+      finally{if(number===selection)preparing=false;if(active.isConnected)existing.disabled=false;}
+    });
+    for(const input of [zoom,x,y]){
+      input.addEventListener('input',()=>{selected=null;coverStatus.textContent='Relâche le curseur pour actualiser l’aperçu.';});
+      input.addEventListener('change',recrop);
+    }
+    active.querySelector('#naiteaCropReset').addEventListener('click',()=>{resetValues();recrop();});
     removeInput.addEventListener('change',()=>{
-      if(removeInput.checked){selection++;preparing=false;selected=null;fileInput.value='';revokePreview();preview.hidden=true;preview.removeAttribute('src');coverStatus.textContent='La photo sera retirée à l’enregistrement.';}
-      else {coverStatus.textContent='';attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);}
+      if(removeInput.checked){selection++;preparing=false;restore();preview.hidden=true;preview.removeAttribute('src');coverStatus.textContent='La photo sera retirée à l’enregistrement.';}
+      else{coverStatus.textContent='';attachCover(w,preview,()=>!sourceFile&&!removeInput.checked);}
     });
     active.addEventListener('submit',async event=>{
       event.preventDefault();event.stopImmediatePropagation();if(busy||uncertain||!ready||!d.isPage())return;
       if(preparing){status.textContent='La photo est en cours de préparation.';return;}
-      if(fileInput.files.length&&!selected){status.textContent='La photo n’est pas prête.';return;}
+      if(sourceFile&&!selected){status.textContent='La photo n’est pas prête.';return;}
       const photo=selected, removePhoto=removeInput.checked;
       let payload;try{payload=toPayload(active,w);}catch(error){status.textContent=error.message;return;}
       const version=revision;busy=true;
@@ -213,14 +251,14 @@ function create(d){
   }
   function button(label,action){const b=text('button',label);b.type='button';b.className='btn secondary';b.addEventListener('click',action);return b;}
   function workshopCard(w){
-    const card=document.createElement('article');card.className='card eventcard';
+    const card=document.createElement('article');card.className='card eventcard naitea-private-eventcard';
     const content=document.createElement('div');content.className='eventcontent';
     const headline=text('h3',w.title);headline.className='eventtitle';
     const date=w.starts_at?new Date(w.starts_at).toLocaleString('fr-FR'):'Date à préciser';
     content.append(headline,text('p',[w.category,date,w.capacity+' places',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})].filter(Boolean).join(' · ')),text('p',w.status==='draft'?'Brouillon privé':w.status));
     if(w.status==='draft'){const edit=button('Modifier',()=>open(w));edit.disabled=!ready||busy||uncertain;content.append(edit);}
     if(knownCovers.has(w.id)){
-      const img=document.createElement('img');img.className='v6-cover';img.alt='Photo de couverture de '+w.title;img.hidden=true;
+      const img=document.createElement('img');img.className='v6-cover naitea-private-card-cover';img.alt='Photo de couverture de '+w.title;img.hidden=true;
       card.append(img);attachCover(w,img);
     }
     card.append(content);return card;
@@ -326,7 +364,7 @@ function create(d){
   window.addEventListener('pageshow',event=>{if(event.persisted&&client)load();});
   return {start,decorate};
 }
-const api={create,calendarDates,upcomingRows,rowsOnDate,coverPath,dimensions};
+const api={create,calendarDates,upcomingRows,rowsOnDate,coverPath,dimensions,cropRect};
 if(typeof module==='object'&&module.exports)module.exports=api;
 else root.NaiteaProWorkshops=api;
 })(globalThis);

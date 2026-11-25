@@ -14,3 +14,12 @@ test('compression dimensions preserve proportions and never enlarge',()=>{
  assert.throws(()=>dimensions(10000,10000));
  assert.throws(()=>dimensions(0,1));
 });
+
+const {cropRect}=require('../assets/pro-workshops.js');
+test('16:9 crop respects zoom and positioning',()=>{
+ assert.deepEqual(cropRect(1600,900),[0,0,1600,900]);
+ assert.deepEqual(cropRect(1600,1600,1,50,0),[0,0,1600,900]);
+ assert.deepEqual(cropRect(1600,1600,1,50,100),[0,700,1600,900]);
+ assert.deepEqual(cropRect(1600,900,2,100,100),[800,450,800,450]);
+});
+test('baby reflexology categories are selectable',()=>{const {categories}=require('../assets/platform-tools.js');for(const label of ['Réflexologie plantaire bébé','Réflexologie émotionnelle bébé'])assert(categories['Premiers mois avec bébé'].includes(label));});

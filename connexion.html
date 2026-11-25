@@ -42,6 +42,7 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 #forgotPanel h2{font:600 21px 'Lora',Georgia,serif}
 .footer{text-align:center;margin-top:22px;font-size:12px}
 .footer a{color:var(--prune)}
+ .password-field{position:relative}.password-field input{padding-right:52px!important}.password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:40px;height:40px;background:transparent;border:0;border-radius:8px;color:var(--prune);cursor:pointer}.password-toggle:focus-visible{outline:2px solid var(--rose)}.password-toggle svg path[hidden]{display:none}
 </style>
 <link rel="stylesheet" href="/assets/berceau.css">
 </head>
@@ -62,7 +63,7 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <label for="email">Adresse e-mail</label>
 <input id="email" name="email" type="email" autocomplete="email" required>
 <label for="password">Mot de passe</label>
-<input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required>
+<div class="password-field"><input id="password" name="password" type="password" autocomplete="current-password" minlength="12" required><button type="button" class="password-toggle" data-password-toggle="password" aria-controls="password" aria-pressed="false" aria-label="Afficher le mot de passe"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path class="password-slash" d="m3 3 18 18" hidden/></svg></button></div>
 <button id="submitBtn" class="primary" type="submit" disabled>Chargement…</button>
 </form>
 <section id="confirmationPanel" hidden><h2>Confirmez votre adresse email.</h2><p class="intro">Ouvrez le message reçu à <strong id="confirmationEmail"></strong>, puis cliquez sur le lien de confirmation.</p><p><a class="secondary" id="confirmedLogin" href="/connexion.html?mode=login">J’ai confirmé mon email</a></p><p><a class="textlink" href="/pro">Explorer la démonstration en attendant</a></p></section>
@@ -83,9 +84,9 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 <p class="intro">Ton lien est valide. Choisis un nouveau mot de passe de 12 caractères minimum.</p>
 <form id="newPasswordForm">
 <label for="newPassword">Nouveau mot de passe</label>
-<input id="newPassword" type="password" autocomplete="new-password" minlength="12" required>
+<div class="password-field"><input id="newPassword" type="password" autocomplete="new-password" minlength="12" required><button type="button" class="password-toggle" data-password-toggle="newPassword" aria-controls="newPassword" aria-pressed="false" aria-label="Afficher le mot de passe"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path class="password-slash" d="m3 3 18 18" hidden/></svg></button></div>
 <label for="confirmPassword">Confirmer le nouveau mot de passe</label>
-<input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" required>
+<div class="password-field"><input id="confirmPassword" type="password" autocomplete="new-password" minlength="12" required><button type="button" class="password-toggle" data-password-toggle="confirmPassword" aria-controls="confirmPassword" aria-pressed="false" aria-label="Afficher le mot de passe"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path class="password-slash" d="m3 3 18 18" hidden/></svg></button></div>
 <button id="savePasswordBtn" type="submit" class="primary">Enregistrer mon nouveau mot de passe</button>
 </form>
 </section>
@@ -117,7 +118,14 @@ function status(message, type) {
   $('status').textContent = message;
   $('status').className = 'status' + (type ? ' ' + type : '');
 }
+function setPasswordVisible(button,visible){
+  const input=$(button.dataset.passwordToggle);input.type=visible?'text':'password';button.setAttribute('aria-pressed',String(visible));button.setAttribute('aria-label',visible?'Masquer le mot de passe':'Afficher le mot de passe');button.querySelector('.password-slash').toggleAttribute('hidden',!visible);
+}
+function hidePasswords(){document.querySelectorAll('[data-password-toggle]').forEach(button=>setPasswordVisible(button,false));}
+document.querySelectorAll('[data-password-toggle]').forEach(button=>button.addEventListener('click',()=>setPasswordVisible(button,button.getAttribute('aria-pressed')!=='true')));
+window.addEventListener('pagehide',hidePasswords);
 function selectMode(next) {
+  hidePasswords();
   mode = next;
   document.querySelector('#authPanel h1').textContent = mode === 'signup' ? 'Créer mon compte professionnel' : 'Connexion';
   document.querySelector('#authPanel .intro').textContent = mode === 'signup' ? 'Utilisez votre email professionnel pour découvrir Naïtea avec un compte de test.' : 'Retrouvez votre espace professionnel Naïtea.';
@@ -227,6 +235,7 @@ $('newPasswordForm').addEventListener('submit', async (event) => {
   event.preventDefault();
   if (!client || !recoveryMode) return status('Ouvre d’abord le lien de réinitialisation reçu par e-mail.', 'error');
   const password = $('newPassword').value;
+  hidePasswords();
   if (password !== $('confirmPassword').value) return status('Les deux mots de passe ne correspondent pas.', 'error');
   const btn = $('savePasswordBtn');
   btn.disabled = true;
@@ -254,6 +263,7 @@ $('authForm').addEventListener('submit', async (event) => {
   if (!client) return;
   const email = $('email').value.trim();
   const password = $('password').value;
+  hidePasswords();
   const fullName = $('fullName').value.trim();
   $('submitBtn').disabled = true;
   try {
