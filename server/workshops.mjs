@@ -66,11 +66,18 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
     if(url.search)return fail(400,'INVALID_REQUEST');
     const token=/^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i.exec(request.headers.get('authorization')||'');
     if(!token||token[1].length>8192)return fail(401,'AUTH_REQUIRED');
-    let payload,input;
+    let payload,input,transition=false;
     if(method!=='GET'){
       if(request.headers.get('origin')!==url.origin)return fail(403,'ORIGIN_FORBIDDEN');
       if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return fail(415,'JSON_REQUIRED');
-      try {input=await bounded(request.body,32768);payload=validate(input,method);}catch{return fail(400,'INVALID_WORKSHOP');}
+      try {
+        input=await bounded(request.body,32768);
+        if(method==='PATCH'&&input&&Object.hasOwn(input,'status')){
+          if(env.NAITEA_PUBLICATION_ENABLED!=='true')return fail(423,'PUBLICATION_DISABLED');
+          if(Object.keys(input).length!==2||typeof input.id!=='string'||!UUID.test(input.id)||!['draft','published'].includes(input.status))throw Error('transition');
+          transition=true;payload={status:input.status};
+        }else payload=validate(input,method);
+      }catch{return fail(400,'INVALID_WORKSHOP');}
     }
     const headers={apikey:config.publishableKey,Authorization:'Bearer '+token[1],Accept:'application/json'};
     const requestProvider=(url,options={})=>fetchImpl(url,{redirect:'manual',signal:AbortSignal.timeout(10000),...options});
@@ -90,14 +97,14 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
       if(method==='PATCH'){
         endpoint.searchParams.set('professional_id','eq.'+owner);
         endpoint.searchParams.set('id','eq.'+input.id);
-        endpoint.searchParams.set('status','eq.draft');
+        endpoint.searchParams.set('status',transition&&input.status==='draft'?'eq.published':'eq.draft');
       }
       const response=await requestProvider(endpoint.href,{method,headers:method==='GET'?headers:{...headers,'Content-Type':'application/json',Prefer:'return=representation'},...(payload?{body:JSON.stringify(payload)}:{})});
-      if(!response.ok){response.body?.cancel().catch(()=>{});return fail(response.status===401?401:response.status===403?403:503,'WORKSHOPS_UNAVAILABLE');}
+      if(!response.ok){response.body?.cancel().catch(()=>{});if(transition&&[400,409].includes(response.status))return fail(400,'WORKSHOP_NOT_PUBLISHABLE');return fail(response.status===401?401:response.status===403?403:503,'WORKSHOPS_UNAVAILABLE');}
       const rows=await bounded(response.body,3*1024*1024);
       if(!Array.isArray(rows)||rows.some(r=>typeof r.id!=='string'||!UUID.test(r.id)||r.professional_id!==owner))return fail(503,'INVALID_RESPONSE');
       if(method!=='GET'&&rows.length!==1)return fail(rows.length===0?404:503,'WORKSHOP_NOT_SAVED');
-      if(method==='PATCH'&&rows[0].id.toLowerCase()!==input.id.toLowerCase())return fail(503,'INVALID_RESPONSE');
+      if(method==='PATCH'&&(rows[0].id.toLowerCase()!==input.id.toLowerCase()||transition&&rows[0].status!==input.status))return fail(503,'INVALID_RESPONSE');
       const safe=rows.slice(0,100).map(row=>Object.fromEntries(FIELDS.split(',').filter(key=>key!=='professional_id').map(key=>[key,row[key]??null])));
       return reply(method==='POST'?201:200,{workshops:safe,truncated:rows.length>100});
     }catch{return fail(503,'WORKSHOPS_UNAVAILABLE');}

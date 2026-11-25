@@ -43,6 +43,12 @@ function build() {
     fs.writeFileSync(path.join(OUTPUT, file), html); files.push(file);
   }
   let pro = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace('</head>', extra + '</head>');
+  // Reuse the original Codex base stylesheet without its demo application scripts.
+  const originalHead=pro.slice(0,pro.indexOf('</head>'));
+  const baseStyles=[...originalHead.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map(match=>match[1]).join('\n');
+  if(!baseStyles.includes('.card'))throw Error('Style original indisponible');
+  fs.writeFileSync(path.join(OUTPUT,'assets','public-workshop-base.css'),baseStyles);
+  files.push('assets/public-workshop-base.css');
   const anchor = 'naiteaLoadAuth();';
   if(pro.split(anchor).length!==2)throw Error('Point de raccordement ateliers introuvable');
   pro=pro.replace(anchor, `if (typeof NaiteaProWorkshops !== 'undefined' && /^\\/pro\\/?$/.test(location.pathname)) {

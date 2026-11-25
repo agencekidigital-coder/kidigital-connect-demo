@@ -1,5 +1,6 @@
 import publicConfig from '../server/public-config.cjs';
 import { createWorkshopsHandler } from '../server/workshops.mjs';
+import { createPublicWorkshopHandler } from '../server/public-workshop.mjs';
 import { createAccountHandler } from '../server/account-profile.mjs';
 import fontHandler from '../api/font.js';
 import videoSizes from '../dist/video-sizes.json' with { type: 'json' };
@@ -15,6 +16,7 @@ const json = (body, status = 200, headers = {}) => new Response(JSON.stringify(b
 const unavailable = () => json({ error: 'Bientôt disponible. Cette fonction est désactivée dans cet aperçu.', code: 'FEATURE_UNAVAILABLE' }, 423);
 const accountHandler = createAccountHandler();
 const workshopsHandler = createWorkshopsHandler();
+const publicWorkshopHandler = createPublicWorkshopHandler();
 
 function guard(response, request, { embed = false, auth = false, account = false } = {}) {
   const headers = new Headers(response.headers);
@@ -25,6 +27,10 @@ function guard(response, request, { embed = false, auth = false, account = false
   // Compatible with the existing inline editor. This is not a complete XSS policy.
   headers.set('Content-Security-Policy', "base-uri 'self'; object-src 'none'" + (embed ? '' : "; frame-ancestors " + (auth ? "'none'" : "'self'")));
   if (account) headers.set('Content-Security-Policy', "default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; font-src 'self'; img-src 'self'; connect-src 'self' https://*.supabase.co");
+  if (new URL(request.url).pathname.startsWith('/atelier/')) {
+    headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
+    headers.set('Referrer-Policy','no-referrer');
+  }
   if (auth) headers.set('X-Frame-Options', 'DENY');
   if (headers.get('Content-Type')?.includes('text/html')) headers.set('Cache-Control', 'no-store');
   return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, statusText: response.statusText, headers });
@@ -135,8 +141,10 @@ async function route(request, env, ctx, pathname) {
   if (!pathname) return json({ error: 'Adresse invalide.' }, 400);
   if (pathname === '/api/account') return accountHandler(request, env);
   if (pathname === '/api/workshops') return workshopsHandler(request, env);
+  const publicMatch=/^\/atelier\/([a-fA-F0-9-]{36})(\/photo)?$/.exec(pathname);
+  if(publicMatch)return publicWorkshopHandler(request,env,publicMatch[1],!!publicMatch[2]);
   if (!['GET', 'HEAD'].includes(request.method)) return json({ error: 'Méthode non autorisée.' }, 405, { Allow: 'GET, HEAD' });
-  if (pathname === '/api/deployment') return json({ ...capabilities, workshopPersistence: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), accountProfile: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_PROFILE_ENABLED === 'true' && !!publicConfig.readPublicConfig(env) });
+  if (pathname === '/api/deployment') return json({ ...capabilities, workshopPublication: env.NAITEA_PUBLICATION_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && env.NAITEA_AUTH_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), workshopPersistence: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), accountProfile: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_PROFILE_ENABLED === 'true' && !!publicConfig.readPublicConfig(env) });
   if (pathname === '/api/public-config') {
     const config = env.NAITEA_AUTH_ENABLED === 'true' ? publicConfig.readPublicConfig(env) : null;
     return config ? json(config) : json({ error: 'La connexion sera ouverte après validation de sa configuration.' }, 503);

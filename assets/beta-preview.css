@@ -21,3 +21,5 @@
 .naitea-cover-crop label{display:block;margin:10px 0 4px}
 .naitea-cover-crop input[type=range]{width:100%;accent-color:#590425;padding:0}
 #naiteaCropExisting{margin-top:8px}
+
+#naiteaPrivatePublicPreviewCover{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:14px 14px 0 0}#naiteaPrivatePublicPreviewCover[hidden],#naiteaPublishedShare[hidden]{display:none!important}.naitea-public-description{white-space:pre-wrap;overflow-wrap:anywhere}

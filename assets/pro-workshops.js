@@ -16,10 +16,10 @@ function calendarDates(value,view){
   return Array.from({length:count},(_,i)=>{const d=new Date(date);d.setDate(d.getDate()+i);return localDate(d).slice(0,10);});
 }
 function upcomingRows(rows,now=Date.now()){
-  return rows.filter(w=>w.status==='draft'&&w.starts_at&&Number.isFinite(Date.parse(w.starts_at))&&Date.parse(w.starts_at)>=now).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||a.id.localeCompare(b.id));
+  return rows.filter(w=>['draft','published'].includes(w.status)&&w.starts_at&&Number.isFinite(Date.parse(w.starts_at))&&Date.parse(w.starts_at)>=now).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||a.id.localeCompare(b.id));
 }
 function rowsOnDate(rows,date){
-  return rows.filter(w=>w.status==='draft'&&w.starts_at&&localDate(w.starts_at).slice(0,10)===date).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||a.id.localeCompare(b.id));
+  return rows.filter(w=>['draft','published'].includes(w.status)&&w.starts_at&&localDate(w.starts_at).slice(0,10)===date).sort((a,b)=>Date.parse(a.starts_at)-Date.parse(b.starts_at)||a.id.localeCompare(b.id));
 }
 const COVER_BUCKET='naitea-workshop-covers', COVER_LIMIT=2097152, INPUT_LIMIT=12*1024*1024;
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -58,7 +58,7 @@ async function compressCover(file,crop=null){
   }finally{URL.revokeObjectURL(src);}
 }
 function create(d){
-  let enabled=false, owner=null, client=null, revision=0, rows=[], ready=false, busy=false, truncated=false, message='', observed=false, uncertain=false, controller=null, timer=null;
+  let enabled=false, publication=false, owner=null, client=null, revision=0, rows=[], ready=false, busy=false, truncated=false, message='', observed=false, uncertain=false, controller=null, timer=null;
   const knownCovers=new Set(), coverUrls=new Map(), downloads=new Map();
   let coversAvailable=false, previewUrl='';
   const el=id=>document.getElementById(id);
@@ -93,7 +93,7 @@ function create(d){
     getCover(w).then(url=>{if(url&&version===revision&&img.isConnected&&d.isPage()&&stillCurrent()){img.src=url;img.hidden=false;}});
   }
   const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
-  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm'))d.closeModal();}
+  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm')||el('naiteaPrivatePublicPreviewCover')||el('naiteaPublishedLink'))d.closeModal();}
   function clear(){revision++;controller?.abort();owner=null;rows=[];ready=false;busy=false;uncertain=false;truncated=false;resetCovers();closePrivate();}
   function invalidate(){clear();message='Vérification du compte…';if(d.isPage())decorate();}
   async function api(method,payload,version){
@@ -117,7 +117,7 @@ function create(d){
       if(error||!data?.user){message='Connecte-toi pour retrouver tes ateliers privés.';return;}
       owner=data.user.id;
       const result=await api('GET',null,version);if(!result)return;
-      rows=result.workshops;truncated=result.truncated;ready=true;message='Tes brouillons sont enregistrés dans ton compte. Ils ne sont pas publics.';
+      rows=result.workshops;truncated=result.truncated;ready=true;message='Tes ateliers sont enregistrés dans ton compte. Seuls les ateliers publiés sont accessibles aux familles.';
       try{await listCovers(version);}catch{if(version===revision)message+=' Photos indisponibles : actualise pour réessayer.';}
     }catch{if(version===revision)message='Impossible de charger les ateliers. Réessaie.';}
     finally{if(version===revision&&d.isPage())decorate();}
@@ -145,6 +145,7 @@ function create(d){
   }
   function open(w){
     if(!ready||busy||uncertain||!owner||!d.isPage())return;
+    if(w&&w.status!=='draft'){previewWorkshop(w);return;}
     const container=document.createElement('div');container.innerHTML=d.formHtml(view(w));
     const form=container.querySelector('form');
     form.id='naiteaPrivateWorkshopForm';
@@ -250,13 +251,68 @@ function create(d){
     });
   }
   function button(label,action){const b=text('button',label);b.type='button';b.className='btn secondary';b.addEventListener('click',action);return b;}
+  function shareURL(w){return new URL('/atelier/'+w.id,location.origin).href;}
+  function complete(w){return !!(w.starts_at&&w.category&&w.timezone_name&&w.target_audiences?.length&&((w.modality==='venue'&&w.venue_name&&w.venue_street&&w.venue_postal_code&&w.venue_city)||(w.modality==='video'&&w.video_platform)));}
+  function previewWorkshop(w){
+    if(!ready||busy||!owner||!d.isPage())return;
+    revokePreview();
+    const root=document.createElement('div');root.className='v8-public-event';
+    const img=document.createElement('img');img.id='naiteaPrivatePublicPreviewCover';img.hidden=true;img.alt='Photo de couverture de '+w.title;root.append(img);
+    const body=document.createElement('div');body.className='card';
+    const tag=text('span',w.category||'Atelier');tag.className='tag';
+    let when='Date à préciser';if(w.starts_at){try{when=new Intl.DateTimeFormat('fr-FR',{dateStyle:'full',timeStyle:'short',timeZone:w.timezone_name||'Europe/Paris'}).format(new Date(w.starts_at));}catch{}}
+    const location=w.modality==='video'?'À distance · '+(w.video_platform||'Visioconférence'):[w.venue_name,w.venue_street,[w.venue_postal_code,w.venue_city].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+    const desc=text('p',w.description||'');desc.className='naitea-public-description';
+    const time=text('p',[when,w.duration_label].filter(Boolean).join(' · '));
+    body.append(tag,text('h1',w.title),desc,time,text('p',location),text('p',(w.target_audiences||[]).join(', ')),text('p',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+' / duo · '+w.capacity+' places au total'));
+    if(w.child_age_unit&&w.child_age_min!=null&&w.child_age_max!=null)body.append(text('p','De '+w.child_age_min+' à '+w.child_age_max+' '+(w.child_age_unit==='years'?'ans':'mois')));
+    const reserve=text('button','Réservation bientôt disponible');reserve.className='btn';reserve.disabled=true;body.append(reserve);root.append(body);
+    d.showModal('Aperçu côté familles','Aperçu privé — le nom professionnel sera affiché sur la page publiée s’il est renseigné.',root.outerHTML);
+    const active=el('naiteaPrivatePublicPreviewCover');if(active)attachCover(w,active);
+  }
+  async function changeStatus(w,status){
+    if(!publication||!ready||busy||uncertain||!owner||!d.isPage())return;
+    if(status==='published'&&!complete(w)){message='Complète la date, la catégorie, le public et le lieu ou la visioconférence avant publication.';decorate();return;}
+    if(!window.confirm(status==='published'?'Publier cet atelier ? Son titre, description, adresse de l’atelier, nom professionnel et photo seront accessibles sans compte. N’utilise aucune donnée privée de famille.':'Dépublier cet atelier ? Son lien ne sera plus accessible aux familles.'))return;
+    const version=revision;busy=true;decorate();
+    try{
+      const result=await api('PATCH',{id:w.id,status},version);if(!result)return;
+      const saved=result.workshops[0];if(!saved||saved.id!==w.id||saved.status!==status)throw Error('Publication non confirmée');
+      rows=[saved,...rows.filter(r=>r.id!==saved.id)];message=status==='published'?'Atelier publié ! Son lien est prêt à être partagé.':'Atelier dépublié. Son lien public est désactivé.';
+    }catch{if(version===revision){uncertain=true;message='Changement non confirmé. Actualise pour vérifier le statut avant de réessayer.';}}
+    finally{if(version===revision){busy=false;decorate();}}
+  }
+  function shareWorkshop(w){
+    if(!publication||w.status!=='published'||!ready||busy||!owner)return;
+    const url=shareURL(w), box=document.createElement('div');
+    const label=text('label','Lien public de ton atelier');label.htmlFor='naiteaPublishedLink';
+    const field=document.createElement('input');field.id='naiteaPublishedLink';field.value=url;field.readOnly=true;field.setAttribute('value',url);
+    const copy=text('button','Copier le lien');copy.id='naiteaPublishedCopy';copy.className='btn secondary';copy.type='button';
+    const link=text('a','Voir la page publique');link.href=url;link.target='_blank';link.rel='noopener noreferrer';link.className='btn secondary';
+    const share=text('button','Partager');share.id='naiteaPublishedShare';share.type='button';share.className='btn secondary';share.hidden=typeof navigator.share!=='function';
+    const status=text('p','');status.id='naiteaPublishedStatus';status.setAttribute('role','status');
+    const actions=document.createElement('div');actions.className='eventactions';actions.append(copy,link,share);
+    box.append(label,field,actions,status,text('p','Les réservations et les paiements restent désactivés.'));
+    d.showModal('Partager cet atelier','Copie le lien pour ton site, tes réseaux sociaux ou tes messages.',box.outerHTML);
+    el('naiteaPublishedCopy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(url);el('naiteaPublishedStatus').textContent='Lien copié !';}catch{el('naiteaPublishedLink').select();el('naiteaPublishedStatus').textContent='Sélectionne et copie le lien.';}});
+    el('naiteaPublishedShare').addEventListener('click',async()=>{try{await navigator.share({title:w.title,url});}catch{}});
+  }
   function workshopCard(w){
     const card=document.createElement('article');card.className='card eventcard naitea-private-eventcard';
     const content=document.createElement('div');content.className='eventcontent';
     const headline=text('h3',w.title);headline.className='eventtitle';
     const date=w.starts_at?new Date(w.starts_at).toLocaleString('fr-FR'):'Date à préciser';
-    content.append(headline,text('p',[w.category,date,w.capacity+' places',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})].filter(Boolean).join(' · ')),text('p',w.status==='draft'?'Brouillon privé':w.status));
-    if(w.status==='draft'){const edit=button('Modifier',()=>open(w));edit.disabled=!ready||busy||uncertain;content.append(edit);}
+    content.append(headline,text('p',[w.category,date,w.capacity+' places',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})].filter(Boolean).join(' · ')),text('p',w.status==='draft'?'Brouillon privé':w.status==='published'?'Publié':'Annulé'));
+    const actions=document.createElement('div');actions.className='eventactions';
+    if(w.status==='draft'){const edit=button('Modifier',()=>open(w));edit.disabled=!ready||busy||uncertain;actions.append(edit);}
+    if(publication&&['draft','published'].includes(w.status)){
+      const preview=button('Aperçu',()=>previewWorkshop(w));preview.disabled=!ready||busy;actions.append(preview);
+      const publish=button(w.status==='draft'?'Publier':'Dépublier',()=>changeStatus(w,w.status==='draft'?'published':'draft'));publish.disabled=!ready||busy||uncertain;
+      if(w.status==='draft')publish.className='btn';
+      actions.append(publish);
+      if(w.status==='published'){const share=button('Partager',()=>shareWorkshop(w));share.disabled=!ready||busy||uncertain;actions.append(share);content.append(text('p','Pour modifier un atelier publié, repasse-le en brouillon.'));}
+    }
+    content.append(actions);
     if(knownCovers.has(w.id)){
       const img=document.createElement('img');img.className='v6-cover naitea-private-card-cover';img.alt='Photo de couverture de '+w.title;img.hidden=true;
       card.append(img);attachCover(w,img);
@@ -289,20 +345,20 @@ function create(d){
         const note=text('span',detail);note.className='fine';
         node.append(title,number,note);return node;
       };
-      metrics.replaceChildren(metric('Ateliers à venir',ready?(truncated?'≥ ':'')+upcoming.length:'—',ready?'Brouillons privés':'Non chargé',true),metric('Inscriptions','—','Bientôt disponible',false),metric('Contacts','—','Bientôt disponible',false),metric('Abonnements newsletter','—','Bientôt disponible',false));
+      metrics.replaceChildren(metric('Ateliers à venir',ready?(truncated?'≥ ':'')+upcoming.length:'—',ready?'Brouillons et ateliers publiés':'Non chargé',true),metric('Inscriptions','—','Bientôt disponible',false),metric('Contacts','—','Bientôt disponible',false),metric('Abonnements newsletter','—','Bientôt disponible',false));
     }
     const program=app.querySelector('.dashboard-program .events');
     if(program){
       program.replaceChildren();
       if(ready&&upcoming.length){for(const w of upcoming.slice(0,2))program.append(workshopCard(w));}
-      else{const empty=text('p',ready?'Aucun brouillon à venir.':'Tes ateliers apparaîtront après connexion et chargement.');empty.className='card empty';program.append(empty);}
+      else{const empty=text('p',ready?'Aucun atelier à venir.':'Tes ateliers apparaîtront après connexion et chargement.');empty.className='card empty';program.append(empty);}
     }
     const activity=app.querySelector('.dashboard-activity');
     if(activity){
       const title=text('h2','Activité récente'), heading=document.createElement('div');heading.className='sectionhead';heading.append(title);
       const list=document.createElement('div');list.className='card list';
-      const recent=ready?rows.filter(w=>w.status==='draft'&&w.created_at&&Number.isFinite(Date.parse(w.created_at))).slice().sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)).slice(0,4):[];
-      for(const w of recent){const line=document.createElement('div');line.className='activity';const body=document.createElement('div');body.append(text('strong','Brouillon créé : '+w.title),text('p',new Date(w.created_at).toLocaleString('fr-FR')));line.append(body);list.append(line);}
+      const recent=ready?rows.filter(w=>['draft','published'].includes(w.status)&&w.created_at&&Number.isFinite(Date.parse(w.created_at))).slice().sort((a,b)=>Date.parse(b.created_at)-Date.parse(a.created_at)).slice(0,4):[];
+      for(const w of recent){const line=document.createElement('div');line.className='activity';const body=document.createElement('div');body.append(text('strong','Atelier créé : '+w.title),text('p',new Date(w.created_at).toLocaleString('fr-FR')));line.append(body);list.append(line);}
       if(!recent.length)list.append(text('p',ready?'Aucune création enregistrée.':'Activité non chargée.'));
       activity.replaceChildren(heading,list);
     }
@@ -315,12 +371,12 @@ function create(d){
         const items=ready&&dates.length===cells.length?rowsOnDate(rows,dates[i]):[];
         for(const w of items){
           const item=button(localDate(w.starts_at).slice(11)+' · '+w.title,()=>open(w));
-          item.className='v8-cal-item workshop';item.title=w.title+' · Brouillon privé';item.setAttribute('aria-label',item.title+' '+localDate(w.starts_at).slice(11));item.disabled=busy||uncertain;cell.append(item);
+          item.className='v8-cal-item workshop';item.title=w.title+' · '+(w.status==='published'?'Publié':'Brouillon privé');item.setAttribute('aria-label',item.title+' '+localDate(w.starts_at).slice(11));item.disabled=busy||uncertain;cell.append(item);
         }
         if(!items.length&&view==='day')cell.append(text('p',ready?'Aucun atelier enregistré ce jour.':'Agenda non chargé.'));
       });
-      const legend=calendar.querySelector(':scope > p.fine');if(legend)legend.textContent='Corail : brouillons privés · Rendez-vous individuels : bientôt disponibles.';
-      const hint=calendar.querySelector('.v8-calendar-mobile-hint');if(hint)hint.textContent='Sélectionne un atelier pour le modifier. Les dates utilisent le fuseau de ton appareil.';
+      const legend=calendar.querySelector(':scope > p.fine');if(legend)legend.textContent='Corail : ateliers privés et publiés · Rendez-vous individuels : bientôt disponibles.';
+      const hint=calendar.querySelector('.v8-calendar-mobile-hint');if(hint)hint.textContent='Sélectionne un atelier pour le modifier ou le prévisualiser. Les dates utilisent le fuseau de ton appareil.';
     }
   }
   function decorate(){
@@ -339,13 +395,15 @@ function create(d){
     const grid=document.createElement('div');grid.className='events';
     for(const w of rows)grid.append(workshopCard(w));
     panel.append(grid);if(truncated)panel.append(text('p','100 ateliers les plus récents affichés.'));
-    panel.append(text('p','Le tableau de bord et le calendrier utilisent aussi ces brouillons privés. Les autres rubriques restent des démonstrations.'));
+    panel.append(text('p','Le tableau de bord et le calendrier utilisent aussi tes ateliers. Les réservations restent désactivées.'));
     app.replaceChildren(panel);
   }
   async function start(){
     try{
       const response=await fetch('/api/deployment',{cache:'no-store',credentials:'omit'});
-      if(!response.ok||!(await response.json()).workshopPersistence)return;
+      if(!response.ok)return;
+      const flags=await response.json();if(!flags.workshopPersistence)return;
+      publication=flags.workshopPublication===true;
       enabled=true;if(d.isPage())decorate();
       let attempts=0;
       timer=setInterval(()=>{

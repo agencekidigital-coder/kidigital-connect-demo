@@ -1,0 +1,12 @@
+/* Original Codex public workshop classes + isolated public page chrome. */
+body.naitea-public-workshop{margin:0;background:#FEF8ED;color:#590425;min-height:100vh}
+.naitea-public-header{display:flex;justify-content:center;padding:24px 16px;border-bottom:1px solid #e7d6c8}
+.naitea-public-header img{width:155px;height:auto;display:block}
+.naitea-public-main{max-width:850px;margin:auto;padding:32px 20px 42px}
+.naitea-public-workshop .v8-public-event .naitea-public-cover{height:auto;aspect-ratio:16/9;object-fit:cover;border-radius:18px 18px 0 0;display:block}
+.naitea-public-workshop .v8-public-event .card{margin-top:0}
+.naitea-public-workshop .v8-public-event h1{overflow-wrap:anywhere}
+.naitea-public-description{white-space:pre-wrap;overflow-wrap:anywhere}
+.naitea-public-provider{font-weight:600}
+.naitea-public-footer{text-align:center;padding:24px;font-size:13px}
+.naitea-public-workshop .btn:disabled{cursor:not-allowed;opacity:.65}

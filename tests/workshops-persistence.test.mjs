@@ -26,3 +26,14 @@ const full={...valid,category:'Massage bébé',duration_label:'1h30',timezone_na
 test('extended form fields persist and are returned without owner',async()=>{const {handler,calls}=setup([{...row,...full}]);const res=await handler(request('POST',full),env);assert.equal(res.status,201);assert.equal(JSON.parse(calls[1][1].body).venue_city,'Lille');const saved=(await res.json()).workshops[0];assert.equal(saved.child_age_max,12);assert.equal(saved.professional_id,undefined);});
 test('reject partial extended form, invalid age, mixed modality and audience',async()=>{for(const body of [{...valid,category:'x'},{...full,child_age_max:-1},{...full,video_platform:'Zoom'},{...full,target_audiences:['invalid']},{...full,timezone_name:'invalid'}]){const {handler,calls}=setup();assert.equal((await handler(request('POST',body),env)).status,400);assert.equal(calls.length,0);}});
 test('legacy patch does not clear extended data',async()=>{const {handler,calls}=setup([{...row,...full}]);assert.equal((await handler(request('PATCH',{...valid,id:w}),env)).status,200);assert.equal(Object.hasOwn(JSON.parse(calls[1][1].body),'category'),false);});
+
+test('publication transitions are gated and owner scoped',async()=>{
+  const p={id:w,status:'published'}, enabled={...env,NAITEA_PUBLICATION_ENABLED:'true'};
+  const disabled=setup();assert.equal((await disabled.handler(request('PATCH',p),env)).status,423);assert.equal(disabled.calls.length,0);
+  const published=setup([{...row,status:'published'}]);assert.equal((await published.handler(request('PATCH',p),enabled)).status,200);
+  assert.equal(new URL(published.calls[1][0]).searchParams.get('status'),'eq.draft');
+  assert.equal(new URL(published.calls[1][0]).searchParams.get('professional_id'),'eq.'+a);
+  assert.deepEqual(JSON.parse(published.calls[1][1].body),{status:'published'});
+  const draft=setup();assert.equal((await draft.handler(request('PATCH',{id:w,status:'draft'}),enabled)).status,200);assert.equal(new URL(draft.calls[1][0]).searchParams.get('status'),'eq.published');
+  const forged=setup();assert.equal((await forged.handler(request('PATCH',{...p,professional_id:b}),enabled)).status,400);assert.equal(forged.calls.length,0);
+});

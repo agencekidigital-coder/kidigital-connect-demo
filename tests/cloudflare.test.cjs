@@ -166,3 +166,10 @@ test('private dashboard bridge is injected into pro without modifying the source
   assert(html.includes('calendarState: () => ({date:v8CalDate,view:v8CalView})'));
   assert(manifest.files.includes('assets/pro-workshops.js'));
 });
+
+test('real workshop links are closed by default, distinct from fictional packed links',async()=>{
+  const route='/atelier/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  for(const suffix of ['', '/photo'])assert.equal((await request(route+suffix)).status,404);
+  assert.equal((await (await request('/api/deployment')).json()).workshopPublication,false);
+  assert(manifest.files.includes('assets/public-workshop-base.css'));
+});

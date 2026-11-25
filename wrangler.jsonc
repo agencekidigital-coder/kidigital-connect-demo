@@ -20,7 +20,8 @@
   "vars": {
     "NAITEA_AUTH_ENABLED": "true",
     "NAITEA_PROFILE_ENABLED": "true",
-    "NAITEA_WORKSHOPS_ENABLED": "false"
+    "NAITEA_WORKSHOPS_ENABLED": "false",
+    "NAITEA_PUBLICATION_ENABLED": "false"
   },
   "observability": {
     "enabled": false
@@ -30,7 +31,8 @@
       "NAITEA_AUTH_ENABLED": "true",
       "NAITEA_PROFILE_ENABLED": "true",
       "NAITEA_WORKSHOPS_ENABLED": "true",
-      "SUPABASE_URL": "https://eedbpqawsrkopoonqpbx.supabase.co"
+      "SUPABASE_URL": "https://eedbpqawsrkopoonqpbx.supabase.co",
+      "NAITEA_PUBLICATION_ENABLED": "true"
     }
   }
 }
