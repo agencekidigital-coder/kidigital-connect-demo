@@ -60,9 +60,9 @@ async function compressCover(file,crop=null){
 function create(d){
   let enabled=false, publication=false, owner=null, client=null, revision=0, rows=[], ready=false, busy=false, truncated=false, message='', observed=false, uncertain=false, controller=null, timer=null;
   const knownCovers=new Set(), coverUrls=new Map(), downloads=new Map();
-  let coversAvailable=false, previewUrl='';
+  let coversAvailable=false, previewUrl='', portraitPreviewUrl='';
   const el=id=>document.getElementById(id);
-  function revokePreview(){if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';}
+  function revokePreview(){if(previewUrl)URL.revokeObjectURL(previewUrl);previewUrl='';if(portraitPreviewUrl)URL.revokeObjectURL(portraitPreviewUrl);portraitPreviewUrl='';}
   function forgetCover(id){const url=coverUrls.get(id);if(url)URL.revokeObjectURL(url);coverUrls.delete(id);downloads.delete(id);}
   function resetCovers(){for(const id of coverUrls.keys())forgetCover(id);downloads.clear();knownCovers.clear();coversAvailable=false;revokePreview();}
   async function listCovers(version){
@@ -240,10 +240,31 @@ function create(d){
     audiences.forEach((label,i)=>{if(i)audience.append(document.createTextNode(', '));audience.append(document.createTextNode(label));if(label==='Bébés'&&age){audience.append(document.createTextNode(' '),text('em',age));}});
     if(age&&!audiences.includes('Bébés'))audience.append(document.createTextNode(' · '),text('em',age));
     const price=text('p',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+' / duo · '+w.capacity+' places au total');price.className='naitea-public-price';
-    body.append(tag,text('h1',w.title),time,desc,text('p',location),audience,price);
+    const professional=document.createElement('section');professional.className='naitea-public-pro';professional.id='naiteaPreviewProfessional';professional.hidden=true;
+    body.append(tag,text('h1',w.title),professional,time,desc,text('p',location),audience,price);
     const reserve=text('button','Réservation bientôt disponible');reserve.className='btn';reserve.disabled=true;body.append(reserve);root.append(body);
-    d.showModal('Aperçu côté familles','Aperçu privé — le nom professionnel sera affiché sur la page publiée s’il est renseigné.',root.outerHTML);
+    d.showModal('Aperçu côté familles','Aperçu privé des informations visibles sur ta page publiée.',root.outerHTML);
     const active=el('naiteaPrivatePublicPreviewCover');if(active)attachCover(w,active);
+    const pro=el('naiteaPreviewProfessional'),version=revision,uid=owner;
+    (async()=>{
+      try{
+        const {data,error}=await client.from('naitea_profiles').select('business_name,public_details_enabled,public_email,public_phone,public_website,public_google_url').eq('id',uid).single();
+        if(error||!data||!data.business_name||version!==revision||!pro?.isConnected)return;
+        const details=document.createElement('div'),name=text('p','Proposé par '+data.business_name);name.className='naitea-public-provider';details.append(name);
+        if(data.public_details_enabled){
+          const contacts=document.createElement('div');contacts.className='naitea-public-contacts';
+          for(const [label,value] of [['',data.public_email],['',data.public_phone],['Site internet',data.public_website],['Avis Google',data.public_google_url]])if(value)contacts.append(text('span',label||value));
+          details.append(contacts);
+        }
+        pro.replaceChildren(details);pro.hidden=false;
+        if(!data.public_details_enabled)return;
+        const result=await client.storage.from('naitea-professional-portraits').download(uid+'/profile.jpg');
+        if(result.error||!result.data||result.data.type!=='image/jpeg'||result.data.size>COVER_LIMIT||version!==revision||!pro.isConnected)return;
+        if(portraitPreviewUrl)URL.revokeObjectURL(portraitPreviewUrl);
+        portraitPreviewUrl=URL.createObjectURL(result.data);
+        const portrait=document.createElement('img');portrait.alt='Photo professionnelle';portrait.src=portraitPreviewUrl;pro.prepend(portrait);
+      }catch{}
+    })();
   }
   async function changeStatus(w,status){
     if(!publication||!ready||busy||uncertain||!owner||!d.isPage())return;
