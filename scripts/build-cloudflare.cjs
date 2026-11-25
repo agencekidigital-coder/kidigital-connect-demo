@@ -36,13 +36,29 @@ function build() {
   fs.rmSync(OUTPUT, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUTPUT, 'assets'), { recursive: true });
   copyAssets(path.join(ROOT, 'assets'), path.join(OUTPUT, 'assets'), files);
-  const extra = '<link rel="stylesheet" href="/assets/beta-preview.css"><script src="/assets/beta-preview.js" defer></script>';
+  const extra = '<link rel="stylesheet" href="/assets/beta-preview.css"><script src="/assets/beta-preview.js" defer></script><script src="/assets/pro-workshops.js"></script>';
   for (const file of ['connexion.html', 'bienvenue.html', 'compte.html', 'mes-ateliers.html']) {
     let html = fs.readFileSync(path.join(ROOT, file), 'utf8');
     if (file === 'bienvenue.html') html = html.replace('<p class="tester-demo">', '<p class="tester-account"><a href="/compte">Gérer mon compte</a></p><p class="tester-demo">');
     fs.writeFileSync(path.join(OUTPUT, file), html); files.push(file);
   }
-  fs.writeFileSync(path.join(OUTPUT, 'pro.html'), fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace('</head>', extra + '</head>'));
+  let pro = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8').replace('</head>', extra + '</head>');
+  const anchor = 'naiteaLoadAuth();';
+  if(pro.split(anchor).length!==2)throw Error('Point de raccordement ateliers introuvable');
+  pro=pro.replace(anchor, `if (typeof NaiteaProWorkshops !== 'undefined' && /^\\/pro\\/?$/.test(location.pathname)) {
+  const privateWorkshopRender = render;
+  const privateWorkshops = NaiteaProWorkshops.create({
+    tools: NaiteaPlatformTools, getClient: () => berceauAuthClient,
+    isPage: () => mode === 'pro' && page === 'ateliers',
+    render: () => render(), formHtml: e => platform.eventForm(platformEventFormBase(e),e),
+    showModal: (...args) => showModal(...args), closeModal,
+    escape: esc,
+  });
+  render = function () { privateWorkshopRender(); privateWorkshops.decorate(); };
+  privateWorkshops.start();
+}
+naiteaLoadAuth();`);
+  fs.writeFileSync(path.join(OUTPUT, 'pro.html'), pro);
   fs.writeFileSync(path.join(OUTPUT, 'index.html'), renderLanding());
   files.push('pro.html', 'index.html');
   for (const file of ['assets/beta-preview.js', 'assets/beta-preview.css']) if (!files.includes(file)) throw Error('Le verrouillage de l’aperçu est absent.');

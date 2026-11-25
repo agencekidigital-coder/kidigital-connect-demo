@@ -1,6 +1,26 @@
 import publicConfig from './public-config.cjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FIELDS = 'id,professional_id,title,description,starts_at,capacity,price_cents,status,created_at';
+const EXTRA = ['category','duration_label','timezone_name','modality','venue_name','venue_street','venue_postal_code','venue_city','video_platform','target_audiences','child_age_min','child_age_max','child_age_unit'];
+const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at',...EXTRA].join(',');
+const AUDIENCES = new Set(['Future maman','Futurs parents','Jeune maman','Jeunes parents','Co-parent','Bébés','Enfants','Adolescents','Toute la famille']);
+function extraFields(input) {
+  if(!EXTRA.some(k=>Object.hasOwn(input,k)))return {};
+  if(!EXTRA.every(k=>Object.hasOwn(input,k)))throw Error('Incomplete extended form');
+  const required=(k,n)=>cleanText(input[k],n,true);
+  const optional=(k,n)=>input[k]===null?null:cleanText(input[k],n);
+  const category=required('category',100),duration_label=optional('duration_label',80),timezone_name=required('timezone_name',100);
+  new Intl.DateTimeFormat('fr-FR',{timeZone:timezone_name}).format();
+  const modality=input.modality;
+  if(!['venue','video'].includes(modality))throw Error('modality');
+  const venueKeys=['venue_name','venue_street','venue_postal_code','venue_city'];
+  const location=modality==='venue'?{venue_name:required('venue_name',150),venue_street:required('venue_street',200),venue_postal_code:required('venue_postal_code',20),venue_city:required('venue_city',100),video_platform:null}:{venue_name:null,venue_street:null,venue_postal_code:null,venue_city:null,video_platform:required('video_platform',100)};
+  if(modality==='video'&&venueKeys.some(k=>input[k]!==null)||modality==='venue'&&input.video_platform!==null)throw Error('mixed modality');
+  const audiences=input.target_audiences;
+  if(!Array.isArray(audiences)||!audiences.length||audiences.length>AUDIENCES.size||audiences.some(a=>!AUDIENCES.has(a))||new Set(audiences).size!==audiences.length)throw Error('audiences');
+  const {child_age_min:min,child_age_max:max,child_age_unit:unit}=input;
+  if(!(min===null&&max===null&&unit===null)&&(!Number.isFinite(min)||!Number.isFinite(max)||!['months','years'].includes(unit)||min<0||max<min||max>(unit==='years'?18:216)))throw Error('age');
+  return {category,duration_label,timezone_name,modality,...location,target_audiences:audiences,child_age_min:min,child_age_max:max,child_age_unit:unit};
+}
 const EDIT = ['title','description','starts_at','capacity','price_cents'];
 const reply = (status, body, headers={}) => new Response(JSON.stringify(body), {status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',...headers}});
 const fail = (status, code) => reply(status,{code});
@@ -27,13 +47,13 @@ function cleanText(x,max,required=false) {
 }
 function validate(input, method) {
   if(!input||typeof input!=='object'||Array.isArray(input))throw Error('body');
-  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,'id']:EDIT;
+  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,...EXTRA,'id']:[...EDIT,...EXTRA];
   if(keys.some(k=>!allowed.includes(k))||!EDIT.every(k=>Object.hasOwn(input,k)))throw Error('fields');
   if(method==='PATCH'&&(typeof input.id!=='string'||!UUID.test(input.id)))throw Error('id');
   const {capacity,price_cents,starts_at}=input;
   if(!Number.isInteger(capacity)||capacity<1||capacity>1000||!Number.isInteger(price_cents)||price_cents<0||price_cents>10000000)throw Error('numbers');
   if(starts_at!==null&&(typeof starts_at!=='string'||! /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(starts_at)||!Number.isFinite(Date.parse(starts_at))||new Date(starts_at).toISOString()!==starts_at))throw Error('date');
-  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,2000),starts_at,capacity,price_cents};
+  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,5000),starts_at,capacity,price_cents,...extraFields(input)};
 }
 export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
   return async(request,env={})=>{
@@ -50,7 +70,7 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
     if(method!=='GET'){
       if(request.headers.get('origin')!==url.origin)return fail(403,'ORIGIN_FORBIDDEN');
       if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return fail(415,'JSON_REQUIRED');
-      try {input=await bounded(request.body,8192);payload=validate(input,method);}catch{return fail(400,'INVALID_WORKSHOP');}
+      try {input=await bounded(request.body,32768);payload=validate(input,method);}catch{return fail(400,'INVALID_WORKSHOP');}
     }
     const headers={apikey:config.publishableKey,Authorization:'Bearer '+token[1],Accept:'application/json'};
     const requestProvider=(url,options={})=>fetchImpl(url,{redirect:'manual',signal:AbortSignal.timeout(10000),...options});
@@ -74,11 +94,11 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
       }
       const response=await requestProvider(endpoint.href,{method,headers:method==='GET'?headers:{...headers,'Content-Type':'application/json',Prefer:'return=representation'},...(payload?{body:JSON.stringify(payload)}:{})});
       if(!response.ok){response.body?.cancel().catch(()=>{});return fail(response.status===401?401:response.status===403?403:503,'WORKSHOPS_UNAVAILABLE');}
-      const rows=await bounded(response.body,1024*1024);
+      const rows=await bounded(response.body,3*1024*1024);
       if(!Array.isArray(rows)||rows.some(r=>typeof r.id!=='string'||!UUID.test(r.id)||r.professional_id!==owner))return fail(503,'INVALID_RESPONSE');
       if(method!=='GET'&&rows.length!==1)return fail(rows.length===0?404:503,'WORKSHOP_NOT_SAVED');
       if(method==='PATCH'&&rows[0].id.toLowerCase()!==input.id.toLowerCase())return fail(503,'INVALID_RESPONSE');
-      const safe=rows.slice(0,100).map(({id,title,description,starts_at,capacity,price_cents,status,created_at})=>({id,title,description,starts_at,capacity,price_cents,status,created_at}));
+      const safe=rows.slice(0,100).map(row=>Object.fromEntries(FIELDS.split(',').filter(key=>key!=='professional_id').map(key=>[key,row[key]??null])));
       return reply(method==='POST'?201:200,{workshops:safe,truncated:rows.length>100});
     }catch{return fail(503,'WORKSHOPS_UNAVAILABLE');}
   };

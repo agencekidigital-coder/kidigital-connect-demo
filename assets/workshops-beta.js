@@ -28,7 +28,7 @@
       const li=document.createElement('li'),title=document.createElement('strong'),desc=document.createElement('p');
       title.textContent=w.title;desc.textContent=[w.starts_at?new Date(w.starts_at).toLocaleString('fr-FR'):'Sans date',w.capacity+' places',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'}),w.status==='draft'?'Brouillon':w.status].join(' · ');
       li.append(title,desc);
-      if(w.status==='draft'){const b=document.createElement('button');b.type='button';b.className='tester-button secondary';b.textContent='Modifier';b.addEventListener('click',()=>{if(busy||uncertain)return;edit=w.id;$('workshopHeading').textContent='Modifier le brouillon';$('wTitle').value=w.title;$('wDescription').value=w.description||'';$('wDate').value=localDate(w.starts_at);$('wCapacity').value=w.capacity;$('wPrice').value=(w.price_cents/100).toFixed(2);$('wTitle').focus();});li.append(b);}
+      if(w.status==='draft'&&!w.category){const b=document.createElement('button');b.type='button';b.className='tester-button secondary';b.textContent='Modifier';b.addEventListener('click',()=>{if(busy||uncertain)return;edit=w.id;$('workshopHeading').textContent='Modifier le brouillon';$('wTitle').value=w.title;$('wDescription').value=w.description||'';$('wDate').value=localDate(w.starts_at);$('wCapacity').value=w.capacity;$('wPrice').value=(w.price_cents/100).toFixed(2);$('wTitle').focus();});li.append(b);}
       list.append(li);
     }
     $('wMore').hidden=!result.truncated;
