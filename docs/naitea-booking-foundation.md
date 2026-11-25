@@ -1,0 +1,7 @@
+# Réservations — socle privé (Preview)
+
+Migration Supabase naitea_booking_capacity_foundation_private appliquée : fonction de demande de réservation accessible uniquement à service_role (aucune nouvelle clé déployée), validation des coordonnées et du nombre de places, verrou de ligne sur l'atelier, réservation temporaire de 15 minutes, contrôle de capacité, clé d'idempotence, déduplication des demandes actives par email. Les ateliers non publiés ou passés sont refusés. Aucun paiement ni email n'est envoyé. Aucune interface ni route publique de réservation n'est activée.
+
+Tests SQL transactionnels : demande valide sur capacité 1, répétition sans doublon, deuxième demande refusée lorsque complet, expiration libérant la place, appel anonyme interdit. Transaction annulée; aucune réservation restante. Test de concurrence réelle et de lecture RLS par professionnel à prévoir avant ouverture.
+
+Étapes restantes : formulaire famille en français et anti-abus (Turnstile ou vérification équivalente), validation serveur avec limitation de débit, confirmation de l'adresse email et expiration effective, annulation et liste d'attente, contrôle des modifications de capacité et des changements de statut, affichage des inscriptions côté professionnel, traitement des données et politique de confidentialité. N'activer aucun flag de réservation avant ces validations. Les 15 minutes sont un choix provisoire pour la demande en attente. Ne jamais exposer de clé service_role au navigateur.
