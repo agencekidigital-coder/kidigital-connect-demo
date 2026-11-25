@@ -5,6 +5,7 @@ const { X509Certificate, createHash } = require('node:crypto');
 const { readPublicConfig } = require('../server/public-config.cjs');
 const BASE = process.env.BASE_URL || 'https://naitea-beta.agence-kidigital.workers.dev';
 const OUT = process.env.ARTIFACT_DIR || '/workspace/artifacts/naitea-auth-ready';
+const expectProfile = process.env.EXPECT_PROFILE_ENABLED !== 'false';
 if (!['naitea-beta.agence-kidigital.workers.dev', '127.0.0.1', 'localhost'].includes(new URL(BASE).hostname)) throw Error('Unexpected preview host.');
 (async () => {
   const args = ['--no-sandbox'], directory = '/usr/local/share/ca-certificates';
@@ -65,16 +66,45 @@ if (!['naitea-beta.agence-kidigital.workers.dev', '127.0.0.1', 'localhost'].incl
         assert.equal(await page.locator('#password').inputValue(), '');
         assert.equal(await page.locator('#confirmationPanel').isVisible(), false);
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+        // A Git push can still be deploying when this read-only check starts.
+        await page.waitForFunction(async expected => {
+          const response = await fetch('/api/deployment', { credentials: 'omit', cache: 'no-store' });
+          return response.ok && (await response.json()).accountProfile === expected;
+        }, expectProfile, { timeout: 40000, polling: 3000 });
         const locks = await page.evaluate(async () => {
           const policy = await (await fetch('/api/deployment', { credentials: 'omit', cache: 'no-store' })).json();
           const statuses = {};
           for (const route of ['/api/account', '/api/bookings', '/api/stripe', '/api/admin', '/api/google']) statuses[route] = (await fetch(route, { credentials: 'omit', cache: 'no-store' })).status;
           return { policy, statuses };
         });
-        for (const name of ['accountProfile', 'realBookings', 'payments', 'invoices', 'admin', 'google', 'meta', 'sms']) assert.equal(locks.policy[name], false);
-        for (const value of Object.values(locks.statuses)) assert.equal(value, 423);
+        assert.equal(locks.policy.accountProfile, expectProfile);
+        assert.equal(locks.statuses['/api/account'], expectProfile ? 401 : 423);
+        for (const name of ['realBookings', 'payments', 'invoices', 'admin', 'google', 'meta', 'sms']) assert.equal(locks.policy[name], false);
+        for (const [route, value] of Object.entries(locks.statuses)) if (route !== '/api/account') assert.equal(value, 423);
         await page.screenshot({ path: path.join(OUT, 'inscription-' + width + '.png'), fullPage: true });
-        results.push({ width, authFormReady: true, ...settings, businessWorkerRoutesClosed: true });
+        if (expectProfile) {
+          const account = await page.goto(BASE + '/compte', { waitUntil: 'domcontentloaded' });
+          assert.equal(account.status(), 200);
+          assert.equal(account.headers()['x-frame-options'], 'DENY');
+          assert(account.headers()['content-security-policy'].includes("default-src 'none'"));
+          await page.locator('#accountLogin').waitFor({ state: 'visible' });
+          assert.equal(await page.locator('#accountDetails').isVisible(), false);
+          assert.equal(await page.locator('#accountFullName').inputValue(), '');
+          assert.equal(await page.locator('#accountBusinessName').inputValue(), '');
+          assert.equal(await page.locator('#accountEmail').innerText(), '');
+          const anonymous = await page.evaluate(async () => {
+            const response = await fetch('/api/account', { credentials: 'omit', cache: 'no-store' });
+            const body = await response.json();
+            return { status: response.status, cache: response.headers.get('Cache-Control'), keys: Object.keys(body), code: body.code };
+          });
+          assert.equal(anonymous.status, 401);
+          assert.equal(anonymous.code, 'AUTH_REQUIRED');
+          assert.match(anonymous.cache, /no-store/);
+          assert.deepEqual(anonymous.keys.sort(), ['code', 'error']);
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1), false);
+          await page.screenshot({ path: path.join(OUT, 'compte-anonyme-' + width + '.png'), fullPage: true });
+        }
+        results.push({ width, authFormReady: true, ...settings, accountProfileEnabled: expectProfile, anonymousProfileAccessDenied: expectProfile, bookingPaymentAndAdminWorkerRoutesClosed: true });
       } finally { await context.close(); }
     }
     assert.deepEqual(errors, []); assert.deepEqual(writes, []);
