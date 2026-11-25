@@ -1,4 +1,5 @@
 import publicConfig from './public-config.cjs';
+import {bookingConfig} from './booking-config.mjs';
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const headers={'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow'};
@@ -79,7 +80,13 @@ export function createPublicWorkshopHandler({fetchImpl=globalThis.fetch}={}){
    const phone=typeof w.public_phone==='string'&&/^[+0-9 ().-]+$/.test(w.public_phone)?w.public_phone:'';
    const link=(url,label)=>'<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+esc(label)+'</a>';
    const pro=w.business_name?'<section class="naitea-public-pro">'+(portraitAvailable?'<img src="'+canonical+'/portrait" alt="Photo professionnelle">':'')+'<div><p class="naitea-public-provider">Proposé par <strong>'+esc(w.business_name)+'</strong></p><div class="naitea-public-contacts">'+(email?link('mailto:'+email,email):'')+(phone?link('tel:'+phone.replace(/[^+0-9]/g,''),phone):'')+(website?link(website,'Site internet'):'')+'</div>'+renderManualGoogleReviews(w)+'</div></section>':'';
-   const body='<div class="v8-public-event">'+(cover?'<img class="naitea-public-cover" src="'+photoPath+'" alt="Photo de couverture de '+esc(w.title)+'">':'')+'<div class="card"><span class="tag">'+esc(w.category)+'</span><h1>'+esc(w.title)+'</h1>'+pro+'<p class="naitea-public-date">'+esc(date)+(w.duration_label?' · '+esc(w.duration_label):'')+'</p><p class="naitea-public-description">'+esc(w.description)+'</p><p>'+esc(location)+'</p>'+(publicAudiences?'<p><strong>Pour qui ?</strong> '+publicAudiences+'</p>':'')+'<p class="naitea-public-price"><strong>'+esc(price)+' / duo</strong> · '+esc(w.capacity)+' places au total</p><button type="button" class="btn" disabled>Réservation bientôt disponible</button><p class="fine">Les réservations en ligne ne sont pas encore ouvertes sur Naïtéa.</p></div></div>';
+   let booking='<button type="button" class="btn" disabled>Réservation bientôt disponible</button><p class="fine">Les réservations en ligne ne sont pas encore ouvertes sur Naïtéa.</p>';
+   const bookingReady=bookingConfig(env);
+   if(bookingReady&&new URL(request.url).origin===bookingReady.origin){
+    const a=await fetchProvider('/rest/v1/rpc/naitea_available_workshop_seats',{method:'POST',headers:{...providerHeaders,'Content-Type':'application/json'},body:JSON.stringify({p_id:w.id})});
+    if(a.ok){const count=JSON.parse(new TextDecoder().decode(await bytes(a,1024)));booking=Number.isInteger(count)&&count>0?'<p class="naitea-public-price">'+count+' place(s) disponible(s)</p><a class="btn" href="'+canonical+'/reserver"'+(embed?' target="_blank" rel="noopener"':'')+'>Réserver une place</a>':'<button class="btn" disabled>Atelier complet ou terminé</button>';}
+   }
+   const body='<div class="v8-public-event">'+(cover?'<img class="naitea-public-cover" src="'+photoPath+'" alt="Photo de couverture de '+esc(w.title)+'">':'')+'<div class="card"><span class="tag">'+esc(w.category)+'</span><h1>'+esc(w.title)+'</h1>'+pro+'<p class="naitea-public-date">'+esc(date)+(w.duration_label?' · '+esc(w.duration_label):'')+'</p><p class="naitea-public-description">'+esc(w.description)+'</p><p>'+esc(location)+'</p>'+(publicAudiences?'<p><strong>Pour qui ?</strong> '+publicAudiences+'</p>':'')+'<p class="naitea-public-price"><strong>'+esc(price)+' / duo</strong> · '+esc(w.capacity)+' places au total</p>'+booking+'</div></div>';
    return html(200,w.title,body,meta,embed);
   }catch{return absent(photo||portrait,503);}
  };

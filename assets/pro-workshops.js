@@ -93,7 +93,7 @@ function create(d){
     getCover(w).then(url=>{if(url&&version===revision&&img.isConnected&&d.isPage()&&stillCurrent()){img.src=url;img.hidden=false;}});
   }
   const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
-  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm')||el('naiteaPrivatePublicPreviewCover')||el('naiteaPublishedLink')||el('naiteaPublicProfileForm'))d.closeModal();}
+  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm')||el('naiteaPrivatePublicPreviewCover')||el('naiteaPublishedLink')||el('naiteaPublicProfileForm')||el('naiteaPrivateBookings'))d.closeModal();}
   function clear(){revision++;controller?.abort();owner=null;rows=[];ready=false;busy=false;uncertain=false;truncated=false;resetCovers();closePrivate();}
   function invalidate(){clear();message='Vérification du compte…';if(d.isPage())decorate();}
   async function api(method,payload,version){
@@ -379,6 +379,38 @@ function create(d){
       });
     }catch{if(version===revision){message='Impossible de charger les informations publiques.';decorate();}}
   }
+  async function showBookings(w){
+    if(!ready||busy||!owner||!d.isPage())return;
+    const version=revision,uid=owner;
+    const root=document.createElement('div');root.id='naiteaPrivateBookings';root.append(text('p','Chargement des inscriptions…'));
+    d.showModal('Inscriptions · '+w.title,'Seules les inscriptions confirmées par email sont visibles.',root.outerHTML);
+    const target=el('naiteaPrivateBookings');
+    const loadList=async()=>{
+      try{
+        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
+        if(version!==revision||owner!==uid||!target.isConnected)return;
+        if(error||!Array.isArray(data))throw Error('Chargement impossible');
+        target.replaceChildren();
+        const total=data.filter(b=>b.status==='confirmed').reduce((sum,b)=>sum+b.seats,0);
+        target.append(text('h3',total+' place(s) confirmée(s) / '+w.capacity));
+        if(!data.length)target.append(text('p','Aucune inscription confirmée.'));
+        for(const b of data.slice(0,1000)){
+          const card=document.createElement('div');card.className='card naitea-booking-entry';card.append(text('strong',b.parent_name),text('p',b.parent_email),text('p',b.seats+' place(s) · '+(b.status==='confirmed'?'Confirmée':'Annulée')));
+          if(b.status==='confirmed'){
+            const cancel=button('Annuler cette inscription',async()=>{
+              if(!window.confirm('Annuler cette inscription et libérer les places ? Aucun email automatique ne sera envoyé : informe la famille directement.'))return;
+              cancel.disabled=true;
+              try{const r=await client.rpc('naitea_cancel_my_booking',{p_id:b.id});if(version!==revision||!target.isConnected)return;if(r.error||r.data!==true)throw Error();await loadList();}
+              catch{if(target.isConnected){cancel.disabled=false;target.append(text('p','Annulation non confirmée. Actualise avant de réessayer.'));}}
+            });card.append(cancel);
+          }
+          target.append(card);
+        }
+        if(data.length>1000)target.append(text('p','Liste limitée aux 1 000 premières inscriptions.'));
+      }catch{if(version===revision&&target.isConnected)target.replaceChildren(text('p','Impossible de charger les inscriptions. Réessaie.'));}
+    };
+    await loadList();
+  }
   function workshopCard(w){
     const card=document.createElement('article');card.className='card eventcard naitea-private-eventcard';
     const content=document.createElement('div');content.className='eventcontent';
@@ -394,6 +426,7 @@ function create(d){
       actions.append(publish);
       if(w.status==='published'){const share=button('Partager',()=>shareWorkshop(w));share.disabled=!ready||busy||uncertain;actions.append(share);content.append(text('p','Pour modifier un atelier publié, repasse-le en brouillon.'));}
     }
+    if(ready&&publication){const bookings=button('Inscriptions',()=>showBookings(w));bookings.disabled=busy||uncertain;actions.append(bookings);}
     content.append(actions);
     if(knownCovers.has(w.id)){
       const img=document.createElement('img');img.className='v6-cover naitea-private-card-cover';img.alt='Photo de couverture de '+w.title;img.hidden=true;

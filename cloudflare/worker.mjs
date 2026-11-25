@@ -2,6 +2,8 @@ import publicConfig from '../server/public-config.cjs';
 import { createWorkshopsHandler } from '../server/workshops.mjs';
 import { createPublicWorkshopHandler } from '../server/public-workshop.mjs';
 import { createPublicCatalogHandler } from '../server/public-catalog.mjs';
+import {createBookingHandler} from '../server/bookings.mjs';
+import {bookingConfig} from '../server/booking-config.mjs';
 import { createAccountHandler } from '../server/account-profile.mjs';
 import fontHandler from '../api/font.js';
 import videoSizes from '../dist/video-sizes.json' with { type: 'json' };
@@ -19,6 +21,7 @@ const accountHandler = createAccountHandler();
 const workshopsHandler = createWorkshopsHandler();
 const publicWorkshopHandler = createPublicWorkshopHandler();
 const publicCatalogHandler = createPublicCatalogHandler();
+const bookingHandler = createBookingHandler();
 
 function guard(response, request, { embed = false, auth = false, account = false } = {}) {
   const headers = new Headers(response.headers);
@@ -34,6 +37,10 @@ function guard(response, request, { embed = false, auth = false, account = false
     const publicEmbed=u.searchParams.get('embed')==='1'&&/^\/ateliers?\/[a-zA-Z0-9-]{1,180}$/.test(u.pathname);
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors "+(publicEmbed?'https:':"'none'")+"; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
     headers.set('Referrer-Policy','no-referrer');
+  }
+  if(new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
+    headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com");
+    headers.set('X-Frame-Options','DENY');headers.set('Referrer-Policy','no-referrer');
   }
   if (auth) headers.set('X-Frame-Options', 'DENY');
   if (headers.get('Content-Type')?.includes('text/html')) headers.set('Cache-Control', 'no-store');
@@ -145,12 +152,15 @@ async function route(request, env, ctx, pathname) {
   if (!pathname) return json({ error: 'Adresse invalide.' }, 400);
   if (pathname === '/api/account') return accountHandler(request, env);
   if (pathname === '/api/workshops') return workshopsHandler(request, env);
+  if(pathname==='/reservation/confirmer')return bookingHandler(request,env);
+  const bookingMatch=/^\/atelier\/([a-z0-9-]{1,180})\/reserver$/.exec(pathname);
+  if(bookingMatch)return bookingHandler(request,env,bookingMatch[1]);
   const publicMatch=/^\/atelier\/([a-zA-Z0-9-]{1,180})(?:\/(photo|portrait))?$/.exec(pathname);
   if(publicMatch)return publicWorkshopHandler(request,env,publicMatch[1],publicMatch[2]==='photo',publicMatch[2]==='portrait');
   const catalogMatch=/^\/ateliers\/([a-z0-9-]{1,180})$/.exec(pathname);
   if(catalogMatch)return publicCatalogHandler(request,env,catalogMatch[1]);
   if (!['GET', 'HEAD'].includes(request.method)) return json({ error: 'Méthode non autorisée.' }, 405, { Allow: 'GET, HEAD' });
-  if (pathname === '/api/deployment') return json({ ...capabilities, workshopPublication: env.NAITEA_PUBLICATION_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && env.NAITEA_AUTH_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), workshopPersistence: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), accountProfile: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_PROFILE_ENABLED === 'true' && !!publicConfig.readPublicConfig(env) });
+  if (pathname === '/api/deployment') return json({ ...capabilities, realBookings: !!bookingConfig(env) && new URL(request.url).origin===bookingConfig(env).origin, workshopPublication: env.NAITEA_PUBLICATION_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && env.NAITEA_AUTH_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), workshopPersistence: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_WORKSHOPS_ENABLED === 'true' && !!publicConfig.readPublicConfig(env), accountProfile: env.NAITEA_AUTH_ENABLED === 'true' && env.NAITEA_PROFILE_ENABLED === 'true' && !!publicConfig.readPublicConfig(env) });
   if (pathname === '/api/public-config') {
     const config = env.NAITEA_AUTH_ENABLED === 'true' ? publicConfig.readPublicConfig(env) : null;
     return config ? json(config) : json({ error: 'La connexion sera ouverte après validation de sa configuration.' }, 503);
