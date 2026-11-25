@@ -25,8 +25,8 @@ test('legacy fragment links retain their workshop without creating an open redir
 });
 
 test('the Cloudflare build publishes only selected pages and resources, never repository internals', () => {
-  for (const file of ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html', 'compte.html', 'assets/landing/favicon-transparent.png', 'assets/landing/demo-pro.mp4', 'assets/berceau/transparent/naitea-logo.png']) assert(manifest.files.includes(file));
-  assert(manifest.files.every(f => f.startsWith('assets/') || ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html', 'compte.html'].includes(f)));
+  for (const file of ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html', 'compte.html', 'mes-ateliers.html', 'assets/landing/favicon-transparent.png', 'assets/landing/demo-pro.mp4', 'assets/berceau/transparent/naitea-logo.png']) assert(manifest.files.includes(file));
+  assert(manifest.files.every(f => f.startsWith('assets/') || ['index.html', 'pro.html', 'connexion.html', 'bienvenue.html', 'compte.html', 'mes-ateliers.html'].includes(f)));
   assert(!manifest.files.some(f => /(^|\/)(\.git|server|supabase|api|tests|docs|node_modules|\.env|\.dev.vars)(\/|$)/.test(f) || f.endsWith('.zip')));
   assert(!manifest.files.some(f => f.endsWith('.md') || f.startsWith('assets/landing/narration/')));
   const html = fs.readFileSync(path.join(OUTPUT, 'index.html'), 'utf8');
@@ -147,4 +147,14 @@ test('video range requests support seeking and reject out-of-bounds or malformed
     assert.equal(denied.headers.get('Content-Range'), 'bytes */' + bytes.length);
   }
   assert.equal((await load('bytes=0-10', { 'If-Range': '"older-file"' })).status, 200);
+});
+
+
+test('workshop preview page is frame protected and API is closed by default', async () => {
+  const page = await request('/mes-ateliers');
+  assert.equal(page.status, 200);
+  assert.equal(page.headers.get('X-Frame-Options'), 'DENY');
+  assert((await page.text()).includes('/assets/workshops-beta.js'));
+  assert.equal((await request('/api/workshops')).status, 423);
+  assert.equal((await (await request('/api/deployment')).json()).workshopPersistence, false);
 });

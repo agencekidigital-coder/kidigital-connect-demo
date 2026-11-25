@@ -3,7 +3,9 @@
   "name": "naitea-beta",
   "main": "cloudflare/worker.mjs",
   "compatibility_date": "2026-11-24",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "workers_dev": true,
   "assets": {
     "directory": "./dist/public",
@@ -12,7 +14,22 @@
     "html_handling": "none",
     "not_found_handling": "none"
   },
-  "build": { "command": "npm run build:cloudflare" },
-  "vars": { "NAITEA_AUTH_ENABLED": "true", "NAITEA_PROFILE_ENABLED": "true", "NAITEA_WORKSHOPS_ENABLED": "false" },
-  "observability": { "enabled": false }
+  "build": {
+    "command": "npm test && npm run build:cloudflare"
+  },
+  "vars": {
+    "NAITEA_AUTH_ENABLED": "true",
+    "NAITEA_PROFILE_ENABLED": "true",
+    "NAITEA_WORKSHOPS_ENABLED": "false"
+  },
+  "observability": {
+    "enabled": false
+  },
+  "previews": {
+    "vars": {
+      "NAITEA_AUTH_ENABLED": "false",
+      "NAITEA_PROFILE_ENABLED": "false",
+      "NAITEA_WORKSHOPS_ENABLED": "false"
+    }
+  }
 }
