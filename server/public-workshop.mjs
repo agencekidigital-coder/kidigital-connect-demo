@@ -30,15 +30,16 @@ function format(w){
 export function renderManualGoogleReviews(data){
  const url=safeURL(data.public_google_url);
  if(!url)return '';
- const link='<a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Consulter les avis Google</a>';
+ const icon='<img class="naitea-google-icon" src="/assets/google-g.svg" alt="" width="18" height="18">';
+ const link='<a class="naitea-google-link" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Consulter les avis Google</a>';
  const score=Number(data.google_rating),count=data.google_review_count;
- if(data.google_rating==null||!Number.isFinite(score)||score<1||score>5||!Number.isInteger(count)||count<1)return link;
+ if(data.google_rating==null||!Number.isFinite(score)||score<1||score>5||!Number.isInteger(count)||count<1)return '<span class="naitea-google-link-only">'+icon+link+'</span>';
  const value=score.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1}),total=count.toLocaleString('fr-FR');
  const date=Date.parse(data.google_reviews_updated_at||'');
  const stamp=Number.isFinite(date)?' Mise à jour le '+new Intl.DateTimeFormat('fr-FR',{timeZone:'Europe/Paris'}).format(date)+'.':'';
  const full=Math.floor(score),partial=Math.round((score-full)*100);
  const stars=Array.from({length:5},(_,i)=>'<span class="naitea-review-star '+(i<full?'full':i===full&&partial>=50?'half':'empty')+'">★</span>').join('');
- return '<div class="naitea-manual-reviews"><div class="naitea-review-score"><span class="naitea-review-stars" aria-hidden="true">'+stars+'</span> <strong>'+esc(value)+'/5</strong> · '+esc(total)+' avis Google</div>'+link+'<small class="naitea-review-note">Note déclarée par la professionnelle, non vérifiée par Naïtéa.'+esc(stamp)+'</small></div>';
+ return '<div class="naitea-manual-reviews"><div class="naitea-review-score">'+icon+'<span class="naitea-review-stars" aria-hidden="true">'+stars+'</span> <strong>'+esc(value)+'/5</strong> · '+esc(total)+' avis Google</div>'+link+'<small class="naitea-review-note">Note déclarée par la professionnelle, non vérifiée par Naïtéa.'+esc(stamp)+'</small></div>';
 }
 export {esc,headers,html,bytes,format,safeURL,SLUG};
 export function createPublicWorkshopHandler({fetchImpl=globalThis.fetch}={}){

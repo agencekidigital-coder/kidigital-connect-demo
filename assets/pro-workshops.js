@@ -257,7 +257,7 @@ function create(d){
           details.append(contacts);
           if(data.google_reviews_visible&&data.public_google_url&&data.google_rating!=null&&Number.isInteger(data.google_review_count)){
             const score=Number(data.google_rating), review=text('p',score.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+'/5 · '+data.google_review_count.toLocaleString('fr-FR')+' avis Google');review.className='naitea-review-score';
-            const stars=text('span','★★★★★');stars.className='naitea-review-stars';stars.setAttribute('aria-hidden','true');stars.style.setProperty('--rating-width',(score/5*100)+'%');review.prepend(stars,document.createTextNode(' '));
+            const stars=text('span','★★★★★');stars.className='naitea-review-stars';stars.setAttribute('aria-hidden','true');stars.style.setProperty('--rating-width',(score/5*100)+'%');const googleIcon=document.createElement('img');googleIcon.className='naitea-google-icon';googleIcon.src='/assets/google-g.svg';googleIcon.alt='';googleIcon.width=18;googleIcon.height=18;review.prepend(googleIcon,stars,document.createTextNode(' '));
             const stamp=data.google_reviews_updated_at?new Date(data.google_reviews_updated_at).toLocaleDateString('fr-FR'):'';
             const note=text('small','Note déclarée par la professionnelle, non vérifiée par Naïtéa.'+(stamp?' Mise à jour le '+stamp+'.':''));note.className='naitea-review-note';
             details.append(review,note);

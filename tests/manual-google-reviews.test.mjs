@@ -11,3 +11,5 @@ test('absent or invalid rating displays link only',()=>{
  assert.doesNotMatch(renderManualGoogleReviews({public_google_url:'https://www.google.com/maps',google_rating:6,google_review_count:20}),/avis Google<\/strong>/);
  assert.doesNotMatch(renderManualGoogleReviews({public_google_url:'https://www.google.com/maps'}),/naitea-review-score/);
 });
+
+test('Google pictogram is local and included with the review link',()=>{const html=renderManualGoogleReviews({public_google_url:'https://share.google/test',google_rating:5,google_review_count:14});assert.match(html,/src="\/assets\/google-g.svg"/);assert.match(html,/14 avis Google/);assert.match(renderManualGoogleReviews({public_google_url:'https://share.google/test'}),/google-g.svg/);});
