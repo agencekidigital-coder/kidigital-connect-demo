@@ -49,3 +49,5 @@
 .naitea-waiting-group{border-top:1px solid #E7D6C8;padding-top:18px}.naitea-waiting-group .naitea-booking-entry{background:#FEF8ED;border-color:#E7D6C8}.naitea-waiting-group .naitea-cancel-actions{margin-top:12px}
 
 .naitea-edit-contact{margin:14px 0}.naitea-booking-entry button[hidden]{display:none!important}
+
+.naitea-cancel-danger{border-color:#BF5B45!important}.naitea-cancel-box textarea{width:100%;padding:12px;border:1px solid #CAB1B8;border-radius:8px;background:#FFFDF8;color:#590425;resize:vertical}
