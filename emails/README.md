@@ -26,3 +26,6 @@ La vérification navigateur desktop/mobile et sans images est une approximation 
 
 ## Réinitialisation du mot de passe
 Dans Authentication → Email → Templates → Reset password, objet « Réinitialisez votre mot de passe Naïtea », copier le fichier `supabase-reset-password.html` en entier. Conserver les trois `{{ .ConfirmationURL }}`. Le modèle doit être installé manuellement : les outils disponibles ne modifient pas la configuration Auth. Aucun changement au modèle de création de compte.
+
+## Encodage des accents (26 novembre 2026)
+Les modèles HTML Auth utilisent exclusivement des caractères ASCII et des références HTML numériques pour les caractères Unicode. Cela évite les accents illisibles si la messagerie ou SMTP interprète mal UTF-8. Les variables ConfirmationURL restent intactes. Réinstaller les modèles Reset password et Confirm signup dans Supabase pour appliquer la correction aux emails Auth ; les objets restent du texte normal. Les emails Brevo utilisent également des références numériques dans le HTML, sans changer leur texte brut. Vérifier la réception effective après installation.

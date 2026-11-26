@@ -12,6 +12,6 @@ export function workshopEmail(kind,w,firstName,seats){
  const note=waiting?'Aucune place réservée. Aucun paiement.':'Aucun paiement en ligne n’a été effectué. Conservez ce récapitulatif.';
  const recap='<tr><td style="padding:26px 0 0;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" bgcolor="#FEF8ED" style="border:1px solid #E9D9CA;border-radius:14px;background:#FEF8ED;">'+lines.map(([label,value])=>'<tr><td style="padding:10px 16px;color:#76525C;font-size:13px;text-align:left;">'+esc(label)+'</td><td style="padding:10px 16px;color:#590425;font-size:15px;font-weight:bold;text-align:right;overflow-wrap:anywhere;">'+esc(value)+'</td></tr>').join('')+'</table></td></tr><tr><td style="padding:20px 0 0;color:#76525C;font-size:14px;line-height:22px;text-align:center;">'+esc(note)+'</td></tr>';
  const map={'@@SUBJECT@@':esc(subject),'@@PREHEADER@@':esc(subject),'@@TITLE@@':esc(title).replace(/ !$/,'&nbsp;!'),'@@INTRO@@':'Bonjour '+esc(firstName)+',<br><br>'+esc(intro),'@@RECAP@@':recap};
- const htmlContent=shell.replace(/@@(?:SUBJECT|PREHEADER|TITLE|INTRO|RECAP)@@/g,key=>map[key]);
+ const htmlContent=shell.replace(/@@(?:SUBJECT|PREHEADER|TITLE|INTRO|RECAP)@@/g,key=>map[key]).replace(/[^\x00-\x7F]/gu,c=>'&#'+c.codePointAt(0)+';');
  return {subject,htmlContent,textContent:'Bonjour '+firstName+', '+intro+'\n'+lines.map(([label,value])=>label+' : '+value).join('\n')+'\n'+note+'\nNaïtéa · contact@naitea.fr'};
 }

@@ -81,7 +81,7 @@ input:focus{outline:2px solid #b9768288;outline-offset:2px}
 </section>
 <section id="resetPanel" hidden>
 <h1>Choisir un nouveau mot de passe</h1>
-<p class="intro">Ton lien est valide. Choisis un nouveau mot de passe de 12 caractères minimum.</p>
+<p class="intro">Ton lien est valide. Choisis un nouveau mot de passe de 12 caractères minimum avec une majuscule, une minuscule, un chiffre et un caractère spécial (ex. !, @ ou #).</p>
 <form id="newPasswordForm">
 <label for="newPassword">Nouveau mot de passe</label>
 <div class="password-field"><input id="newPassword" type="password" autocomplete="new-password" minlength="12" required><button type="button" class="password-toggle" data-password-toggle="newPassword" aria-controls="newPassword" aria-pressed="false" aria-label="Afficher le mot de passe"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/><path class="password-slash" d="m3 3 18 18" hidden/></svg></button></div>
@@ -118,6 +118,17 @@ function status(message, type) {
   $('status').textContent = message;
   $('status').className = 'status' + (type ? ' ' + type : '');
 }
+const passwordRequirements = 'Choisissez un mot de passe d’au moins 12 caractères, avec une lettre minuscule, une lettre majuscule, un chiffre et un caractère spécial (par exemple !, @ ou #).';
+function authErrorMessage(error,fallback){
+  const code=error?.code||'',message=typeof error?.message==='string'?error.message:'';
+  if(code==='weak_password'||/password should contain|password (?:must|should) (?:be|contain)|password is too weak|password.*at least/i.test(message))return passwordRequirements;
+  if(code==='same_password'||/new password should be different/i.test(message))return 'Le nouveau mot de passe doit être différent de l’ancien.';
+  if(code==='invalid_credentials')return 'Adresse email ou mot de passe incorrect.';
+  if(code==='email_not_confirmed')return 'Confirmez votre adresse email avant de vous connecter.';
+  if(['over_email_send_rate_limit','over_request_rate_limit'].includes(code)||error?.status===429)return 'Trop de demandes. Patientez quelques instants avant de réessayer.';
+  if(['otp_expired','session_expired','session_not_found'].includes(code))return 'Ce lien ou cette session a expiré. Demandez un nouveau lien.';
+  return fallback;
+}
 function setPasswordVisible(button,visible){
   const input=$(button.dataset.passwordToggle);input.type=visible?'text':'password';button.setAttribute('aria-pressed',String(visible));button.setAttribute('aria-label',visible?'Masquer le mot de passe':'Afficher le mot de passe');button.querySelector('.password-slash').toggleAttribute('hidden',!visible);
 }
@@ -142,7 +153,7 @@ function selectMode(next) {
   $('fullName').required = mode === 'signup';
   $('password').autocomplete = mode === 'signup' ? 'new-password' : 'current-password';
   $('submitBtn').textContent = mode === 'signup' ? 'Créer mon compte' : 'Se connecter';
-  status(mode === 'signup' ? 'Choisissez un mot de passe de 12 caractères minimum.' : 'Renseignez votre email et votre mot de passe.');
+  status(mode === 'signup' ? passwordRequirements : 'Renseignez votre email et votre mot de passe.');
 }
 async function showAccount() {
   if (recoveryMode || redirecting) return;
@@ -168,7 +179,7 @@ async function showRecovery() {
     return;
   }
   $('authPanel').hidden = true; $('accountPanel').hidden = true; $('resetPanel').hidden = false;
-  status('Choisissez un nouveau mot de passe de 12 caractères minimum.');
+  status(passwordRequirements);
 }
 async function init() {
   selectMode(mode);
@@ -226,7 +237,7 @@ $('forgotForm').addEventListener('submit', async (event) => {
     if (error) throw error;
     status('Si cette adresse correspond à un compte, un e-mail de réinitialisation va arriver. Vérifie aussi les spams.', 'success');
   } catch (error) {
-    status(error.message || 'Impossible d’envoyer le lien.', 'error');
+    status(authErrorMessage(error,'Impossible d’envoyer le lien. Réessayez.'), 'error');
   } finally {
     btn.disabled = false;
   }
@@ -253,7 +264,7 @@ $('newPasswordForm').addEventListener('submit', async (event) => {
     selectMode('login');
     status('Ton mot de passe est modifié ! Tu peux maintenant te connecter.', 'success');
   } catch (error) {
-    status(error.message || 'Impossible de modifier le mot de passe.', 'error');
+    status(authErrorMessage(error,'Impossible de modifier le mot de passe. Si le lien a expiré, demandez-en un nouveau.'), 'error');
   } finally {
     btn.disabled = false;
   }
@@ -290,7 +301,7 @@ $('authForm').addEventListener('submit', async (event) => {
       await showAccount();
     }
   } catch (err) {
-    status(err.message || 'Une erreur est survenue.', 'error');
+    status(authErrorMessage(err,'Une erreur est survenue. Vérifiez vos informations et réessayez.'), 'error');
   } finally {
     $('submitBtn').disabled = false;
   }
@@ -298,7 +309,7 @@ $('authForm').addEventListener('submit', async (event) => {
 $('logoutBtn').addEventListener('click', async () => {
   if (!client) return;
   const { error } = await client.auth.signOut();
-  if (error) return status(error.message, 'error');
+  if (error) return status(authErrorMessage(error,'Impossible de vous déconnecter. Réessayez.'), 'error');
   $('accountPanel').hidden = true;
   $('authPanel').hidden = false;
   status('Tu es déconnectée.', 'success');
