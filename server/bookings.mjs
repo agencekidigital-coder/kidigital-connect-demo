@@ -22,7 +22,7 @@ async function readForm(request){
 const hash=async token=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(token))),n=>n.toString(16).padStart(2,'0')).join('');
 const token=()=>Array.from(crypto.getRandomValues(new Uint8Array(32)),n=>n.toString(16).padStart(2,'0')).join('');
 const goBack=slug=>'<a class="btn secondary" href="/atelier/'+slug+'">Revenir à l’atelier</a>';
-function familyDetails(f){
+export function familyDetails(f){
  const clean=(key,max)=>{const s=(f.get(key)||'').normalize('NFC').trim();if(s.length>max||/[\u0000-\u001f\u007f]/.test(s))throw Error('invalid field');return s||null;};
  const first=clean('first_name',60),last=clean('last_name',59);
  let phone=(f.get('phone')||'').replace(/[\s.()-]/g,'');

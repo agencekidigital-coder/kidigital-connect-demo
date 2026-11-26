@@ -3,6 +3,7 @@ import { createWorkshopsHandler } from '../server/workshops.mjs';
 import { createPublicWorkshopHandler } from '../server/public-workshop.mjs';
 import { createPublicCatalogHandler } from '../server/public-catalog.mjs';
 import {createBookingHandler} from '../server/bookings.mjs';
+import {createManualBookingHandler} from '../server/manual-bookings.mjs';
 import {bookingConfig} from '../server/booking-config.mjs';
 import { createAccountHandler } from '../server/account-profile.mjs';
 import fontHandler from '../api/font.js';
@@ -22,6 +23,7 @@ const workshopsHandler = createWorkshopsHandler();
 const publicWorkshopHandler = createPublicWorkshopHandler();
 const publicCatalogHandler = createPublicCatalogHandler();
 const bookingHandler = createBookingHandler();
+const manualBookingHandler = createManualBookingHandler();
 
 function guard(response, request, { embed = false, auth = false, account = false } = {}) {
   const headers = new Headers(response.headers);
@@ -154,6 +156,7 @@ async function route(request, env, ctx, pathname) {
   if (!pathname) return json({ error: 'Adresse invalide.' }, 400);
   if (pathname === '/api/account') return accountHandler(request, env);
   if (pathname === '/api/workshops') return workshopsHandler(request, env);
+  if (pathname === '/api/manual-bookings') return manualBookingHandler(request, env);
   if(pathname==='/reservation/confirmer')return bookingHandler(request,env);
   const bookingMatch=/^\/atelier\/([a-z0-9-]{1,180})\/reserver$/.exec(pathname);
   if(bookingMatch)return bookingHandler(request,env,bookingMatch[1]);
