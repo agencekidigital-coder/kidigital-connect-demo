@@ -387,7 +387,7 @@ function create(d){
     const target=el('naiteaPrivateBookings');
     const loadList=async()=>{
       try{
-        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
+        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
         if(error||!Array.isArray(data))throw Error('Chargement impossible');
         target.replaceChildren();
@@ -396,6 +396,10 @@ function create(d){
         if(!data.length)target.append(text('p','Aucune inscription confirmée.'));
         for(const b of data.slice(0,1000)){
           const card=document.createElement('div');card.className='card naitea-booking-entry';card.append(text('strong',b.parent_name),text('p',b.parent_email),text('p',b.seats+' place(s) · '+(b.status==='confirmed'?'Confirmée':'Annulée')));
+          if(b.parent_phone)card.append(text('p','Téléphone : '+b.parent_phone));
+          if(b.coparent_present)card.append(text('p','Co-parent : '+([b.coparent_first_name,b.coparent_last_name].filter(Boolean).join(' ')||'Présent')));
+          if(b.child_present)card.append(text('p','Enfant : '+([b.child_first_name,b.child_age].filter(Boolean).join(' · ')||'Présent')));
+          card.append(text('p',b.newsletter_requested_at?'Actualités : accord donné lors de l’inscription':'Actualités : aucun accord enregistré'));
           if(b.status==='confirmed'){
             const cancel=button('Annuler cette inscription',async()=>{
               if(!window.confirm('Annuler cette inscription et libérer les places ? Aucun email automatique ne sera envoyé : informe la famille directement.'))return;
