@@ -488,6 +488,36 @@ function create(d){
     });
     root.append(start,panel);return root;
   }
+  function waitingGroup(w,entries,target,loadList,version,uid){
+    const section=document.createElement('section');section.className='naitea-booking-group naitea-waiting-group';
+    section.append(text('h3','Liste d’attente ('+entries.length+')'),text('p','Demandes par ordre d’arrivée. Les familles en attente ne réservent aucune place.'));
+    if(!entries.length){section.append(text('p','Aucune famille en attente.'));return section;}
+    for(const [index,b] of entries.entries()){
+      const card=document.createElement('div');card.className='card naitea-booking-entry';
+      card.append(text('strong',(index+1)+'. '+b.parent_first_name+' '+b.parent_last_name),text('p',b.parent_email),text('p','Téléphone : '+b.parent_phone),text('p',b.seats+' place(s) demandée(s) · '+new Date(b.created_at).toLocaleString('fr-FR')));
+      if(b.details?.coparent)card.append(text('p','Co-parent : '+([b.details.coparent_first_name,b.details.coparent_last_name].filter(Boolean).join(' ')||'Présent')));
+      if(b.details?.child)card.append(text('p','Enfant : '+([b.details.child_first_name,b.details.child_age].filter(Boolean).join(' · ')||'Présent')));
+      const status=text('p','');status.setAttribute('role','status');
+      const actions=document.createElement('div');actions.className='naitea-cancel-actions';
+      const run=async action=>{
+        if(version!==revision||uid!==owner||!target.isConnected)return;
+        if(!window.confirm(action==='promote'?'As-tu obtenu l’accord de la famille pour confirmer sa réservation ? Une place sera décomptée par duo, et un email sera envoyé à l’adresse de test autorisée.':'Retirer cette famille de la liste d’attente ? Aucun email automatique ne sera envoyé.'))return;
+        promote.disabled=true;withdraw.disabled=true;status.textContent='Enregistrement…';
+        try{
+          const {data,error}=await client.auth.getSession();if(version!==revision||uid!==owner||!target.isConnected)return;if(error||data?.session?.user?.id!==uid||!data.session.access_token)throw Error();
+          const r=await fetch('/api/waitlist',{method:'POST',credentials:'omit',cache:'no-store',headers:{Authorization:'Bearer '+data.session.access_token},body:new URLSearchParams({id:b.id,action})});
+          const result=await r.json();if(version!==revision||uid!==owner||!target.isConnected)return;
+          const notice=result.code==='CONFIRMED'?(result.mail==='accepted'?'Inscription confirmée et email envoyé.':'Inscription confirmée. Email non envoyé ou non confirmé : contacte la famille.'):result.code==='WITHDRAWN'?'Demande retirée de la liste d’attente.':({FULL:'Pas assez de places. La famille reste en attente.',ALREADY_REQUESTED:'Une réservation existe déjà. Vérifie les inscriptions.',ALREADY_RESOLVED:'Cette demande a déjà été traitée.',WORKSHOP_UNAVAILABLE:'Atelier indisponible.',RATE_LIMIT:'Limite de test atteinte.'}[result.code]||'Action non confirmée. Vérifie les inscriptions.');
+          await loadList(notice);
+        }catch{if(target.isConnected)await loadList('Action non confirmée. Vérifie les inscriptions avant de réessayer.');}
+      };
+      const promote=button('Confirmer l’inscription',()=>run('promote'));promote.className='btn';
+      const count=bookingCounts.get(w.id);promote.disabled=w.status!=='published'||Date.parse(w.starts_at)<=Date.now()||Number.isInteger(count)&&w.capacity-count<b.seats;
+      const withdraw=button('Retirer de la liste',()=>run('withdraw'));actions.append(promote,withdraw);
+      card.append(status,actions);section.append(card);
+    }
+    return section;
+  }
   async function showBookings(w){
     if(!ready||busy||!owner||!d.isPage())return;
     const version=revision,uid=owner;
@@ -499,6 +529,8 @@ function create(d){
         const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
         if(error||!Array.isArray(data))throw Error('Chargement impossible');
+        let waiting=[],waitingError=false;
+        if(manualEnabled){try{const result=await client.from('naitea_workshop_waitlist').select('id,parent_first_name,parent_last_name,parent_email,parent_phone,seats,details,created_at').eq('workshop_id',w.id).eq('status','waiting').order('created_at',{ascending:true}).order('id',{ascending:true}).limit(1000);if(result.error||!Array.isArray(result.data))throw Error();waiting=result.data;}catch{waitingError=true;}}
         await refreshBookingCounts();
         if(version!==revision||owner!==uid||!target.isConnected)return;
         target.replaceChildren();
@@ -544,7 +576,9 @@ function create(d){
             const buttons=document.createElement('div');buttons.className='naitea-cancel-actions';buttons.append(back,submit);panel.append(label,select,other,warning,status,buttons);card.append(panel);select.focus();
           });card.append(cancel);active.append(card);
         }
-        target.append(active,history);
+        target.append(active);
+        if(manualEnabled){if(waitingError)target.append(text('p','Liste d’attente indisponible. Actualise pour réessayer.'));else target.append(waitingGroup(w,waiting,target,loadList,version,uid));}
+        target.append(history);
         if(data.length>1000)target.append(text('p','Liste limitée aux 1 000 premières inscriptions ; le compteur inclut toutes les inscriptions.'));
       }catch{if(version===revision&&target.isConnected)target.replaceChildren(text('p','Impossible de charger les inscriptions. Réessaie.'));}
     };
