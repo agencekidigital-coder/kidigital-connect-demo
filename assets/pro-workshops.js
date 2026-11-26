@@ -165,7 +165,7 @@ function create(d){
     const unitField=document.createElement('div');unitField.className='field';
     const unitLabel=text('label','Tarif applicable *');unitLabel.htmlFor='naiteaPricingUnit';
     const unit=document.createElement('select');unit.name='pricing_unit';unit.id='naiteaPricingUnit';unit.required=true;
-    for(const [value,label] of [['person','Par personne (bébé bienvenu si prévu)'],['duo','Par duo parent-enfant']]){const opt=text('option',label);opt.value=value;unit.append(opt);}
+    for(const [value,label] of [['person','Par personne (bébé bienvenu)'],['duo','Par duo parent-enfant']]){const opt=text('option',label);opt.value=value;unit.append(opt);}
     unit.value=w?.pricing_unit==='duo'?'duo':'person';unitField.append(unitLabel,unit);priceField.before(unitField);
     const priceLabel=priceField.querySelector('label');priceLabel.dataset.pricingLabel='1';priceLabel.textContent=unit.value==='duo'?'Prix par duo parent-enfant (€) *':'Prix par personne (€) *';
     form.querySelector('[type="submit"]').textContent='Enregistrer le brouillon';

@@ -8,3 +8,4 @@ test('confirmed and waiting emails retain branding and escape personalised data'
  const waiting=workshopEmail('waiting',{...w,pricing_unit:'duo'},'Camille',2);
  assert.match(waiting.htmlContent,/Aucune place réservée/);assert.match(waiting.htmlContent,/duo parent-enfant/);assert.match(waiting.htmlContent,/Places demandées/);assert.match(waiting.subject,/liste d’attente/);
 });
+test('email headings keep final punctuation attached to the preceding word',()=>{assert.match(workshopEmail('confirmed',w,'Camille',1).htmlContent,/confirmée&nbsp;!<\/h1>/);assert.match(workshopEmail('waiting',w,'Camille',1).htmlContent,/attente&nbsp;!<\/h1>/);});
