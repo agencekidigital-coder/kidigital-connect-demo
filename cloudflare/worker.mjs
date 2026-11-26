@@ -40,7 +40,9 @@ function guard(response, request, { embed = false, auth = false, account = false
   }
   if(new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com");
-    headers.set('X-Frame-Options','DENY');headers.set('Referrer-Policy','no-referrer');
+    // HTML form POSTs need a non-null Origin for the strict same-origin check.
+    // Only the origin, never the page path or confirmation fragment, is disclosed.
+    headers.set('X-Frame-Options','DENY');headers.set('Referrer-Policy','strict-origin');
   }
   if (auth) headers.set('X-Frame-Options', 'DENY');
   if (headers.get('Content-Type')?.includes('text/html')) headers.set('Cache-Control', 'no-store');

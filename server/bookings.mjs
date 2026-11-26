@@ -41,11 +41,14 @@ export function createBookingHandler({fetchImpl=globalThis.fetch}={}){
   if(!c||url.origin!==c.origin)return configError();
   if(!['GET','HEAD','POST'].includes(request.method))return error('Méthode non autorisée.',405);
   const publicRPC=provider(c,fetchImpl),privateRPC=provider(c,fetchImpl,true);
+  let stage='atelier';
   try{
    if(slug===null){
     if(request.method!=='POST')return box('Confirmez votre inscription','Cliquez sur le bouton pour confirmer votre place. Le lien expire après 15 minutes.','<form method="post" action="/reservation/confirmer" id="naitea-confirm-form"><input type="hidden" name="token" id="naitea-confirm-token"><button class="btn" id="naitea-confirm-submit" disabled>Confirmer mon inscription</button><p id="naitea-confirm-status" role="status"></p><noscript>Activez JavaScript pour confirmer votre inscription.</noscript></form><script src="/assets/booking-confirm.js" defer></script>');
+    stage='formulaire';
     const f=await readForm(request),t=f.get('token')||'';
     if(!HEX.test(t))return error('Lien invalide ou incomplet.');
+    stage='confirmation';
     const result=await privateRPC('naitea_confirm_verified_booking',{p_hash:await hash(t)});
     if(result?.code==='CONFIRMED')return box('Votre inscription est confirmée !','Votre place est réservée. Aucun paiement en ligne n’a été effectué. Conservez le récapitulatif reçu par email.');
     return error('Ce lien est expiré, invalide ou l’atelier n’est plus disponible. Revenez à la page de l’atelier.',409);
@@ -61,14 +64,17 @@ export function createBookingHandler({fetchImpl=globalThis.fetch}={}){
     const fields='<div class="naitea-booking-recap"><strong>'+recap+'</strong><p>'+available+' place(s) disponible(s)</p></div><form class="naitea-booking-form" method="post" action="/atelier/'+slug+'/reserver"><input type="hidden" name="request_key" value="'+crypto.randomUUID()+'">'+familyFields()+'<label for="seats">Nombre de places (duos)</label><select id="seats" name="seats">'+Array.from({length:Math.min(available,10)},(_,i)=>'<option value="'+(i+1)+'">'+(i+1)+'</option>').join('')+'</select><h2>Vos préférences</h2><label class="naitea-booking-consent"><input type="checkbox" name="newsletter" value="yes"> J’accepte de recevoir par email les actualités et prochains ateliers de cette professionnelle (facultatif).</label><p>Les informations de participation et vos coordonnées seront transmises à la professionnelle après confirmation et utilisées pour organiser votre inscription. Les emails pratiques sont indépendants de votre choix de recevoir les actualités. Aucun envoi commercial n’est activé dans cette version de test.</p><label class="naitea-booking-consent"><input type="checkbox" name="ack" value="yes" required> J’ai compris que mes coordonnées sont utilisées pour cette réservation.</label><div class="cf-turnstile" data-sitekey="'+esc(c.site)+'" data-action="workshop_booking"></div><button class="btn" type="submit">Recevoir mon lien de confirmation</button><p class="fine">La place est réservée pendant 15 minutes, le temps de confirmer votre email. Aucun paiement en ligne.</p></form><script src="/assets/booking-family.js" defer></script><script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>';
     return box('Réserver un atelier — test','Version de test : seules les inscriptions avec l’adresse email autorisée sont acceptées. N’utilisez pas de données réelles de familles.',fields);
    }
+   stage='formulaire';
    const f=await readForm(request),email=(f.get('parent_email')||'').trim().toLowerCase(),seats=Number(f.get('seats')),key=f.get('request_key')||'',challenge=f.get('cf-turnstile-response')||'';
    let details;try{details=familyDetails(f);}catch{return error('Renseignez un prénom, un nom et un téléphone valides, et vérifiez les autres informations.');}
    if(email.length>254||!EMAIL.test(email)||!Number.isInteger(seats)||seats<1||seats>10||!UUID.test(key)||f.get('ack')!=='yes'||!challenge||challenge.length>2048)return error('Vérifiez les informations et recommencez depuis la fiche de l’atelier.');
    if(email!==c.testEmail)return error('Les inscriptions sont limitées à une adresse de test autorisée.',403);
+   stage='anti-spam';
    const verify=await fetchImpl('https://challenges.cloudflare.com/turnstile/v0/siteverify',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({secret:c.secret,response:challenge})});
    if(!verify.ok)return error('La vérification anti-spam est indisponible. Réessayez.',503);
    const checked=JSON.parse(new TextDecoder().decode(await bytes(verify,16384)));
    if(checked.success!==true||checked.hostname!==url.hostname||checked.action!=='workshop_booking')return error('La vérification anti-spam a échoué. Revenez au formulaire.',403);
+   stage='enregistrement';
    const t=token();
    const result=await privateRPC('naitea_begin_full_booking',{p_workshop_id:w.id,p_parent_email:email,p_seats:seats,p_request_key:key,p_hash:await hash(t),p_details:details});
    if(result?.code==='FULL')return box('Atelier complet','Une autre famille a réservé les dernières places.',goBack(slug),409);
@@ -76,11 +82,16 @@ export function createBookingHandler({fetchImpl=globalThis.fetch}={}){
    if(result?.code!=='REQUEST_RECEIVED')return error('Impossible de réserver cet atelier pour le moment.',409);
    if(result.send===true){
     const link=c.origin+'/reservation/confirmer#'+t;
+    stage='email';
     const mail=await fetchImpl('https://api.brevo.com/v3/smtp/email',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{'api-key':c.brevo,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({sender:{name:'Naïtéa',email:c.sender},to:[{email}],subject:'Confirmez votre inscription à votre atelier Naïtéa',htmlContent:'<html lang="fr"><body style="font-family:Arial;color:#590425"><h1>Encore une petite étape !</h1><p>'+recap+'</p><p>'+seats+' place(s) · Aucun paiement en ligne.</p><p><a href="'+esc(link)+'" style="background:#590425;color:white;padding:14px;border-radius:8px;text-decoration:none">Confirmer mon inscription</a></p><p>Ce lien expire dans 15 minutes. Si vous n’avez pas fait cette demande, ignorez cet email.</p></body></html>',textContent:'Confirmez votre inscription dans les 15 minutes : '+link+' . Si vous n’avez pas fait cette demande, ignorez cet email.'})});
     if(!mail.ok){mail.body?.cancel().catch(()=>{});return error('L’envoi de l’email n’a pas pu être confirmé. La place temporaire sera libérée après 15 minutes.',503);}
     mail.body?.cancel().catch(()=>{});
    }
    return box('Vérifiez votre boîte email','Si votre demande est nouvelle, un lien de confirmation vous a été envoyé. Si vous avez déjà demandé une inscription, utilisez votre précédent email. La place n’est confirmée qu’après validation.',goBack(slug));
-  }catch{return error('Le service est momentanément indisponible. Aucune inscription n’est confirmée par cette page.',503);}
+  }catch{
+   // Never expose provider errors, secrets, request content or family data.
+   if(stage==='formulaire')return error('Le formulaire n’a pas pu être vérifié. Rouvrez la page de réservation et réessayez. (FORM)',400);
+   return error('Le service est momentanément indisponible. Aucune inscription n’est confirmée par cette page. (Étape : '+stage+')',503);
+  }
  };
 }
