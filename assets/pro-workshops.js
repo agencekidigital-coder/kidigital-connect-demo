@@ -130,7 +130,8 @@ function create(d){
     return {id:w.id,title:w.title,description:w.description||'',date:date.slice(0,10),time:date.slice(11),capacity:w.capacity,price:w.price_cents/100,duration:w.duration_label||'',category:w.category||'Massage bébé',workshopModality:w.modality||'venue',venueName:w.venue_name||'',venueAddress:{street:w.venue_street||'',postalCode:w.venue_postal_code||'',city:w.venue_city||''},videoPlatform:w.video_platform||'',targetAudiences:w.target_audiences||['Jeunes parents','Bébés'],childAge:w.child_age_unit?{min:w.child_age_min,max:w.child_age_max,unit:w.child_age_unit}:null};
   }
   function fields(form){
-    const e=form.elements, video=form.querySelector('[name="workshopModality"]:checked')?.value==='video';
+    const e=form.elements;const pricingLabel=form.querySelector('[data-pricing-label]');if(pricingLabel)pricingLabel.textContent=e.pricing_unit.value==='duo'?'Prix par duo parent-enfant (€) *':'Prix par personne (€) *';
+    const video=form.querySelector('[name="workshopModality"]:checked')?.value==='video';
     for(const [selector,on] of [['[data-workshop-venue]',!video],['[data-workshop-video]',video],['[data-child-age]',e.ageEnabled.checked]]){
       const node=form.querySelector(selector);node.hidden=!on;for(const input of node.querySelectorAll('input,select'))input.disabled=!on;
     }
@@ -143,7 +144,7 @@ function create(d){
     const extra=d.tools.workshop(values),date=new Date(values.date+'T'+values.time);
     if(!Number.isFinite(date.getTime())||localDate(date.toISOString())!==values.date+'T'+values.time)throw Error('Choisis une date et une heure valides.');
     const age=extra.childAge, address=extra.venueAddress;
-    return {title:values.title,description:values.description||null,starts_at:date.toISOString(),capacity:Number(values.capacity),price_cents:Math.round(Number(values.price)*100),category:extra.category,duration_label:values.duration?.trim()||null,timezone_name:Intl.DateTimeFormat().resolvedOptions().timeZone,modality:extra.workshopModality,venue_name:extra.venueName||null,venue_street:address?.street||null,venue_postal_code:address?.postalCode||null,venue_city:address?.city||null,video_platform:extra.videoPlatform||null,target_audiences:extra.targetAudiences,child_age_min:age?.min??null,child_age_max:age?.max??null,child_age_unit:age?.unit??null,...(w?{id:w.id}:{})};
+    return {title:values.title,description:values.description||null,starts_at:date.toISOString(),capacity:Number(values.capacity),price_cents:Math.round(Number(values.price)*100),pricing_unit:values.pricing_unit,category:extra.category,duration_label:values.duration?.trim()||null,timezone_name:Intl.DateTimeFormat().resolvedOptions().timeZone,modality:extra.workshopModality,venue_name:extra.venueName||null,venue_street:address?.street||null,venue_postal_code:address?.postalCode||null,venue_city:address?.city||null,video_platform:extra.videoPlatform||null,target_audiences:extra.targetAudiences,child_age_min:age?.min??null,child_age_max:age?.max??null,child_age_unit:age?.unit??null,...(w?{id:w.id}:{})};
   }
   function open(w){
     if(!ready||busy||uncertain||!owner||!d.isPage())return;
@@ -160,6 +161,13 @@ function create(d){
     form.querySelector('.naitea-description-tools')?.remove();
     const helper=text('p','Heure locale de ton appareil. Les photos restent privées.');helper.className='fine';form.querySelector('.modalfooter').before(helper);
     form.elements.price.step='0.01';
+    const priceField=form.elements.price.closest('.field');
+    const unitField=document.createElement('div');unitField.className='field';
+    const unitLabel=text('label','Tarif applicable *');unitLabel.htmlFor='naiteaPricingUnit';
+    const unit=document.createElement('select');unit.name='pricing_unit';unit.id='naiteaPricingUnit';unit.required=true;
+    for(const [value,label] of [['person','Par personne (bébé bienvenu si prévu)'],['duo','Par duo parent-enfant']]){const opt=text('option',label);opt.value=value;unit.append(opt);}
+    unit.value=w?.pricing_unit==='duo'?'duo':'person';unitField.append(unitLabel,unit);priceField.before(unitField);
+    const priceLabel=priceField.querySelector('label');priceLabel.dataset.pricingLabel='1';priceLabel.textContent=unit.value==='duo'?'Prix par duo parent-enfant (€) *':'Prix par personne (€) *';
     form.querySelector('[type="submit"]').textContent='Enregistrer le brouillon';
     d.showModal(w?'Modifier mon atelier':'Créer un atelier','Les informations restent privées tant que la publication n’est pas ouverte.',container.innerHTML);
     const active=el('naiteaPrivateWorkshopForm');fields(active);
@@ -241,7 +249,7 @@ function create(d){
     const audience=document.createElement('p');
     audiences.forEach((label,i)=>{if(i)audience.append(document.createTextNode(', '));audience.append(document.createTextNode(label));if(label==='Bébés'&&age){audience.append(document.createTextNode(' '),text('em',age));}});
     if(age&&!audiences.includes('Bébés'))audience.append(document.createTextNode(' · '),text('em',age));
-    const price=text('p',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+' / duo · '+w.capacity+' places au total');price.className='naitea-public-price';
+    const price=text('p',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+(w.pricing_unit==='duo'?' / duo parent-enfant':' / personne')+' · '+w.capacity+' places au total');price.className='naitea-public-price';
     const professional=document.createElement('section');professional.className='naitea-public-pro';professional.id='naiteaPreviewProfessional';professional.hidden=true;
     body.append(tag,text('h1',w.title),professional,time,desc,text('p',location),audience,price);
     const reserve=text('button','Réservation bientôt disponible');reserve.className='btn';reserve.disabled=true;body.append(reserve);root.append(body);
@@ -430,7 +438,7 @@ function create(d){
     };
     toggle('Un co-parent participera-t-il ?','coparent',[field('Prénom du co-parent','coparent_first_name','text',100),field('Nom du co-parent','coparent_last_name','text',100)]);
     toggle('Un enfant sera-t-il présent ?','child',[field('Prénom de l’enfant','child_first_name','text',100),field('Âge de l’enfant','child_age','text',40,false,'Ex. 6 mois')]);
-    const seatsLabel=document.createElement('label');seatsLabel.className='field';seatsLabel.append(text('span','Nombre de places (duos) *'));
+    const seatsLabel=document.createElement('label');seatsLabel.className='field';seatsLabel.append(text('span',w.pricing_unit==='duo'?'Nombre de places (duos) *':'Nombre de places (personnes) *'));
     const seats=document.createElement('select');seats.name='seats';seats.required=true;
     const count=bookingCounts.get(w.id),max=Math.min(10,Number.isInteger(count)?Math.max(0,w.capacity-count):w.capacity);
     for(let i=1;i<=max;i++){const opt=text('option',i+' place(s)');opt.value=String(i);seats.append(opt);}seatsLabel.append(seats);form.append(seatsLabel);
@@ -501,7 +509,7 @@ function create(d){
       const actions=document.createElement('div');actions.className='naitea-cancel-actions';
       const run=async action=>{
         if(version!==revision||uid!==owner||!target.isConnected)return;
-        if(!window.confirm(action==='promote'?'As-tu obtenu l’accord de la famille pour confirmer sa réservation ? Une place sera décomptée par duo, et un email sera envoyé à l’adresse de test autorisée.':'Retirer cette famille de la liste d’attente ? Aucun email automatique ne sera envoyé.'))return;
+        if(!window.confirm(action==='promote'?'As-tu obtenu l’accord de la famille pour confirmer sa réservation ? Les places demandées seront décomptées, et un email sera envoyé à l’adresse de test autorisée.':'Retirer cette famille de la liste d’attente ? Aucun email automatique ne sera envoyé.'))return;
         promote.disabled=true;withdraw.disabled=true;status.textContent='Enregistrement…';
         try{
           const {data,error}=await client.auth.getSession();if(version!==revision||uid!==owner||!target.isConnected)return;if(error||data?.session?.user?.id!==uid||!data.session.access_token)throw Error();
@@ -554,6 +562,33 @@ function create(d){
             if(b.cancelled_at)card.append(text('p','Annulée le '+new Date(b.cancelled_at).toLocaleString('fr-FR')));
             history.append(card);continue;
           }
+          if(manualEnabled&&b.booking_source==='manual'){
+            const edit=button('Modifier les coordonnées',()=>{
+              if(card.querySelector('.naitea-edit-contact'))return;
+              edit.hidden=true;
+              const form=document.createElement('form');form.className='naitea-manual-panel naitea-edit-contact';
+              const grid=document.createElement('div');grid.className='naitea-manual-grid';
+              for(const [name,label,type,max,value] of [['first_name','Prénom','text',60,b.parent_first_name],['last_name','Nom','text',59,b.parent_last_name],['parent_email','Email','email',254,b.parent_email],['phone','Téléphone','tel',30,b.parent_phone]]){
+                const wrap=document.createElement('label');wrap.className='field';wrap.append(text('span',label+' *'));const input=document.createElement('input');input.name=name;input.type=type;input.maxLength=max;input.required=true;input.value=value||'';wrap.append(input);grid.append(wrap);
+              }
+              const status=text('p','');status.setAttribute('role','status');const back=button('Retour',()=>{form.remove();edit.hidden=false;});const save=text('button','Enregistrer les modifications');save.type='submit';save.className='btn';
+              const actions=document.createElement('div');actions.className='naitea-cancel-actions';actions.append(back,save);form.append(grid,text('p','Les places et le statut ne changent pas. Aucun nouvel email automatique.'),status,actions);
+              form.addEventListener('submit',async event=>{
+                event.preventDefault();event.stopImmediatePropagation();
+                if(version!==revision||owner!==uid||!target.isConnected||save.disabled)return;
+                const payload=new URLSearchParams(new FormData(form));payload.set('booking_id',b.id);payload.set('action','edit');
+                for(const input of form.elements)input.disabled=true;status.textContent='Enregistrement…';
+                try{
+                  const {data,error}=await client.auth.getSession();if(version!==revision||owner!==uid||!target.isConnected)return;if(error||data?.session?.user?.id!==uid||!data.session.access_token)throw Error();
+                  const response=await fetch('/api/manual-bookings',{method:'POST',credentials:'omit',cache:'no-store',headers:{Authorization:'Bearer '+data.session.access_token},body:payload});
+                  const result=await response.json();if(version!==revision||owner!==uid||!target.isConnected)return;
+                  if(response.ok&&result.code==='UPDATED'){await loadList('Coordonnées mises à jour.');return;}
+                  status.textContent=({DUPLICATE:'Cette adresse est déjà utilisée pour cet atelier.',TEST_EMAIL_ONLY:'Utilise contact@naitea.fr ou une adresse @example.invalid.',INVALID_REQUEST:'Vérifie les coordonnées.',UNAVAILABLE:'Cette inscription ne peut plus être modifiée.'})[result.code]||'Modification non confirmée. Actualise avant de réessayer.';
+                }catch{if(target.isConnected)await loadList('Modification non confirmée. Vérifie les coordonnées.');}
+                finally{if(form.isConnected)for(const input of form.elements)input.disabled=false;}
+              });card.append(form);form.elements.first_name.focus();
+            });card.append(edit);
+          }
           const cancel=button('Annuler cette inscription',()=>{
             if(card.querySelector('.naitea-cancel-box'))return;cancel.hidden=true;
             const panel=document.createElement('div');panel.className='naitea-cancel-box';
@@ -589,7 +624,7 @@ function create(d){
     const content=document.createElement('div');content.className='eventcontent';
     const headline=text('h3',w.title);headline.className='eventtitle';
     const date=w.starts_at?new Date(w.starts_at).toLocaleString('fr-FR'):'Date à préciser';
-    content.append(headline,text('p',[w.category,date,w.capacity+' places',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})].filter(Boolean).join(' · ')),text('p',w.status==='draft'?'Brouillon privé':w.status==='published'?'Publié':'Annulé'));
+    content.append(headline,text('p',[w.category,date,w.capacity+' places',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+(w.pricing_unit==='duo'?' / duo parent-enfant':' / personne')].filter(Boolean).join(' · ')),text('p',w.status==='draft'?'Brouillon privé':w.status==='published'?'Publié':'Annulé'));
     const actions=document.createElement('div');actions.className='eventactions';
     if(w.status==='draft'){const edit=button('Modifier',()=>open(w));edit.disabled=!ready||busy||uncertain;actions.append(edit);}
     if(publication&&['draft','published'].includes(w.status)){

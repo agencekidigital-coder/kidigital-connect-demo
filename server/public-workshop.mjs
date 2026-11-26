@@ -18,6 +18,7 @@ async function bytes(response,max){
 function valid(w,id){
  return w&&(UUID.test(id)?w.id===id:w.slug===id)&&UUID.test(w.id)&&typeof w.title==='string'&&w.title.length<=160&&Number.isFinite(Date.parse(w.starts_at))&&Number.isInteger(w.capacity)&&w.capacity>0&&Number.isInteger(w.price_cents)&&w.price_cents>=0&&['venue','video'].includes(w.modality);
 }
+export function pricingLabel(w){return w.pricing_unit==='duo'?' / duo parent-enfant':' / personne';}
 function format(w){
  const timeZone=w.timezone_name||'Europe/Paris';
  let date;
@@ -86,7 +87,7 @@ export function createPublicWorkshopHandler({fetchImpl=globalThis.fetch}={}){
     const a=await fetchProvider('/rest/v1/rpc/naitea_available_workshop_seats',{method:'POST',headers:{...providerHeaders,'Content-Type':'application/json'},body:JSON.stringify({p_id:w.id})});
     if(a.ok){const count=JSON.parse(new TextDecoder().decode(await bytes(a,1024)));booking=Date.parse(w.starts_at)<=Date.now()?'<button class="btn" disabled>Atelier terminé</button>':Number.isInteger(count)&&count>0?'<p class="naitea-public-price">'+count+' place(s) disponible(s)</p><a class="btn" href="'+canonical+'/reserver"'+(embed?' target="_blank" rel="noopener"':'')+'>Réserver une place</a>':Number.isInteger(count)&&count===0?'<p class="naitea-public-price">Atelier complet</p><a class="btn" href="'+canonical+'/reserver"'+(embed?' target="_blank" rel="noopener"':'')+'>Rejoindre la liste d’attente</a>':'<button class="btn" disabled>Réservation indisponible</button>';}
    }
-   const body='<div class="v8-public-event">'+(cover?'<img class="naitea-public-cover" src="'+photoPath+'" alt="Photo de couverture de '+esc(w.title)+'">':'')+'<div class="card"><span class="tag">'+esc(w.category)+'</span><h1>'+esc(w.title)+'</h1>'+pro+'<p class="naitea-public-date">'+esc(date)+(w.duration_label?' · '+esc(w.duration_label):'')+'</p><p class="naitea-public-description">'+esc(w.description)+'</p><p>'+esc(location)+'</p>'+(publicAudiences?'<p><strong>Pour qui ?</strong> '+publicAudiences+'</p>':'')+'<p class="naitea-public-price"><strong>'+esc(price)+' / duo</strong> · '+esc(w.capacity)+' places au total</p>'+booking+'</div></div>';
+   const body='<div class="v8-public-event">'+(cover?'<img class="naitea-public-cover" src="'+photoPath+'" alt="Photo de couverture de '+esc(w.title)+'">':'')+'<div class="card"><span class="tag">'+esc(w.category)+'</span><h1>'+esc(w.title)+'</h1>'+pro+'<p class="naitea-public-date">'+esc(date)+(w.duration_label?' · '+esc(w.duration_label):'')+'</p><p class="naitea-public-description">'+esc(w.description)+'</p><p>'+esc(location)+'</p>'+(publicAudiences?'<p><strong>Pour qui ?</strong> '+publicAudiences+'</p>':'')+'<p class="naitea-public-price"><strong>'+esc(price)+pricingLabel(w)+'</strong> · '+esc(w.capacity)+' places au total</p>'+booking+'</div></div>';
    return html(200,w.title,body,meta,embed);
   }catch{return absent(photo||portrait,503);}
  };

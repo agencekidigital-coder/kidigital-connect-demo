@@ -1,7 +1,7 @@
 import publicConfig from './public-config.cjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EXTRA = ['category','duration_label','timezone_name','modality','venue_name','venue_street','venue_postal_code','venue_city','video_platform','target_audiences','child_age_min','child_age_max','child_age_unit'];
-const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at','public_slug',...EXTRA].join(',');
+const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at','public_slug','pricing_unit',...EXTRA].join(',');
 const AUDIENCES = new Set(['Future maman','Futurs parents','Jeune maman','Jeunes parents','Co-parent','Bébés','Enfants','Adolescents','Toute la famille']);
 function extraFields(input) {
   if(!EXTRA.some(k=>Object.hasOwn(input,k)))return {};
@@ -47,13 +47,14 @@ function cleanText(x,max,required=false) {
 }
 function validate(input, method) {
   if(!input||typeof input!=='object'||Array.isArray(input))throw Error('body');
-  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,...EXTRA,'id']:[...EDIT,...EXTRA];
+  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,...EXTRA,'pricing_unit','id']:[...EDIT,...EXTRA,'pricing_unit'];
   if(keys.some(k=>!allowed.includes(k))||!EDIT.every(k=>Object.hasOwn(input,k)))throw Error('fields');
   if(method==='PATCH'&&(typeof input.id!=='string'||!UUID.test(input.id)))throw Error('id');
+  if(Object.hasOwn(input,'pricing_unit')&&!['person','duo'].includes(input.pricing_unit))throw Error('pricing_unit');
   const {capacity,price_cents,starts_at}=input;
   if(!Number.isInteger(capacity)||capacity<1||capacity>1000||!Number.isInteger(price_cents)||price_cents<0||price_cents>10000000)throw Error('numbers');
   if(starts_at!==null&&(typeof starts_at!=='string'||! /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(starts_at)||!Number.isFinite(Date.parse(starts_at))||new Date(starts_at).toISOString()!==starts_at))throw Error('date');
-  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,5000),starts_at,capacity,price_cents,...extraFields(input)};
+  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,5000),starts_at,capacity,price_cents,...(Object.hasOwn(input,'pricing_unit')?{pricing_unit:input.pricing_unit}:{}),...extraFields(input)};
 }
 export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
   return async(request,env={})=>{

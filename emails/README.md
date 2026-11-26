@@ -23,3 +23,6 @@ Les polices système Trebuchet MS et Arial assurent un remplacement lisible dans
 L’aperçu public `assets/previews/confirmation-inscription.html` est généré par `node scripts/preview-auth-email.cjs`. Son bouton de confirmation est inactif et ses liens de confirmation sont remplacés par une ancre locale. Le bouton **Copier le HTML** récupère le modèle original, également proposé au téléchargement dans `confirmation-inscription-source.txt`. Le JavaScript et les outils d’aperçu sont exclus du modèle envoyé. Ne pas copier le code HTML de la page d’aperçu elle-même dans Supabase : utiliser son bouton de copie ou le fichier source ci-dessus.
 
 La vérification navigateur desktop/mobile et sans images est une approximation du rendu email. Un test de réception Gmail/Outlook, du dossier indésirables et du parcours d’inscription reste nécessaire après installation. Aucun envoi réel n’est réalisé par la génération de cet aperçu.
+
+## Réinitialisation du mot de passe
+Dans Authentication → Email → Templates → Reset password, objet « Réinitialisez votre mot de passe Naïtea », copier le fichier `supabase-reset-password.html` en entier. Conserver les trois `{{ .ConfirmationURL }}`. Le modèle doit être installé manuellement : les outils disponibles ne modifient pas la configuration Auth. Aucun changement au modèle de création de compte.

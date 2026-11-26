@@ -1,3 +1,4 @@
+import {workshopEmail} from './workshop-email.mjs';
 import {bookingConfig} from './booking-config.mjs';
 import {bytes,esc,format} from './public-workshop.mjs';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -32,8 +33,8 @@ export function createWaitlistHandler({fetchImpl=globalThis.fetch}={}){
    if(result.email===c.testEmail){
     mail='failed';
     try{
-     const w=result.workshop,{date,location,price}=format(w),recap=esc(w.title)+' · '+esc(date)+' · '+esc(location)+' · '+esc(price)+' / duo';
-     const r=await call('https://api.brevo.com/v3/smtp/email',{method:'POST',headers:{'api-key':c.brevo,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({sender:{name:'Naïtéa',email:c.sender},to:[{email:result.email}],subject:'Une place s’est libérée : votre inscription est confirmée !',htmlContent:'<html lang="fr"><body style="font-family:Arial;color:#590425"><h1>Votre inscription est confirmée !</h1><p>Bonjour '+esc(result.first_name)+',</p><p>Votre professionnelle a confirmé votre inscription après votre demande sur liste d’attente.</p><p>'+recap+'</p><p>'+result.seats+' place(s) réservée(s). Aucun paiement en ligne.</p></body></html>',textContent:'Votre inscription est confirmée : '+w.title+' · '+date+' · '+location+' · '+result.seats+' place(s). Aucun paiement en ligne.'})});
+     const w=result.workshop;
+     const r=await call('https://api.brevo.com/v3/smtp/email',{method:'POST',headers:{'api-key':c.brevo,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({sender:{name:'Naïtéa',email:c.sender},to:[{email:result.email}],...workshopEmail('promoted',w,result.first_name,result.seats)})});
      mail=r.ok?'accepted':'failed';r.body?.cancel().catch(()=>{});
     }catch{}
    }
