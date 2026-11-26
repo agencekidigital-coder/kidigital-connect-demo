@@ -35,7 +35,9 @@
       "SUPABASE_URL": "https://eedbpqawsrkopoonqpbx.supabase.co",
       "NAITEA_PUBLICATION_ENABLED": "true",
       "NAITEA_BOOKINGS_ENABLED": "false",
-      "NAITEA_TURNSTILE_SITE_KEY": "0x4AAAAAAGTHf55e8Mb1ah3c"
+      "NAITEA_TURNSTILE_SITE_KEY": "0x4AAAAAAGTHf55e8Mb1ah3c",
+      "NAITEA_BOOKING_SENDER": "contact@naitea.fr",
+      "NAITEA_BOOKING_ORIGIN": "https://feature-naitea-workshops-persistence-naitea-beta.agence-kidigital.workers.dev"
     }
   }
 }
