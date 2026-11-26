@@ -383,11 +383,11 @@ function create(d){
     if(!ready||busy||!owner||!d.isPage())return;
     const version=revision,uid=owner;
     const root=document.createElement('div');root.id='naiteaPrivateBookings';root.append(text('p','Chargement des inscriptions…'));
-    d.showModal('Inscriptions · '+w.title,'Seules les inscriptions confirmées par email sont visibles.',root.outerHTML);
+    d.showModal('Inscriptions · '+w.title,'Seules les inscriptions confirmées sont visibles.',root.outerHTML);
     const target=el('naiteaPrivateBookings');
     const loadList=async()=>{
       try{
-        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
+        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
         if(error||!Array.isArray(data))throw Error('Chargement impossible');
         target.replaceChildren();
@@ -399,7 +399,8 @@ function create(d){
           if(b.parent_phone)card.append(text('p','Téléphone : '+b.parent_phone));
           if(b.coparent_present)card.append(text('p','Co-parent : '+([b.coparent_first_name,b.coparent_last_name].filter(Boolean).join(' ')||'Présent')));
           if(b.child_present)card.append(text('p','Enfant : '+([b.child_first_name,b.child_age].filter(Boolean).join(' · ')||'Présent')));
-          card.append(text('p',b.newsletter_requested_at?'Actualités : accord donné lors de l’inscription':'Actualités : aucun accord enregistré'));
+          card.append(text('p',b.confirmation_mode==='instant'?'Adresse email déclarée (non vérifiée)':'Adresse email confirmée par lien'));
+          card.append(text('p',b.newsletter_requested_at?(b.confirmation_mode==='instant'?'Actualités : accord déclaré (email non vérifié)':'Actualités : accord donné lors de l’inscription'):'Actualités : aucun accord enregistré'));
           if(b.status==='confirmed'){
             const cancel=button('Annuler cette inscription',async()=>{
               if(!window.confirm('Annuler cette inscription et libérer les places ? Aucun email automatique ne sera envoyé : informe la famille directement.'))return;
