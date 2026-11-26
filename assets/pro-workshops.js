@@ -95,7 +95,7 @@ function create(d){
     getCover(w).then(url=>{if(url&&version===revision&&img.isConnected&&d.isPage()&&stillCurrent()){img.src=url;img.hidden=false;}});
   }
   const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
-  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm')||el('naiteaPrivatePublicPreviewCover')||el('naiteaPublishedLink')||el('naiteaPublicProfileForm')||el('naiteaPrivateBookings'))d.closeModal();}
+  function closePrivate(){revokePreview();if(el('naiteaPrivateWorkshopForm')||el('naiteaPrivatePublicPreviewCover')||el('naiteaPublishedLink')||el('naiteaPublicProfileForm')||el('naiteaPrivateBookings')||el('naiteaReminderModal'))d.closeModal();}
   function clear(){revision++;controller?.abort();owner=null;rows=[];bookingCounts.clear();countRequest++;ready=false;busy=false;uncertain=false;truncated=false;resetCovers();closePrivate();}
   function invalidate(){clear();message='Vérification du compte…';if(d.isPage())decorate();}
   async function api(method,payload,version){
@@ -129,7 +129,57 @@ function create(d){
     const date=localDate(w.starts_at);
     return {id:w.id,title:w.title,description:w.description||'',date:date.slice(0,10),time:date.slice(11),capacity:w.capacity,price:w.price_cents/100,duration:w.duration_label||'',category:w.category||'Massage bébé',workshopModality:w.modality||'venue',venueName:w.venue_name||'',venueAddress:{street:w.venue_street||'',postalCode:w.venue_postal_code||'',city:w.venue_city||''},videoPlatform:w.video_platform||'',targetAudiences:w.target_audiences||['Jeunes parents','Bébés'],childAge:w.child_age_unit?{min:w.child_age_min,max:w.child_age_max,unit:w.child_age_unit}:null};
   }
+  function reminderFields(w){
+    const panel=document.createElement('section');panel.className='naitea-reminder-panel';
+    const hours=Array.isArray(w?.reminder_hours)?w.reminder_hours:w?[]:[24];
+    const heading=text('h3','Rappels automatiques');panel.append(heading);
+    const checkbox=(name,value,label,checked)=>{const wrap=document.createElement('label');wrap.className='checkline';const input=document.createElement('input');input.type='checkbox';input.name=name;input.value=String(value);if(checked)input.setAttribute('checked','');wrap.append(input,document.createTextNode(' '+label));return wrap;};
+    panel.append(checkbox('reminders_enabled','yes','Activer les rappels par email',hours.length>0));
+    const choices=document.createElement('div');choices.dataset.reminderChoices='1';
+    for(const h of [48,24,2])choices.append(checkbox('reminder_hours',h,h+' heures avant l’atelier',hours.includes(h)));
+    const label=text('label','Informations à rappeler aux participants (facultatif)');label.htmlFor='naiteaReminderNotes';
+    const notes=document.createElement('textarea');notes.name='reminder_instructions';notes.id=label.htmlFor;notes.maxLength=1000;notes.rows=3;notes.placeholder='Ex. Prévoir un tapis et une tenue confortable.';notes.textContent=w?.reminder_instructions||'';
+    choices.append(label,notes);panel.append(choices,text('p','Seules les inscriptions confirmées avant l’heure du rappel sont concernées. En bêta, envoi à l’adresse de test uniquement. Ne saisis pas de données personnelles ou médicales.'));
+    return panel;
+  }
+  function syncReminders(form,changed=null){
+    const enabled=form.elements.reminders_enabled;if(!enabled)return;
+    const choices=form.querySelector('[data-reminder-choices]');
+    const inputs=[...choices.querySelectorAll('input[name="reminder_hours"]')];
+    if(changed===enabled&&enabled.checked&&!inputs.some(i=>i.checked))inputs.find(i=>i.value==='24').checked=true;
+    if(changed?.name==='reminder_hours'&&enabled.checked&&!inputs.some(i=>i.checked))enabled.checked=false;
+    choices.hidden=!enabled.checked;
+    for(const input of choices.querySelectorAll('input,textarea'))input.disabled=!enabled.checked;
+  }
+  function reminderPayload(form){
+    const enabled=form.elements.reminders_enabled;
+    if(!enabled)return {};
+    const hours=enabled.checked?[...form.querySelectorAll('input[name="reminder_hours"]:checked')].map(i=>Number(i.value)):[];
+    const notes=form.elements.reminder_instructions.value.trim().replace(/[\r\n\t]+/g,' ');
+    return {reminder_hours:hours,reminder_instructions:notes||null};
+  }
+  function editReminders(w){
+    if(!ready||busy||uncertain||!owner||!d.isPage())return;
+    const version=revision,uid=owner;
+    const shell=document.createElement('div');shell.id='naiteaReminderModal';
+    d.showModal('Rappels de ton atelier',w.title,shell.outerHTML);
+    const target=el('naiteaReminderModal');if(!target)return;
+    const form=document.createElement('form');form.append(reminderFields(w));
+    const status=text('p','');status.setAttribute('role','status');
+    const back=button('Retour',()=>d.closeModal()),save=text('button','Enregistrer les rappels');save.type='submit';save.className='btn';
+    const actions=document.createElement('div');actions.className='naitea-cancel-actions';actions.append(back,save);form.append(status,actions);target.append(form);syncReminders(form);
+    form.addEventListener('change',event=>syncReminders(form,event.target));
+    form.addEventListener('submit',async event=>{
+      event.preventDefault();event.stopImmediatePropagation();
+      if(busy||version!==revision||uid!==owner||!target.isConnected)return;
+      const payload={id:w.id,...reminderPayload(form)};busy=true;for(const input of form.elements)input.disabled=true;status.textContent='Enregistrement…';
+      try{const result=await api('PATCH',payload,version);if(version!==revision||uid!==owner)return;const saved=result?.workshops?.[0];if(!saved||saved.id!==w.id)throw Error();rows=rows.map(r=>r.id===saved.id?saved:r);message='Rappels enregistrés.';d.closeModal();}
+      catch{if(version===revision&&uid===owner){uncertain=true;message='Enregistrement non confirmé. Actualise avant de réessayer.';status.textContent=message;back.disabled=false;}}
+      finally{if(version===revision&&uid===owner){busy=false;decorate();}}
+    });
+  }
   function fields(form){
+    syncReminders(form);
     const e=form.elements;const pricingLabel=form.querySelector('[data-pricing-label]');if(pricingLabel)pricingLabel.textContent=e.pricing_unit.value==='duo'?'Prix par duo parent-enfant (€) *':'Prix par personne (€) *';
     const video=form.querySelector('[name="workshopModality"]:checked')?.value==='video';
     for(const [selector,on] of [['[data-workshop-venue]',!video],['[data-workshop-video]',video],['[data-child-age]',e.ageEnabled.checked]]){
@@ -144,7 +194,7 @@ function create(d){
     const extra=d.tools.workshop(values),date=new Date(values.date+'T'+values.time);
     if(!Number.isFinite(date.getTime())||localDate(date.toISOString())!==values.date+'T'+values.time)throw Error('Choisis une date et une heure valides.');
     const age=extra.childAge, address=extra.venueAddress;
-    return {title:values.title,description:values.description||null,starts_at:date.toISOString(),capacity:Number(values.capacity),price_cents:Math.round(Number(values.price)*100),pricing_unit:values.pricing_unit,category:extra.category,duration_label:values.duration?.trim()||null,timezone_name:Intl.DateTimeFormat().resolvedOptions().timeZone,modality:extra.workshopModality,venue_name:extra.venueName||null,venue_street:address?.street||null,venue_postal_code:address?.postalCode||null,venue_city:address?.city||null,video_platform:extra.videoPlatform||null,target_audiences:extra.targetAudiences,child_age_min:age?.min??null,child_age_max:age?.max??null,child_age_unit:age?.unit??null,...(w?{id:w.id}:{})};
+    return {title:values.title,description:values.description||null,starts_at:date.toISOString(),capacity:Number(values.capacity),price_cents:Math.round(Number(values.price)*100),pricing_unit:values.pricing_unit,category:extra.category,duration_label:values.duration?.trim()||null,timezone_name:Intl.DateTimeFormat().resolvedOptions().timeZone,modality:extra.workshopModality,venue_name:extra.venueName||null,venue_street:address?.street||null,venue_postal_code:address?.postalCode||null,venue_city:address?.city||null,video_platform:extra.videoPlatform||null,target_audiences:extra.targetAudiences,child_age_min:age?.min??null,child_age_max:age?.max??null,child_age_unit:age?.unit??null,...reminderPayload(form),...(w?{id:w.id}:{})};
   }
   function open(w){
     if(!ready||busy||uncertain||!owner||!d.isPage())return;
@@ -168,10 +218,11 @@ function create(d){
     for(const [value,label] of [['person','Par personne (bébé bienvenu)'],['duo','Par duo parent-enfant']]){const opt=text('option',label);opt.value=value;unit.append(opt);}
     unit.value=w?.pricing_unit==='duo'?'duo':'person';unitField.append(unitLabel,unit);priceField.before(unitField);
     const priceLabel=priceField.querySelector('label');priceLabel.dataset.pricingLabel='1';priceLabel.textContent=unit.value==='duo'?'Prix par duo parent-enfant (€) *':'Prix par personne (€) *';
+    form.querySelector('.modalfooter').before(reminderFields(w));
     form.querySelector('[type="submit"]').textContent='Enregistrer le brouillon';
     d.showModal(w?'Modifier mon atelier':'Créer un atelier','Les informations restent privées tant que la publication n’est pas ouverte.',container.innerHTML);
     const active=el('naiteaPrivateWorkshopForm');fields(active);
-    active.addEventListener('change',()=>fields(active));
+    active.addEventListener('change',event=>{syncReminders(active,event.target);fields(active);});
     const status=text('p','');status.setAttribute('role','status');active.append(status);
     const fileInput=active.querySelector('#naiteaCoverFile'), removeInput=active.querySelector('#naiteaCoverRemove'), preview=active.querySelector('#naiteaCoverPreview'), coverStatus=active.querySelector('#naiteaCoverStatus');
     attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);
@@ -685,6 +736,7 @@ function create(d){
       if(w.status==='published'){const share=button('Partager',()=>shareWorkshop(w));share.disabled=!ready||busy||uncertain;actions.append(share);content.append(text('p','Pour modifier un atelier publié, repasse-le en brouillon.'));}
     }
     if(w.status==='cancelled'&&w.cancellation_reason){content.append(text('p','Motif : '+w.cancellation_reason));if(w.cancelled_at)content.append(text('p','Annulé le '+new Date(w.cancelled_at).toLocaleString('fr-FR')));}
+    if(manualEnabled&&['published','draft'].includes(w.status)&&Date.parse(w.starts_at)>Date.now()){const reminder=button('Rappels',()=>editReminders(w));reminder.disabled=busy||uncertain;actions.append(reminder);content.append(text('p',w.reminder_hours?.length?'Rappels : '+w.reminder_hours.slice().sort((a,b)=>b-a).map(h=>h+' h').join(' · ')+' avant l’atelier':'Rappels désactivés'));}
     if(manualEnabled&&['published','draft'].includes(w.status)&&Date.parse(w.starts_at)>Date.now()){const cancel=button('Annuler l’atelier',()=>cancelWorkshop(w));cancel.className='btn secondary small naitea-cancel-danger';cancel.disabled=busy||uncertain;actions.append(cancel);}
     if(ready&&publication){const bookings=button('Inscriptions',()=>showBookings(w));bookings.disabled=busy||uncertain;actions.append(bookings);}
     if(publication){const fill=document.createElement('div');fill.className='naitea-fill';fill.dataset.naiteaFill=w.id;paintBookingCount(fill,w);content.append(fill);}

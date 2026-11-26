@@ -51,3 +51,5 @@
 .naitea-edit-contact{margin:14px 0}.naitea-booking-entry button[hidden]{display:none!important}
 
 .naitea-cancel-danger{border-color:#BF5B45!important}.naitea-cancel-box textarea{width:100%;padding:12px;border:1px solid #CAB1B8;border-radius:8px;background:#FFFDF8;color:#590425;resize:vertical}
+
+.naitea-reminder-panel{margin:18px 0;padding:18px;border:1px solid #E7D6C8;border-radius:14px;background:#FEF8ED;display:grid;gap:12px}.naitea-reminder-panel h3{margin:0;color:#590425}.naitea-reminder-panel [data-reminder-choices]{display:grid;gap:12px}.naitea-reminder-panel [hidden]{display:none!important}.naitea-reminder-panel textarea{width:100%;padding:10px;border:1px solid #CAB1B8;border-radius:8px;background:#FFFDF8;color:#590425}.naitea-reminder-panel p{font-size:12px;color:#76525C;margin:0}

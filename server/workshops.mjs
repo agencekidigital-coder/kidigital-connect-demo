@@ -1,7 +1,7 @@
 import publicConfig from './public-config.cjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EXTRA = ['category','duration_label','timezone_name','modality','venue_name','venue_street','venue_postal_code','venue_city','video_platform','target_audiences','child_age_min','child_age_max','child_age_unit'];
-const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at','public_slug','pricing_unit','cancellation_reason','cancelled_at',...EXTRA].join(',');
+const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at','public_slug','pricing_unit','cancellation_reason','cancelled_at','reminder_hours','reminder_instructions',...EXTRA].join(',');
 const AUDIENCES = new Set(['Future maman','Futurs parents','Jeune maman','Jeunes parents','Co-parent','Bébés','Enfants','Adolescents','Toute la famille']);
 function extraFields(input) {
   if(!EXTRA.some(k=>Object.hasOwn(input,k)))return {};
@@ -45,16 +45,23 @@ function cleanText(x,max,required=false) {
   if(x.length>max||(required&&!x))throw Error('text length');
   return x||null;
 }
+function reminderFields(input){
+  const hasHours=Object.hasOwn(input,'reminder_hours'),hasNotes=Object.hasOwn(input,'reminder_instructions');
+  if(!hasHours&&!hasNotes)return {};
+  if(!hasHours||!hasNotes||!Array.isArray(input.reminder_hours)||input.reminder_hours.length>3||new Set(input.reminder_hours).size!==input.reminder_hours.length||input.reminder_hours.some(h=>![2,24,48].includes(h)))throw Error('reminder_hours');
+  const notes=input.reminder_instructions===null?null:cleanText(input.reminder_instructions,1000)?.replace(/[\r\n\t]+/g,' ')||null;
+  return {reminder_hours:input.reminder_hours.slice().sort((a,b)=>b-a),reminder_instructions:notes};
+}
 function validate(input, method) {
   if(!input||typeof input!=='object'||Array.isArray(input))throw Error('body');
-  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,...EXTRA,'pricing_unit','id']:[...EDIT,...EXTRA,'pricing_unit'];
+  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,...EXTRA,'pricing_unit','reminder_hours','reminder_instructions','id']:[...EDIT,...EXTRA,'pricing_unit','reminder_hours','reminder_instructions'];
   if(keys.some(k=>!allowed.includes(k))||!EDIT.every(k=>Object.hasOwn(input,k)))throw Error('fields');
   if(method==='PATCH'&&(typeof input.id!=='string'||!UUID.test(input.id)))throw Error('id');
   if(Object.hasOwn(input,'pricing_unit')&&!['person','duo'].includes(input.pricing_unit))throw Error('pricing_unit');
   const {capacity,price_cents,starts_at}=input;
   if(!Number.isInteger(capacity)||capacity<1||capacity>1000||!Number.isInteger(price_cents)||price_cents<0||price_cents>10000000)throw Error('numbers');
   if(starts_at!==null&&(typeof starts_at!=='string'||! /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(starts_at)||!Number.isFinite(Date.parse(starts_at))||new Date(starts_at).toISOString()!==starts_at))throw Error('date');
-  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,5000),starts_at,capacity,price_cents,...(Object.hasOwn(input,'pricing_unit')?{pricing_unit:input.pricing_unit}:{}),...extraFields(input)};
+  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,5000),starts_at,capacity,price_cents,...(Object.hasOwn(input,'pricing_unit')?{pricing_unit:input.pricing_unit}:{}),...extraFields(input),...reminderFields(input)};
 }
 export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
   return async(request,env={})=>{
@@ -67,7 +74,7 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
     if(url.search)return fail(400,'INVALID_REQUEST');
     const token=/^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i.exec(request.headers.get('authorization')||'');
     if(!token||token[1].length>8192)return fail(401,'AUTH_REQUIRED');
-    let payload,input,transition=false;
+    let payload,input,transition=false,reminderOnly=false;
     if(method!=='GET'){
       if(request.headers.get('origin')!==url.origin)return fail(403,'ORIGIN_FORBIDDEN');
       if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return fail(415,'JSON_REQUIRED');
@@ -77,6 +84,9 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
           if(env.NAITEA_PUBLICATION_ENABLED!=='true')return fail(423,'PUBLICATION_DISABLED');
           if(Object.keys(input).length!==2||typeof input.id!=='string'||!UUID.test(input.id)||!['draft','published'].includes(input.status))throw Error('transition');
           transition=true;payload={status:input.status};
+        }else if(method==='PATCH'&&input&&Object.hasOwn(input,'reminder_hours')&&Object.keys(input).every(k=>['id','reminder_hours','reminder_instructions'].includes(k))){
+          if(typeof input.id!=='string'||!UUID.test(input.id)||Object.keys(input).length!==3)throw Error('reminders');
+          reminderOnly=true;payload=reminderFields(input);
         }else payload=validate(input,method);
       }catch{return fail(400,'INVALID_WORKSHOP');}
     }
@@ -98,7 +108,7 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
       if(method==='PATCH'){
         endpoint.searchParams.set('professional_id','eq.'+owner);
         endpoint.searchParams.set('id','eq.'+input.id);
-        endpoint.searchParams.set('status',transition&&input.status==='draft'?'eq.published':'eq.draft');
+        endpoint.searchParams.set('status',reminderOnly?'in.(draft,published)':transition&&input.status==='draft'?'eq.published':'eq.draft');
       }
       const response=await requestProvider(endpoint.href,{method,headers:method==='GET'?headers:{...headers,'Content-Type':'application/json',Prefer:'return=representation'},...(payload?{body:JSON.stringify(payload)}:{})});
       if(!response.ok){response.body?.cancel().catch(()=>{});if(transition&&[400,409].includes(response.status))return fail(400,'WORKSHOP_NOT_PUBLISHABLE');return fail(response.status===401?401:response.status===403?403:503,'WORKSHOPS_UNAVAILABLE');}
