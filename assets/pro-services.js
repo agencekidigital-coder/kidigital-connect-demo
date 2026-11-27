@@ -19,7 +19,7 @@ const VIDEO_TOOLS=['Google Meet','Zoom'];
 function visibleServices(services,status='active'){return services.filter(s=>s.status===status);}
 function absenceLabel(r){const format=s=>s.split('-').reverse().join('/');return r.closed_date===(r.end_date||r.closed_date)?format(r.closed_date):'Du '+format(r.closed_date)+' au '+format(r.end_date);}
 function create(d){
- let client=null,owner=null,enabled=false,checked=false,active=false,view='',generation=0,loading=false,loaded=false,busy=false,notice='',failed=false,services=[],rules=[],closed=[],edit=null,chosen='',ruleEdit=null,allPlanning=false,parentPreview=false,offerFilter='active',detailId=null;
+ let client=null,owner=null,enabled=false,checked=false,active=false,view='',generation=0,loading=false,loaded=false,busy=false,notice='',failed=false,services=[],rules=[],closed=[],edit=null,chosen='',ruleEdit=null,allPlanning=false,parentPreview=false,offerFilter='active',detailId=null,agendaDay=null;
  const node=(tag,cls)=>{const e=document.createElement(tag);if(cls)e.className=cls;return e;};
  const text=(tag,v)=>{const e=node(tag);e.textContent=v;return e;};
  const button=(label,fn,primary=false)=>{const b=text('button',label);b.type='button';b.className=primary?'btn':'btn secondary';b.addEventListener('click',fn);return b;};
@@ -28,7 +28,7 @@ function create(d){
  let subscription=null;const coverUrls=new Map();let localPreview='';
  function resetImages(){for(const u of coverUrls.values())URL.revokeObjectURL(u);coverUrls.clear();if(localPreview)URL.revokeObjectURL(localPreview);localPreview='';}
  function attachImage(s,img,accept=()=>true){if(!s||!owner)return;const v=generation,uid=owner;const cached=coverUrls.get(s.id);if(cached){if(accept()){img.src=cached;img.hidden=false;}return;}client.storage.from(COVER_BUCKET).download(root.NaiteaProWorkshops.coverPath(uid,s.id)).then(({data,error})=>{if(error||!data||data.type!=='image/jpeg'||data.size>2097152||!safe(v,uid)||!img.isConnected||!accept())return;const u=coverUrls.get(s.id)||URL.createObjectURL(data);coverUrls.set(s.id,u);img.src=u;img.hidden=false;}).catch(()=>{});}
- function clear(){generation++;resetImages();owner=null;loaded=loading=busy=failed=false;services=[];rules=[];closed=[];edit=null;chosen='';ruleEdit=null;allPlanning=false;parentPreview=false;offerFilter='active';detailId=null;notice='';}
+ function clear(){generation++;resetImages();owner=null;loaded=loading=busy=failed=false;services=[];rules=[];closed=[];edit=null;chosen='';ruleEdit=null;allPlanning=false;parentPreview=false;offerFilter='active';detailId=null;agendaDay=null;notice='';}
  function leave(){if(active){active=false;clear();}document.body.classList.remove('naitea-service-workspace');}
  function connect(){const next=d.getClient();if(!next)return false;if(next!==client){subscription?.unsubscribe();client=next;subscription=null;}if(!subscription){const r=client.auth.onAuthStateChange((event,session)=>{if(!active||!current()||event==='INITIAL_SESSION')return;if(owner&&session?.user?.id===owner&&['TOKEN_REFRESHED','SIGNED_IN','USER_UPDATED'].includes(event))return;clear();paint();setTimeout(load,0);});subscription=r.data.subscription;}return true;}
  async function load(){
@@ -57,9 +57,9 @@ function create(d){
   try{
    const auth=await client.auth.getUser();if(!safe(v,uid))return;if(auth.error||auth.data?.user?.id!==uid)throw Error('Session expirée.');
    const result=await action(uid);if(!safe(v,uid))return;
-   if(result.error){const code=result.error.code;throw Error(code==='23P01'?'Cette plage chevauche une disponibilité existante.':code==='23505'?'Cette plage ou date existe déjà.':code==='23514'?'Vérifie les horaires et la durée de la séance.':'Enregistrement non confirmé. Actualise avant de réessayer.');}
+   if(result.error){const code=result.error.code;throw Error(result.appointmentConflict?'Ce créneau vient d’être occupé. Clique sur Voir les créneaux disponibles pour actualiser.':code==='23P01'?'Cette plage chevauche une disponibilité existante.':code==='23505'?'Cette plage ou date existe déjà.':code==='23514'?'Vérifie les horaires et la durée de la séance.':'Enregistrement non confirmé. Actualise avant de réessayer.');}
    if(!result.data||Array.isArray(result.data)&&result.data.length!==1)throw Error('Modification non confirmée. Actualise la page.');
-   edit=null;ruleEdit=null;detailId=null;if(result.nextFilter)offerFilter=result.nextFilter;busy=false;await load();if(current()&&owner===uid&&loaded){notice=success+(result.coverWarning?' '+result.coverWarning:'');paint();}
+   edit=null;ruleEdit=null;detailId=null;if(result.nextFilter)offerFilter=result.nextFilter;if(result.appointmentDay)agendaDay=result.appointmentDay;busy=false;await load();if(current()&&owner===uid&&loaded){notice=success+(result.coverWarning?' '+result.coverWarning:'');paint();}
   }catch(e){if(safe(v,uid))status.textContent=e.message||'Action non confirmée.';}
   finally{if(safe(v,uid)){busy=false;controls.forEach((e,i)=>e.disabled=prev[i]);}}
  }
@@ -187,6 +187,7 @@ function create(d){
   }panel.append(grid);
  }
  function availability(panel){
+  const v=generation,uid=owner;panel.append(root.NaiteaAppointments.mount({client,services,isCurrent:()=>safe(v,uid),mutate,goFamilies:()=>d.go('familles'),initialDay:agendaDay,initialService:chosen}));
   const available=services.filter(s=>s.status!=='archived');const actions=node('div','naitea-family-actions');actions.append(button('Gérer mes accompagnements',()=>d.go('offers')),button('Actualiser',load));panel.append(actions);
   panel.append(text('h2','Ma semaine type'),text('p','Choisis les jours et les modalités possibles sur chaque plage. Une famille choisira une seule option lors de sa réservation. Les horaires se répètent chaque semaine (heure de Paris).'));
   if(!available.length)panel.append(text('p','Crée d’abord un accompagnement pour définir ses disponibilités.'));
@@ -272,11 +273,11 @@ function create(d){
   });
   const days=closed.filter(r=>(r.end_date||r.closed_date)>=parisDay());if(!days.length)panel.append(text('p','Aucune indisponibilité à venir.'));
   const absences=node('div','naitea-absence-list');for(const r of days){const line=node('div','naitea-absence-row'),info=node('div','naitea-absence-info'),status=statusLine();info.append(text('strong',absenceLabel(r)),text('p',r.closed_date===(r.end_date||r.closed_date)?'Journée indisponible':'Période indisponible'));line.append(info,button('Débloquer',()=>{if(confirm('Retirer cette indisponibilité ?'))mutate(uid=>client.from('naitea_service_closed_days').delete().eq('id',r.id).eq('professional_id',uid).select('id').single(),'Indisponibilité retirée.',status);}),status);absences.append(line);}panel.append(absences);
-  panel.append(text('h2','Mes rendez-vous'),text('p','La création des rendez-vous, les réservations en ligne et la prévention des conflits avec les ateliers seront raccordées lors de la prochaine étape. Aucun créneau n’est encore réservable.'));
+  panel.append(text('p','Les horaires et les absences sont pris en compte pour les nouveaux rendez-vous. Les réservations côté familles, les emails et les liens visio automatiques seront raccordés ensuite. Les absences n’annulent pas les rendez-vous existants.'));
  }
  function paint(){
   if(!current())return;const app=document.getElementById('app');if(!app)return;const panel=node('section','card naitea-crm naitea-service-panel');panel.id='naiteaPrivateServices';app.replaceChildren(panel);
-  if(view==='offers')heading(panel,'Mes accompagnements','seance-individuelle','Crée tes prestations individuelles et prépare leur réservation.');else heading(panel,'Mes rendez-vous','agenda','Organise tes disponibilités et tes journées d’absence.');
+  if(view==='offers')heading(panel,'Mes accompagnements','seance-individuelle','Crée tes prestations individuelles et prépare leur réservation.');else heading(panel,'Mes rendez-vous','agenda','Retrouve tes rendez-vous, tes ateliers et tes disponibilités.');
   if(!checked){panel.append(text('p','Vérification de la connexion…'));return;}if(!enabled){panel.append(text('p','Cette fonctionnalité est disponible uniquement dans la bêta privée.'));return;}
   if(notice){const p=text('p',notice);p.setAttribute('role','status');panel.append(p);}if(!loaded){if(!loading){panel.append(button('Actualiser',load));if(!owner){const a=text('a','Me connecter');a.href='/connexion.html';a.className='btn secondary';panel.append(a);}}return;}
   if(view==='offers')offers(panel);else availability(panel);
@@ -287,7 +288,8 @@ function create(d){
  }
  async function start(){try{const r=await fetch('/api/deployment',{cache:'no-store',credentials:'omit'});enabled=r.ok&&(await r.json()).realBookings===true;}catch{}finally{checked=true;if(d.isPage()){decorate();paint();if(enabled&&!loaded&&!loading)load();}}}
  window.addEventListener('pagehide',leave);window.addEventListener('pageshow',e=>{if(e.persisted){decorate();if(enabled&&!loaded&&!loading)load();}});
- return {start,decorate};
+ function openAgenda(day){agendaDay=day;d.go('rendezvous');if(current()&&loaded)paint();}
+ return {start,decorate,openAgenda};
 }
 const api={create,minutes,clock,priceCents,locationDefault,groupLocations,optionsOf,visibleServices,absenceLabel};if(typeof module==='object'&&module.exports)module.exports=api;else root.NaiteaProServices=api;
 })(globalThis);

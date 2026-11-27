@@ -41,7 +41,7 @@ function build() {
   for(const [src,dest] of [['dist/xlsx.full.min.js','xlsx.full.min.js'],['LICENSE','xlsx-LICENSE.txt']]){
     fs.copyFileSync(path.join(ROOT,'node_modules','xlsx',src),path.join(vendor,dest));files.push('assets/vendor/'+dest);
   }
-  const extra = '<link rel="stylesheet" href="/assets/beta-preview.css"><script src="/assets/beta-preview.js" defer></script><script src="/assets/pro-workshops.js"></script><script src="/assets/family-import.js"></script><script src="/assets/pro-families.js"></script><script src="/assets/pro-services.js"></script>';
+  const extra = '<link rel="stylesheet" href="/assets/beta-preview.css"><script src="/assets/beta-preview.js" defer></script><script src="/assets/pro-workshops.js"></script><script src="/assets/family-import.js"></script><script src="/assets/pro-families.js"></script><script src="/assets/pro-appointments.js"></script><script src="/assets/pro-services.js"></script>';
   for (const file of ['connexion.html', 'bienvenue.html', 'compte.html', 'mes-ateliers.html']) {
     let html = fs.readFileSync(path.join(ROOT, file), 'utf8');
     if (file === 'bienvenue.html') html = html.replace('<p class="tester-demo">', '<p class="tester-account"><a href="/compte">Gérer mon compte</a></p><p class="tester-demo">');
@@ -64,7 +64,7 @@ function build() {
     page: () => page, calendarState: () => ({date:v8CalDate,view:v8CalView}),
     render: () => render(), formHtml: e => platform.eventForm(platformEventFormBase(e),e),
     showModal: (...args) => showModal(...args), closeModal,
-    escape: esc, goWorkshops: () => navigate('ateliers'),
+    escape: esc, goWorkshops: () => navigate('ateliers'), goAppointments: day => privateServices.openAgenda(day),
   });
   const privateFamilies = NaiteaProFamilies.create({getClient: () => berceauAuthClient, isPage: () => mode === 'pro' && !v8Shared && !platform.giftShopMode() && page === 'familles',openBooking: (f,id) => privateWorkshops.openFamilyBooking(f,id)});
   const privateServices = NaiteaProServices.create({getClient: () => berceauAuthClient, isPage: () => mode === 'pro' && !v8Shared && !platform.giftShopMode() && ['offers','rendezvous'].includes(page),page: () => page,go: to => navigate(to),formHtml: offer => v6OfferForm(offer)});

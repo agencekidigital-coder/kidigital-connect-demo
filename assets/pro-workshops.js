@@ -762,7 +762,7 @@ function create(d){
     }
     let notice=app.querySelector('.naitea-demo-warning');
     if(!notice){notice=text('p','');notice.className='naitea-demo-warning';notice.setAttribute('role','status');if(head)head.after(notice);else app.prepend(notice);}
-    notice.textContent=(message||'Vérification de la connexion…')+' Les inscriptions, rendez-vous et contacts ne sont pas encore raccordés.'+(truncated?' Seuls les 100 ateliers les plus récents sont chargés.':'');
+    notice.textContent=(message||'Vérification de la connexion…')+' Rendez-vous et contacts disponibles dans leurs rubriques.'+(truncated?' Seuls les 100 ateliers les plus récents sont chargés.':'');
     const upcoming=ready?upcomingRows(rows):[];
     const metrics=app.querySelector('.dashboard-metrics');
     if(metrics){
@@ -804,8 +804,9 @@ function create(d){
         }
         if(!items.length&&view==='day')cell.append(text('p',ready?'Aucun atelier enregistré ce jour.':'Agenda non chargé.'));
       });
-      const legend=calendar.querySelector(':scope > p.fine');if(legend)legend.textContent='Corail : ateliers privés et publiés · Rendez-vous individuels : bientôt disponibles.';
-      const hint=calendar.querySelector('.v8-calendar-mobile-hint');if(hint)hint.textContent='Sélectionne un atelier pour le modifier ou le prévisualiser. Les dates utilisent le fuseau de ton appareil.';
+      const legend=calendar.querySelector(':scope > p.fine');if(legend)legend.textContent='Corail : ateliers privés et publiés · Vert : rendez-vous individuels.';
+      const hint=calendar.querySelector('.v8-calendar-mobile-hint');if(hint)hint.textContent='Sélectionne un atelier ou un rendez-vous. Les dates utilisent le fuseau de ton appareil.';
+      if(ready&&owner&&dates.length===cells.length&&dates.length){const version=revision,uid=owner;const marker=Symbol();calendar._naiteaAppointmentMarker=marker;client.rpc('naitea_my_agenda',{p_day:dates[0],p_days:dates.length}).then(r=>{if(version!==revision||uid!==owner||!d.isPage()||d.page()!=='dashboard'||!calendar.isConnected||calendar._naiteaAppointmentMarker!==marker)return;if(r.error||!Array.isArray(r.data?.appointments)){if(legend)legend.textContent+=' Rendez-vous indisponibles : actualise.';return;}cells.forEach((cell,i)=>{for(const a of r.data.appointments.filter(x=>x.status==='confirmed'&&localDate(x.starts_at).slice(0,10)===dates[i])){if(view==='day')cell.querySelectorAll(':scope > p').forEach(p=>p.remove());const item=button(localDate(a.starts_at).slice(11)+' · '+a.title,()=>d.goAppointments(dates[i]));item.className='v8-cal-item appointment';item.title=a.title;cell.append(item);}});}).catch(()=>{if(calendar.isConnected&&calendar._naiteaAppointmentMarker===marker&&legend)legend.textContent+=' Rendez-vous indisponibles : actualise.';});}
     }
   }
   function decorate(){
