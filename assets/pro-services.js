@@ -173,7 +173,7 @@ function create(d){
    const share=node('section','naitea-family-detail naitea-service-share');share.append(text('h3','Réservation en ligne'));
    const info=statusLine();share.append(text('p',s.booking_link?'Ce lien est accessible aux personnes à qui tu le transmets. En bêta, seules les coordonnées de test sont acceptées.':'Active ton lien pour permettre aux familles de choisir un créneau. Vérifie que les informations et les lieux de cet accompagnement peuvent être publiés.'));
    const changeLink=async link=>{const r=await client.from('naitea_services').update({booking_link:link}).eq('id',s.id).eq('professional_id',owner).select('id').single();return {...r,nextFilter:'active'};};
-   if(!s.booking_city)share.append(text('p','Renseigne la ville dans Modifier pour obtenir un lien optimisé avec le nom de ton accompagnement et ta ville.'),button('Renseigner ma ville',()=>{edit=s.id;paint();}));
+   if(!s.booking_slug)share.append(text('p','Renseigne la ville dans Modifier pour obtenir un lien optimisé avec le nom de ton accompagnement et ta ville.'),button('Renseigner ma ville',()=>{edit=s.id;paint();}));
    if(s.booking_link){
     const url=location.origin+(s.booking_slug?'/'+s.booking_slug:'/accompagnement/'+s.booking_link),link=node('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Lien de réservation');share.append(link);
     const tools=node('div','naitea-family-actions');const preview=text('a','Ouvrir la réservation');preview.href=url;preview.target='_blank';preview.rel='noopener noreferrer';preview.className='btn';
@@ -181,7 +181,7 @@ function create(d){
     const embedURL=url+'?embed=1',iframe='<iframe src="'+embedURL+'" title="Accompagnement Naïtéa" width="100%" height="1100" style="border:0" loading="lazy"></iframe>';
     const iframeLabel=text('label','Code iframe pour ton site internet');iframeLabel.htmlFor='naiteaServiceIframe';
     const embedField=node('textarea');embedField.id='naiteaServiceIframe';embedField.readOnly=true;embedField.rows=4;embedField.value=iframe;share.append(iframeLabel,embedField,button('Copier le code iframe',async()=>{try{await navigator.clipboard.writeText(iframe);info.textContent='Code iframe copié !';}catch{embedField.select();info.textContent='Sélectionne et copie le code.';}}),text('p','La famille choisit la date, l’horaire et la modalité dans ton site. Elle retrouve son choix dans le nouvel onglet sécurisé pour finaliser.'));
-   }else share.append(button('Activer mon lien de réservation',()=>{if(confirm('Rendre la description, la couverture, les tarifs, les modalités et les lieux de cette prestation accessibles via un lien de test ?'))mutate(()=>changeLink(crypto.randomUUID()),'Lien activé. Ouvre la fiche pour le copier.',info);},true));
+   }else if(s.booking_slug)share.append(button('Activer mon lien de réservation',()=>{if(confirm('Rendre la description, la couverture, les tarifs, les modalités et les lieux de cette prestation accessibles via un lien de test ?'))mutate(()=>changeLink(crypto.randomUUID()),'Lien activé. Ouvre la fiche pour le copier.',info);},true));
    share.append(info);panel.append(share);
   }
   const status=statusLine();panel.append(button(s.status==='archived'?'Réactiver l’accompagnement':'Archiver l’accompagnement',()=>setServiceStatus(s,s.status==='archived'?'active':'archived',status)),status);

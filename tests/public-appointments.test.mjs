@@ -28,3 +28,17 @@ test('Selection validates time and modality together',()=>{
  assert.equal(bookingSelection([a,b],a.starts_at,a.rule_id+'|home|'+a.starts_at).selected.modality,'home');
  assert.equal(bookingSelection([a,b],'bad',a.rule_id+'|home|'+a.starts_at).selected,null);
 });
+
+test('Booking steps and iframe preserve the choice without exposing a form in the frame',()=>{
+ const a={rule_id:'12345678-1234-4234-8234-123456789012',modality:'video',location_details:'Google Meet',starts_at:'2026-12-05T09:00:00Z',ends_at:'2026-12-05T10:00:00Z'};
+ const s={title:'Sommeil',description:'',price_cents:6500,duration_minutes:60,slots:[a,{...a,modality:'home'}]};
+ const key=a.rule_id+'|video|'+a.starts_at, slug='accompagnement-soutien-allaitement-lille';
+ const page=(embed,start='',choice='')=>renderAppointmentForm(s,slug,'2026-12-05',{site:'fake'},'fake','2026-11-27',null,embed,start,choice);
+ assert(!page(false).includes('naitea-mode-choice'));assert(!page(false,a.starts_at).includes('name="slot"'));assert(page(false,a.starts_at).includes('À domicile'));
+ assert(page(false,a.starts_at,key).includes('action="/'+slug+'"'));assert(page(false,a.starts_at,key).includes('name="slot"'));
+ const embedded=page(true,a.starts_at,key);assert(embedded.includes('target="_blank"'));assert(embedded.includes(encodeURIComponent(key)));assert(!embedded.includes('<form'));
+});
+test('Practical instructions are escaped in the branded confirmation and included in plain text',()=>{
+ const mail=appointmentEmail({title:'Sommeil',modality:'video',price_cents:6500,starts_at:'2026-12-01T09:00:00Z',ends_at:'2026-12-01T10:00:00Z',instructions:'Prévoir une serviette.\nTenue <confortable>.'},'Camille');
+ assert(mail.htmlContent.includes('Informations utiles'));assert(mail.htmlContent.includes('&lt;confortable&gt;'));assert(mail.textContent.includes('Prévoir une serviette.'));assert(!/[^\x00-\x7f]/.test(mail.htmlContent));
+});
