@@ -208,6 +208,7 @@ function create(d){
    select.addEventListener('change',()=>{period=select.value;if(period==='custom'&&(!dateFrom||!dateTo)){const d=new Date();dateFrom=localDay(new Date(d.getFullYear(),d.getMonth(),1,12));dateTo=localDay(d);}refreshMetrics();});
    controls.append(select);
    if(period==='custom'){
+     controls.classList.add('is-custom');
      const field=(label,value,change)=>{const wrap=node('label','field');wrap.append(text('span',label));const input=node('input');input.type='date';input.value=value;input.addEventListener('change',()=>change(input.value));wrap.append(input);return wrap;};
      controls.append(field('Du',dateFrom,v=>dateFrom=v),field('Au (inclus)',dateTo,v=>dateTo=v),button('Appliquer',refreshMetrics));
    }
@@ -215,7 +216,7 @@ function create(d){
    if(metricError){const p=text('p',metricError);p.setAttribute('role','status');card.append(p);}
    const euro=cents=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(cents/100);
    if(amount!==null){card.append(text('p','Inscriptions Naïtéa : '+euro(amount-importedCents)+' · CA historique importé : '+euro(importedCents)));if(undatedCents&&period!=='all'&&period!=='upcoming')card.append(text('p','CA importé sans date : '+euro(undatedCents)+' (inclus uniquement dans Tout l’historique).'));}
-   card.append(text('p',period==='upcoming'?'Ateliers publiés à venir et inscriptions confirmées uniquement, à partir de maintenant.':period==='all'?'Toutes les inscriptions confirmées (y compris futures) et le CA historique importé, même sans date.':'Calcul selon la date de l’atelier et le tarif × les places confirmées, plus le CA historique daté dans la période. Les annulations et attentes sont exclues.'));
+   card.append(text('p',period==='upcoming'?'Inscriptions confirmées aux ateliers à venir, publiés ou en brouillon. Annulations et liste d’attente exclues.':period==='all'?'Toutes les inscriptions confirmées (y compris futures) et le CA historique importé, même sans date.':'Calcul selon la date de l’atelier et le tarif × les places confirmées, plus le CA historique daté dans la période. Les annulations et attentes sont exclues.'));
    return card;
  }
  function beginImport(){
