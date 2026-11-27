@@ -15,7 +15,7 @@ self.onmessage=e=>{
  try{
   const {buffer,extension}=e.data;
   if(!(buffer instanceof ArrayBuffer)||!buffer.byteLength||buffer.byteLength>MAX_BYTES||!['csv','xlsx','xls'].includes(extension))throw Error('Fichier invalide ou supérieur à 5 Mo.');
-  let source=buffer,options={type:'array',sheetRows:MAX_ROWS+1,sheets:0,cellFormula:true,cellHTML:false,cellStyles:false,cellText:true,raw:true};
+  let source=buffer,options={type:'array',sheetRows:MAX_ROWS+1,sheets:0,cellFormula:true,cellHTML:false,cellStyles:false,cellNF:true,cellText:true,raw:true};
   const bytes=new Uint8Array(buffer);
   if(extension==='xlsx'){if(bytes[0]!==0x50||bytes[1]!==0x4b)throw Error('Format XLSX invalide.');zipBounds(buffer);}
   if(extension==='xls'&&!(bytes[0]===0xd0&&bytes[1]===0xcf&&bytes[2]===0x11&&bytes[3]===0xe0))throw Error('Format XLS non reconnu. Enregistre-le en XLSX ou CSV.');
@@ -30,8 +30,10 @@ self.onmessage=e=>{
   const range=XLSX.utils.decode_range(sheet['!ref']),data=[];
   for(let r=range.s.r;r<=range.e.r;r++){
    const row=[];for(let c=range.s.c;c<=range.e.c;c++){
-    const cell=sheet[XLSX.utils.encode_cell({r,c})];const formula=!!cell?.f;const value=cell?String(cell.w??cell.v??''):'';
-    row.push({value:value.slice(0,2001),formula,truncated:value.length>2000});
+    const cell=sheet[XLSX.utils.encode_cell({r,c})];const formula=!!cell?.f;let value=cell?String(cell.w??cell.v??''):'';
+    let rawNumber=cell?.t==='n'&&Number.isFinite(cell.v)?cell.v:null;
+    if(rawNumber!==null&&cell.z&&XLSX.SSF.is_date(cell.z)){const d=XLSX.SSF.parse_date_code(rawNumber,{date1904:!!book.Workbook?.WBProps?.date1904});if(d){value=[d.y,String(d.m).padStart(2,'0'),String(d.d).padStart(2,'0')].join('-');rawNumber=null;}}
+    row.push({value:value.slice(0,2001),formula,truncated:value.length>2000,rawNumber});
    }
    if(data.length===0||row.some(cell=>cell.value.trim()||cell.formula))data.push(row);
   }

@@ -20,6 +20,7 @@ function periodBounds(kind,from='',to='',now=new Date()){
  const next=x=>{const v=new Date(x);v.setDate(v.getDate()+1);return v;};
  if(kind==='week'){const start=new Date(d);start.setDate(d.getDate()-(d.getDay()+6)%7);const end=new Date(start);end.setDate(end.getDate()+7);return [localDay(start),localDay(end)];}
  if(kind==='month')return [localDay(new Date(d.getFullYear(),d.getMonth(),1,12)),localDay(new Date(d.getFullYear(),d.getMonth()+1,1,12))];
+ if(kind==='upcoming'||kind==='all')return [localDay(d),localDay(next(d))];
  if(kind==='year')return [localDay(new Date(d.getFullYear(),0,1,12)),localDay(next(d))];
  const parse=s=>{if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;const t=new Date(s+'T12:00:00');return Number.isFinite(t.getTime())&&localDay(t)===s?t:null;};
  const a=parse(from),b=parse(to);if(!a||!b||a>b||(b-a)/86400000>3658)throw Error('Choisis une période valide (10 ans maximum).');
@@ -27,6 +28,7 @@ function periodBounds(kind,from='',to='',now=new Date()){
 }
 function create(d){
  let enabled=false,checked=false,client=null,owner=null,serial=0,loading=false,loaded=false,active=false,rows=[],count=0,month=0,bookings=0,query='',filter='all',selected=null,notice='',observer=false,workshops=[],history=[],historyLoading=false,historyError=false,historyCount=0,editing=false,saving=false;
+ let importedActivity=null,importedCents=0,undatedCents=0;
  let waiting=0,cancelled=0,amount=null,period='month',dateFrom='',dateTo='',metricSeq=0,metricError='',metricLoading=false,importPanel=null;
  const text=(tag,v)=>{const n=document.createElement(tag);n.textContent=v;return n;};
  const node=(tag,cls)=>{const n=document.createElement(tag);if(cls)n.className=cls;return n;};
@@ -34,7 +36,7 @@ function create(d){
  const rootNode=()=>document.getElementById('app');
  const isPage=()=>d.isPage();
  const safe=(v,uid)=>v===serial&&uid===owner&&active&&isPage();
- function clear(){serial++;metricSeq++;importPanel?.dispose();importPanel=null;waiting=cancelled=0;amount=null;period='month';dateFrom=dateTo=metricError='';metricLoading=false;owner=null;rows=[];workshops=[];count=month=bookings=historyCount=0;history=[];selected=null;loaded=loading=editing=saving=historyLoading=historyError=false;query='';filter='all';notice='';}
+ function clear(){serial++;metricSeq++;importPanel?.dispose();importPanel=null;waiting=cancelled=0;importedActivity=null;importedCents=undatedCents=0;amount=null;period='month';dateFrom=dateTo=metricError='';metricLoading=false;owner=null;rows=[];workshops=[];count=month=bookings=historyCount=0;history=[];selected=null;loaded=loading=editing=saving=historyLoading=historyError=false;query='';filter='all';notice='';}
  function leave(){if(active){active=false;clear();}document.body.classList.remove('naitea-family-workspace');}
  function date(v){return v?new Date(v).toLocaleDateString('fr-FR'):'—';}
  function filtered(){return rows.filter(f=>(filter==='all'||filter==='declared'&&!f.newsletter_opt_out&&f.newsletter_requested_at||filter==='optout'&&f.newsletter_opt_out||filter==='none'&&!f.newsletter_opt_out&&!f.newsletter_requested_at)&&normal([name(f),f.email,f.phone].join(' ')).includes(normal(query)));}
@@ -62,7 +64,7 @@ function create(d){
      const [list,recent,indicators,events]=await Promise.all([
        client.from('naitea_families').select(FIELDS,{count:'exact'}).eq('professional_id',uid).order('last_name',{ascending:true,nullsFirst:false}).order('first_name').order('id').limit(500),
        client.from('naitea_families').select('id',{count:'exact',head:true}).eq('professional_id',uid).gte('created_at',start.toISOString()),
-       client.rpc('naitea_crm_indicators',metricArgs()),
+       client.rpc('naitea_crm_indicators_v2',metricArgs()),
        client.from('naitea_workshops').select('id,title,starts_at,status').eq('professional_id',uid).eq('status','published').gt('starts_at',new Date().toISOString()).order('starts_at').limit(100)
      ]);
      if(!safe(v,uid))return;
@@ -73,12 +75,15 @@ function create(d){
  }
  async function detail(f){
    if(!loaded||!owner||saving)return;
-   selected=f;editing=false;history=[];historyCount=0;historyLoading=true;historyError=false;paint();
+   selected=f;editing=false;history=[];importedActivity=null;historyCount=0;historyLoading=true;historyError=false;paint();
    const v=++serial,uid=owner;
    try{
-     const r=await client.from('naitea_bookings').select('id,status,seats,confirmed_at,cancelled_at,cancellation_reason,workshop_id,naitea_workshops(title,starts_at,status)',{count:'exact'}).eq('family_id',f.id).order('confirmed_at',{ascending:false}).limit(200);
+     const [r,activity]=await Promise.all([
+     client.from('naitea_bookings').select('id,status,seats,confirmed_at,cancelled_at,cancellation_reason,workshop_id,naitea_workshops(title,starts_at,status)',{count:'exact'}).eq('family_id',f.id).order('confirmed_at',{ascending:false}).limit(200),
+     client.from('naitea_family_import_history').select('amount_cents,workshop_label,accompaniment_label,activity_date,imported_at').eq('family_id',f.id).eq('professional_id',uid).maybeSingle()
+   ]);
      if(!safe(v,uid)||selected?.id!==f.id)return;
-     if(r.error||!Array.isArray(r.data))throw Error();history=r.data;historyCount=r.count??history.length;
+     if(r.error||activity.error||!Array.isArray(r.data))throw Error();importedActivity=activity.data;history=r.data;historyCount=r.count??history.length;
    }catch{if(safe(v,uid))historyError=true;}
    finally{if(safe(v,uid)){historyLoading=false;paint();}}
  }
@@ -151,7 +156,15 @@ function create(d){
      for(const w of workshops){const option=text('option',w.title+' · '+new Date(w.starts_at).toLocaleString('fr-FR'));option.value=w.id;select.append(option);}
      const info=text('p','');info.setAttribute('role','status');booking.append(select,button('Préparer l’inscription',()=>{if(!d.openBooking(f,select.value))info.textContent='Atelier indisponible ou liste non chargée. Actualise les ateliers.';},true),info);
    }else booking.append(text('p','Aucun atelier publié à venir.'));
-   panel.append(booking,text('h3','Historique des inscriptions'));
+   panel.append(booking,text('h3','Historique importé'));
+   if(historyLoading)panel.append(text('p','Chargement…'));
+   else if(historyError)panel.append(text('p','Historique importé indisponible.'));
+   else if(importedActivity){
+     const c=node('section','naitea-family-detail');c.append(text('strong','Prestations antérieures à Naïtéa'));
+     for(const [label,value] of [['Atelier',importedActivity.workshop_label],['Accompagnement',importedActivity.accompaniment_label],['Chiffre d’affaires déclaré',importedActivity.amount_cents===null?null:new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(importedActivity.amount_cents)/100)],['Date',importedActivity.activity_date?importedActivity.activity_date.split('-').reverse().join('/'):'Non renseignée']])if(value!==null&&value!=='')c.append(text('p',label+' : '+value));
+     c.append(text('p','Données historiques déclarées. Aucune réservation, facture ou paiement créé.'));panel.append(c);
+   }else panel.append(text('p','Aucune prestation importée.'));
+   panel.append(text('h3','Historique des inscriptions Naïtéa'));
    if(historyLoading)panel.append(text('p','Chargement…'));
    else if(historyError)panel.append(text('p','Historique indisponible.'),button('Réessayer',()=>detail(f)));
    else if(!history.length)panel.append(text('p','Aucune inscription enregistrée.'));
@@ -168,18 +181,18 @@ function create(d){
  }
  function metricArgs(){
    const [from,until]=periodBounds(period,dateFrom,dateTo);
-   return {p_from:from,p_until:until,p_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Paris'};
+   return {p_from:from,p_until:until,p_timezone:Intl.DateTimeFormat().resolvedOptions().timeZone||'Europe/Paris',p_mode:period==='upcoming'?'upcoming':period==='all'?'all':'period'};
  }
  function applyIndicators(data){
-   if(!data||!['confirmed','waiting','cancelled','amount_cents'].every(k=>Number.isFinite(Number(data[k]))&&Number(data[k])>=0))throw Error('Indicateurs indisponibles.');
-   bookings=Number(data.confirmed);waiting=Number(data.waiting);cancelled=Number(data.cancelled);amount=Number(data.amount_cents);
+   if(!data||!['confirmed','waiting','cancelled','amount_cents','imported_cents','undated_cents'].every(k=>Number.isFinite(Number(data[k]))&&Number(data[k])>=0))throw Error('Indicateurs indisponibles.');
+   bookings=Number(data.confirmed);waiting=Number(data.waiting);cancelled=Number(data.cancelled);amount=Number(data.amount_cents);importedCents=Number(data.imported_cents);undatedCents=Number(data.undated_cents);
  }
  async function refreshMetrics(){
    if(!loaded||!owner||!active||!isPage())return;
    const uid=owner,v=serial,request=++metricSeq;amount=null;metricLoading=true;metricError='';
    try{
      const args=metricArgs();paint();
-     const r=await client.rpc('naitea_crm_indicators',args);
+     const r=await client.rpc('naitea_crm_indicators_v2',args);
      if(!safe(v,uid)||request!==metricSeq)return;
      if(r.error)throw Error('Montant indisponible. Réessaie.');
      applyIndicators(r.data);
@@ -188,10 +201,10 @@ function create(d){
  }
  function revenueCard(){
    const card=node('section','naitea-family-detail naitea-family-revenue');
-   card.append(text('h2','Chiffre d’affaires estimé'),text('p','Montant des inscriptions confirmées, non encaissé vérifié.'));
+   card.append(text('h2','Chiffre d’affaires estimé'),text('p','Inscriptions confirmées et chiffre d’affaires historique déclaré à l’import. Aucun encaissement vérifié.'));
    const value=text('strong',metricLoading?'Calcul en cours…':amount===null?'—':new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(amount/100));value.className='naitea-revenue-value';card.append(value);
    const controls=node('div','naitea-family-revenue-controls'),select=node('select');select.setAttribute('aria-label','Période du chiffre d’affaires');
-   for(const [v,l] of [['week','Cette semaine'],['month','Ce mois-ci'],['custom','Période personnalisée'],['year','CA cumulé '+new Date().getFullYear()]]){const opt=text('option',l);opt.value=v;select.append(opt);}select.value=period;
+   for(const [v,l] of [['week','Cette semaine'],['month','Ce mois-ci'],['custom','Période personnalisée'],['year','CA cumulé '+new Date().getFullYear()],['upcoming','À venir'],['all','Tout l’historique']]){const opt=text('option',l);opt.value=v;select.append(opt);}select.value=period;
    select.addEventListener('change',()=>{period=select.value;if(period==='custom'&&(!dateFrom||!dateTo)){const d=new Date();dateFrom=localDay(new Date(d.getFullYear(),d.getMonth(),1,12));dateTo=localDay(d);}refreshMetrics();});
    controls.append(select);
    if(period==='custom'){
@@ -200,7 +213,9 @@ function create(d){
    }
    card.append(controls);
    if(metricError){const p=text('p',metricError);p.setAttribute('role','status');card.append(p);}
-   card.append(text('p','Calcul selon la date de l’atelier et le tarif × les places confirmées. Les réservations en attente ou annulées sont exclues. Les ateliers futurs compris dans la période sont inclus ; le cumul annuel s’arrête aujourd’hui.'));
+   const euro=cents=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(cents/100);
+   if(amount!==null){card.append(text('p','Inscriptions Naïtéa : '+euro(amount-importedCents)+' · CA historique importé : '+euro(importedCents)));if(undatedCents&&period!=='all'&&period!=='upcoming')card.append(text('p','CA importé sans date : '+euro(undatedCents)+' (inclus uniquement dans Tout l’historique).'));}
+   card.append(text('p',period==='upcoming'?'Ateliers publiés à venir et inscriptions confirmées uniquement, à partir de maintenant.':period==='all'?'Toutes les inscriptions confirmées (y compris futures) et le CA historique importé, même sans date.':'Calcul selon la date de l’atelier et le tarif × les places confirmées, plus le CA historique daté dans la période. Les annulations et attentes sont exclues.'));
    return card;
  }
  function beginImport(){
@@ -209,16 +224,16 @@ function create(d){
    importPanel=root.NaiteaFamilyImport.create({
      isCurrent:()=>safe(v,uid),
      phoneValue,
-     existing:async emails=>{const r=await client.rpc('naitea_crm_existing_emails',{p_emails:emails});if(!safe(v,uid)||r.error||!Array.isArray(r.data))throw Error('Vérification des doublons indisponible.');return r.data;},
-     commit:async contacts=>{const auth=await client.auth.getUser();if(!safe(v,uid)||auth.error||auth.data?.user?.id!==uid)throw Error('Reconnecte-toi avant l’import.');const r=await client.rpc('naitea_crm_import_contacts',{p_contacts:contacts});if(!safe(v,uid)||r.error||!r.data)throw Error('Import non confirmé. Actualise tes contacts avant de recommencer.');return r.data;},
+     existing:async emails=>{const r=await client.rpc('naitea_crm_import_lookup',{p_emails:emails});if(!safe(v,uid)||r.error||!Array.isArray(r.data))throw Error('Vérification des doublons indisponible.');return r.data;},
+     commit:async contacts=>{const auth=await client.auth.getUser();if(!safe(v,uid)||auth.error||auth.data?.user?.id!==uid)throw Error('Reconnecte-toi avant l’import.');const r=await client.rpc('naitea_crm_import_contacts_v2',{p_contacts:contacts});if(!safe(v,uid)||r.error||!r.data)throw Error('Import non confirmé. Actualise tes contacts avant de recommencer.');return r.data;},
      close:()=>{if(importPanel){importPanel.dispose();importPanel=null;paint();}},
-     done:async result=>{if(!safe(v,uid))return;importPanel?.dispose();importPanel=null;await load();if(owner===uid&&loaded&&active){notice=result.inserted+' fiche(s) importée(s), '+result.skipped+' doublon(s) ignoré(s) lors de l’enregistrement.';paint();}}
+     done:async result=>{if(!safe(v,uid))return;importPanel?.dispose();importPanel=null;await load();if(owner===uid&&loaded&&active){notice=result.inserted+' nouvelle(s) fiche(s), '+result.enriched+' fiche(s) existante(s) enrichie(s), '+result.histories+' historique(s) ajouté(s), '+result.skipped+' doublon(s) ignoré(s).';paint();}}
    });paint();
  }
  function paint(){
    if(!active||!isPage())return;const app=rootNode();if(!app)return;
    const panel=node('section','card naitea-crm');panel.id='naiteaPrivateFamilies';app.replaceChildren(panel);
-   const top=node('div','naitea-family-heading');const pictogram=node('img');pictogram.src='/assets/berceau/pictogrammes/espace-pro/suivi-des-familles.webp';pictogram.alt='';pictogram.width=80;pictogram.height=80;top.append(pictogram,text('h1','Mes familles'));panel.append(top);
+   const top=node('div','naitea-family-heading');const pictogram=node('img');pictogram.src='/assets/berceau/transparent/suivi-des-familles.png';pictogram.alt='';pictogram.width=80;pictogram.height=80;top.append(pictogram,text('h1','Mes familles'));panel.append(top);
    if(!checked){panel.append(text('p','Vérification de la connexion…'));return;}
    if(!enabled){panel.append(text('p','Le fichier familles réel est indisponible dans cet environnement.'));return;}
    if(notice){const p=text('p',notice);p.setAttribute('role','status');panel.append(p);}

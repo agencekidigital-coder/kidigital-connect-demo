@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const {periodBounds,phoneValue}=require('../assets/pro-families.js');
-const {mappingFor,prepareRows}=require('../assets/family-import.js');
+const {mappingFor,prepareRows,amountCents,activityDate}=require('../assets/family-import.js');
 const XLSX=require('xlsx');
 const cells=(...values)=>values.map(value=>({value,formula:false,truncated:false}));
 test('CRM periods use local calendar dates and exclusive end date',()=>{
@@ -40,4 +40,12 @@ test('Invalid and oversized files are refused',()=>{
  const data=[['Email'],...Array.from({length:501},(_,i)=>[i+'@example.invalid'])];
  const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(data),'Contacts');
  const res=parse(XLSX.write(book,{type:'array',bookType:'xlsx'}),'xlsx');assert.match(res.error,/Maximum 500/);
+});
+
+test('Imported revenue, labels and dates are mapped, and existing families may be enriched once',()=>{
+ const matrix=[cells('Prénom','Nom','Email','Chiffre d’affaires','Atelier','Accompagnement','Date'),cells('Élodie','Test','elodie@example.invalid','1 234,50 €','Massage bébé','Soutien post-partum','01/11/2026')];
+ const map=mappingFor(matrix[0].map(x=>x.value));const r=prepareRows(matrix,map,phoneValue,[{email:'elodie@example.invalid',has_history:false}])[0];
+ assert.equal(r.reason,'');assert.equal(r.enrich,true);assert.equal(r.contact.amount_cents,123450);assert.equal(r.contact.workshop_label,'Massage bébé');assert.equal(r.contact.accompaniment_label,'Soutien post-partum');assert.equal(r.contact.activity_date,'2026-11-01');
+ assert(prepareRows(matrix,map,phoneValue,[{email:'elodie@example.invalid',has_history:true}])[0].duplicate);
+ assert.equal(amountCents('',null),null);assert.equal(amountCents('120,50 €',120.5),12050);assert.equal(amountCents('0'),0);assert.throws(()=>amountCents('-12'));assert.throws(()=>amountCents('12,345'));assert.throws(()=>activityDate('31/02/2026'));
 });
