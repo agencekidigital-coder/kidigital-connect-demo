@@ -38,9 +38,9 @@ export function createPublicAppointmentHandler({fetchImpl=globalThis.fetch}={}){
     const s=await rpc('naitea_public_appointment_service',{p_link:link,p_day:null});
     const parts=String(s?.cover_path||'').split('/');
     if(!validService(s)||parts.length!==2||!UUID.test(parts[0])||!parts[1].endsWith('.jpg')||!UUID.test(parts[1].slice(0,-4)))return new Response(null,{status:404,headers});
-    const r=await call(c.url+'/storage/v1/object/naitea-service-covers/'+parts.join('/'),{headers:{apikey:c.service,Authorization:'Bearer '+c.service}});
+    const r=await call(c.url+'/storage/v1/object/authenticated/naitea-service-covers/'+parts.join('/'),{headers:{apikey:c.service}});
     if(!r.ok||r.headers.get('content-type')?.split(';')[0]!=='image/jpeg'){r.body?.cancel().catch(()=>{});return new Response(null,{status:404,headers});}
-    const data=await bytes(r,2097152);return new Response(request.method==='HEAD'?null:data,{headers:{...headers,'Content-Type':'image/jpeg'}});
+    const data=await bytes(r,2097152);if(data.length<4||data[0]!==255||data[1]!==216||data[2]!==255)return new Response(null,{status:404,headers});return new Response(request.method==='HEAD'?null:data,{headers:{...headers,'Content-Type':'image/jpeg'}});
    }
    if(request.method!=='POST'){
     const today=dayOf(),day=url.searchParams.get('date')||today;
