@@ -67,7 +67,7 @@ function build() {
     escape: esc, goWorkshops: () => navigate('ateliers'),
   });
   const privateFamilies = NaiteaProFamilies.create({getClient: () => berceauAuthClient, isPage: () => mode === 'pro' && !v8Shared && !platform.giftShopMode() && page === 'familles',openBooking: (f,id) => privateWorkshops.openFamilyBooking(f,id)});
-  const privateServices = NaiteaProServices.create({getClient: () => berceauAuthClient, isPage: () => mode === 'pro' && !v8Shared && !platform.giftShopMode() && ['offers','rendezvous'].includes(page),page: () => page,go: to => navigate(to)});
+  const privateServices = NaiteaProServices.create({getClient: () => berceauAuthClient, isPage: () => mode === 'pro' && !v8Shared && !platform.giftShopMode() && ['offers','rendezvous'].includes(page),page: () => page,go: to => navigate(to),formHtml: offer => v6OfferForm(offer)});
   render = function () { privateWorkshopRender(); privateWorkshops.decorate(); privateFamilies.decorate(); privateServices.decorate(); };
   privateWorkshops.start(); privateFamilies.start(); privateServices.start();
 }

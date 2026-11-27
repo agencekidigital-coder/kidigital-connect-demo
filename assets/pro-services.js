@@ -2,7 +2,9 @@
 (function(root){
 'use strict';
 const DAYS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
-const MODES={practice:'En cabinet',home:'À domicile',video:'En visioconférence'};
+const MODES={practice:'En cabinet',home:'À domicile',video:'En visio',phone:'Par téléphone'};
+const COVER_BUCKET='naitea-service-covers';
+const modesOf=s=>Array.isArray(s?.modalities)&&s.modalities.length?s.modalities:[s?.modality||'practice'];
 const STATES={draft:'Brouillon',active:'Active',archived:'Archivée'};
 const money=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n/100);
 const minutes=s=>{if(!/^\d{2}:\d{2}$/.test(s))return NaN;const [h,m]=s.split(':').map(Number);return h<24&&m<60?h*60+m:NaN;};
@@ -16,13 +18,15 @@ function create(d){
  const button=(label,fn,primary=false)=>{const b=text('button',label);b.type='button';b.className=primary?'btn':'btn secondary';b.addEventListener('click',fn);return b;};
  const current=()=>d.isPage()&&active&&d.page()===view;
  const safe=(v,uid)=>current()&&generation===v&&owner===uid;
- let subscription=null;
- function clear(){generation++;owner=null;loaded=loading=busy=failed=false;services=[];rules=[];closed=[];edit=null;chosen='';notice='';}
+ let subscription=null;const coverUrls=new Map();let localPreview='';
+ function resetImages(){for(const u of coverUrls.values())URL.revokeObjectURL(u);coverUrls.clear();if(localPreview)URL.revokeObjectURL(localPreview);localPreview='';}
+ function attachImage(s,img,accept=()=>true){if(!s||!owner)return;const v=generation,uid=owner;const cached=coverUrls.get(s.id);if(cached){img.src=cached;img.hidden=false;return;}client.storage.from(COVER_BUCKET).download(root.NaiteaProWorkshops.coverPath(uid,s.id)).then(({data,error})=>{if(error||!data||data.type!=='image/jpeg'||data.size>2097152||!safe(v,uid)||!img.isConnected||!accept())return;const u=coverUrls.get(s.id)||URL.createObjectURL(data);coverUrls.set(s.id,u);img.src=u;img.hidden=false;}).catch(()=>{});}
+ function clear(){generation++;resetImages();owner=null;loaded=loading=busy=failed=false;services=[];rules=[];closed=[];edit=null;chosen='';notice='';}
  function leave(){if(active){active=false;clear();}document.body.classList.remove('naitea-service-workspace');}
  function connect(){const next=d.getClient();if(!next)return false;if(next!==client){subscription?.unsubscribe();client=next;subscription=null;}if(!subscription){const r=client.auth.onAuthStateChange((event,session)=>{if(!active||!current()||event==='INITIAL_SESSION')return;if(owner&&session?.user?.id===owner&&['TOKEN_REFRESHED','SIGNED_IN','USER_UPDATED'].includes(event))return;clear();paint();setTimeout(load,0);});subscription=r.data.subscription;}return true;}
  async function load(){
   if(!current()||!enabled||loading||busy)return;
-  loading=true;loaded=false;failed=false;notice='Chargement…';paint();const v=++generation;
+  loading=true;loaded=false;failed=false;resetImages();notice='Chargement…';paint();const v=++generation;
   try{
    if(!connect()){if(v===generation){notice='Connexion en cours…';setTimeout(()=>{if(v===generation&&current())load();},500);}return;}
    const auth=await client.auth.getUser();if(!current()||v!==generation)return;
@@ -48,7 +52,7 @@ function create(d){
    const result=await action(uid);if(!safe(v,uid))return;
    if(result.error){const code=result.error.code;throw Error(code==='23P01'?'Cette plage chevauche une disponibilité existante.':code==='23505'?'Cette plage ou date existe déjà.':code==='23514'?'Vérifie les horaires et la durée de la séance.':'Enregistrement non confirmé. Actualise avant de réessayer.');}
    if(!result.data||Array.isArray(result.data)&&result.data.length!==1)throw Error('Modification non confirmée. Actualise la page.');
-   edit=null;busy=false;await load();if(current()&&owner===uid&&loaded){notice=success;paint();}
+   edit=null;busy=false;await load();if(current()&&owner===uid&&loaded){notice=success+(result.coverWarning?' '+result.coverWarning:'');paint();}
   }catch(e){if(safe(v,uid))status.textContent=e.message||'Action non confirmée.';}
   finally{if(safe(v,uid)){busy=false;controls.forEach((e,i)=>e.disabled=prev[i]);}}
  }
@@ -61,20 +65,83 @@ function create(d){
  function statusLine(){const p=text('p','');p.setAttribute('role','status');return p;}
  function heading(panel,title,img,desc){const h=node('div','naitea-family-heading');const image=node('img');image.src='/assets/berceau/transparent/'+img+'.png';image.alt='';image.width=80;image.height=80;h.append(image,text('h1',title));panel.append(h,text('p',desc));}
  function serviceForm(panel,s){
-  const form=node('form','naitea-service-form');form.append(text('h2',s?'Modifier cet accompagnement':'Nouvel accompagnement'));
-  form.append(field('Nom de la prestation *','title','text',s?.title,{required:true,maxlength:120,placeholder:'Ex. Consultation sommeil'}),field('Description','description','textarea',s?.description,{maxlength:3000}));
-  const grid=node('div','naitea-family-fields');
-  grid.append(field('Durée de la séance (minutes) *','duration','number',s?.duration_minutes??60,{required:true,min:15,max:480,step:5}),field('Temps entre deux séances (minutes)','buffer','number',s?.buffer_minutes??15,{required:true,min:0,max:120,step:5}),field('Tarif en euros *','price','number',s?(s.price_cents/100).toFixed(2):'0',{required:true,min:0,max:100000,step:0.01}),selectField('Modalité','modality',Object.entries(MODES),s?.modality??'practice'),field('Lieu / précision (facultatif)','location','text',s?.location,{maxlength:250,placeholder:'Cabinet, zone de déplacement…'}),selectField('Statut','status',Object.entries(STATES).filter(([k])=>k!=='archived'||s?.status==='archived'),s?.status??'draft'));
-  form.append(grid,text('p','Une prestation active peut être préparée avec des disponibilités. Elle ne sera pas encore visible ni réservable côté familles.'));
-  const status=statusLine(),save=text('button','Enregistrer');save.className='btn';save.type='submit';const actions=node('div','naitea-family-actions');actions.append(button('Retour',()=>{edit=null;paint();}),save);form.append(status,actions);panel.append(form);
+  const details=s?.modality_details||{},modes=modesOf(s),offer={id:s?.id||'',title:s?.title||'',price:(s?.price_cents||0)/100,duration:String(s?.duration_minutes||60),location:s?.location||'',audience:s?.audience||'',description:s?.description||'',extra:s?.extra||'',modalities:modes.map(k=>MODES[k]),modalityDetails:details};
+  const shell=node('div');shell.innerHTML=d.formHtml(offer);const form=shell.querySelector('form');if(!form)throw Error('Formulaire Codex indisponible.');
+  form.id='naiteaPrivateServiceForm';form.classList.add('naitea-service-form');
+  form.querySelectorAll('[data-v6],[data-action]').forEach(e=>e.remove());
+  form.elements.offerId?.remove();form.elements.location?.closest('.field')?.remove();
+  const duration=form.elements.duration;duration.type='number';duration.min='15';duration.max='480';duration.step='5';duration.required=true;duration.closest('.field').querySelector('label').textContent='Durée (minutes)';
+  form.elements.price.step='0.01';form.elements.price.max='100000';form.elements.price.required=true;form.elements.price.closest('.field').querySelector('label').textContent='Tarif (€) · 0 si gratuit';
+  form.elements.title.maxLength=120;form.elements.audience.maxLength=300;form.elements.extra.maxLength=2000;form.elements.description.maxLength=3000;
+  form.elements.offerPhone.value=details.phone?.number||'';
+  const footer=form.querySelector('.modalfooter');const more=node('div','naitea-family-fields');
+  more.append(field('Pause entre deux séances (minutes)','buffer','number',s?.buffer_minutes??15,{required:true,min:0,max:120,step:5}),selectField('Statut','status',Object.entries(STATES).filter(([k])=>k!=='archived'||s?.status==='archived'),s?.status??'draft'));footer.before(more);
+  const video=form.querySelector('[data-modality-panel="En visio"]');video.append(text('p','Google Meet et Zoom : génération automatique prévue lors du raccordement des réservations et de ton compte. Pour l’instant, le lien sera communiqué manuellement.'));
+  const sync=()=>{
+   const selected=[...form.querySelectorAll('[name="modality"]:checked')].map(e=>e.value);
+   for(const p of form.querySelectorAll('[data-modality-panel]')){p.hidden=!selected.includes(p.dataset.modalityPanel);for(const e of p.querySelectorAll('input,textarea,select'))e.disabled=p.hidden;}
+   const fees=form.querySelector('.v11-fees-fields');fees.hidden=!selected.includes('À domicile')||!form.elements.travelFees.checked;for(const e of fees.querySelectorAll('input'))e.disabled=fees.hidden;
+   const other=form.querySelector('.v11-other-video');other.hidden=!selected.includes('En visio')||form.elements.videoPlatform.value!=='Autre';other.querySelector('input').disabled=other.hidden;other.querySelector('input').required=!other.hidden;
+  };
+  form.addEventListener('change',sync);sync();
+  const aiStatus=statusLine(),draftButton=button('Aide à la rédaction IA',async()=>{
+   if(busy||!current()||!form.isConnected)return;
+   const title=form.elements.title.value.trim(),audience=form.elements.audience.value.trim();
+   if(!title){aiStatus.textContent='Renseigne d’abord le nom de ta prestation.';return;}
+   if(!confirm('Envoyer uniquement le titre et le public concerné au service IA ? N’indique aucune donnée personnelle ou de santé.'))return;
+   const v=generation,uid=owner,before=form.elements.description.value;draftButton.disabled=true;aiStatus.textContent='Préparation du brouillon…';
+   try{
+    const {data,error}=await client.auth.getSession();if(error||data?.session?.user?.id!==uid||!safe(v,uid))throw Error('Reconnecte-toi.');
+    const r=await fetch('/api/service-description',{method:'POST',credentials:'omit',cache:'no-store',headers:{'Content-Type':'application/json',Authorization:'Bearer '+data.session.access_token},body:JSON.stringify({title,audiences:audience?[audience]:[],consent:true})});
+    const result=await r.json();if(!safe(v,uid)||!form.isConnected)return;
+    if(!r.ok||typeof result.text!=='string')throw Error(result.error||'IA indisponible.');
+    if(form.elements.description.value!==before||before.trim()){if(!confirm('Remplacer ta description par cette proposition IA ?')){aiStatus.textContent='Description conservée.';return;}}
+    form.elements.description.value=result.text;aiStatus.textContent='Brouillon IA à relire et personnaliser avant enregistrement.';
+   }catch(e){if(safe(v,uid)&&form.isConnected)aiStatus.textContent=e.message||'IA indisponible.';}
+   finally{if(safe(v,uid)&&form.isConnected)draftButton.disabled=false;}
+  });
+  form.elements.description.closest('.field').append(draftButton,aiStatus);
+  const photoField=form.elements.offerCover.closest('.field');photoField.replaceChildren(text('label','Photo de couverture'));
+  const preview=node('img','v6-cover naitea-service-cover');preview.alt='Aperçu de la couverture';preview.hidden=true;
+  const file=node('input');file.type='file';file.accept='image/jpeg,image/png,image/webp';
+  const removeWrap=node('label','checkline'),remove=node('input');remove.type='checkbox';removeWrap.append(remove,document.createTextNode(' Retirer la photo actuelle'));removeWrap.hidden=!s;
+  const photoStatus=statusLine();photoField.append(preview,file,text('p','JPG, PNG ou WebP, 12 Mo maximum. Compression et cadrage en 16:9 comme les ateliers.'),removeWrap,photoStatus);
+  let selectedFile=null,photoBlob=null,preparing=false,selection=0;
+  const crop=node('div','naitea-family-fields');crop.hidden=true;const sliders={};for(const [key,label,min,max,step,val] of [['zoom','Zoom',1,3,.05,1],['x','Horizontal',0,100,1,50],['y','Vertical',0,100,1,50]]){const wrap=field(label,key,'range',val,{min,max,step});sliders[key]=wrap.querySelector('input');crop.append(wrap);}photoField.append(crop);
+  async function prepare(){
+   if(!selectedFile)return;const n=++selection,v=generation,uid=owner;preparing=true;photoStatus.textContent='Préparation de la photo…';
+   try{const blob=await root.NaiteaProWorkshops.compressCover(selectedFile,{zoom:+sliders.zoom.value,x:+sliders.x.value,y:+sliders.y.value});if(!safe(v,uid)||n!==selection||!form.isConnected)return;photoBlob=blob;if(localPreview)URL.revokeObjectURL(localPreview);localPreview=URL.createObjectURL(blob);preview.src=localPreview;preview.hidden=false;photoStatus.textContent='Photo prête à être enregistrée.';}
+   catch(e){if(safe(v,uid)&&n===selection){photoBlob=null;photoStatus.textContent=e.message;}}
+   finally{if(n===selection)preparing=false;}
+  }
+  file.addEventListener('change',()=>{selectedFile=file.files[0]||null;photoBlob=null;remove.checked=false;crop.hidden=!selectedFile;if(selectedFile)prepare();else{selection++;preparing=false;preview.hidden=true;attachImage(s,preview);}});
+  for(const slider of Object.values(sliders))slider.addEventListener('change',prepare);
+  remove.addEventListener('change',()=>{if(remove.checked){selection++;preparing=false;selectedFile=null;photoBlob=null;file.value='';crop.hidden=true;preview.hidden=true;preview.removeAttribute('src');}else attachImage(s,preview);});
+  attachImage(s,preview,()=>!selectedFile&&!remove.checked);
+  const status=statusLine();footer.prepend(button('Retour',()=>{edit=null;if(localPreview)URL.revokeObjectURL(localPreview);localPreview='';paint();}));footer.before(status);panel.append(text('h2',s?'Modifier cet accompagnement':'Nouvel accompagnement'),form);
   form.addEventListener('submit',e=>{
-   e.preventDefault();e.stopImmediatePropagation();if(busy)return;const f=new FormData(form);
-   let payload;try{
+   e.preventDefault();e.stopImmediatePropagation();if(busy)return;
+   if(preparing||selectedFile&&!photoBlob){status.textContent='Attends que la photo soit prête ou retire le fichier.';return;}
+   const f=new FormData(form);let payload;
+   try{
     const title=String(f.get('title')).trim(),duration=Number(f.get('duration')),buffer=Number(f.get('buffer'));
     if(!title||duration<15||duration>480||duration%5||buffer<0||buffer>120||buffer%5)throw Error('Vérifie le titre et la durée.');
-    payload={title,description:String(f.get('description')||'').trim(),duration_minutes:duration,buffer_minutes:buffer,price_cents:priceCents(f.get('price')),modality:String(f.get('modality')),location:String(f.get('location')||'').trim()||null,status:String(f.get('status'))};
+    const chosenModes=f.getAll('modality').map(v=>Object.keys(MODES).find(k=>MODES[k]===v));if(!chosenModes.length||chosenModes.some(k=>!k))throw Error('Sélectionne au moins une modalité.');
+    const val=k=>String(f.get(k)||'').trim(),detail={};
+    if(chosenModes.includes('practice')){if(!val('officeAddress'))throw Error('Précise l’adresse du cabinet.');detail.office={address:val('officeAddress')};}
+    if(chosenModes.includes('home')){if(!val('homeZone'))throw Error('Précise la zone d’intervention.');const enabled=!!f.get('travelFees'),perKm=enabled?priceCents(val('feePerKm')||'0')/100:0,fixed=enabled?priceCents(val('feeFixed')||'0')/100:0,includedKm=enabled?Number(val('feeIncludedKm')||0):0;if(enabled&&(!perKm&&!fixed||!Number.isInteger(includedKm)||includedKm<0||includedKm>10000))throw Error('Vérifie les frais de déplacement.');detail.home={zone:val('homeZone'),fees:{enabled,perKm,fixed,includedKm}};}
+    if(chosenModes.includes('video')){const platform=val('videoPlatform'),other=val('videoOther');if(!['Zoom','Google Meet','Microsoft Teams','WhatsApp','Autre'].includes(platform)||platform==='Autre'&&!other)throw Error('Précise l’outil de visio.');detail.video={platform,other:platform==='Autre'?other:'',linkMode:'manual'};}
+    if(chosenModes.includes('phone'))detail.phone={number:val('offerPhone')};
+    const location=(detail.office?.address||detail.home?.zone||'').replace(/[\r\n\t]+/g,' ').slice(0,250)||null;
+    payload={title,description:val('description'),duration_minutes:duration,buffer_minutes:buffer,price_cents:priceCents(f.get('price')),modality:chosenModes[0],modalities:chosenModes,modality_details:detail,location,audience:val('audience'),extra:val('extra'),status:val('status')};
    }catch(err){status.textContent=err.message;return;}
-   mutate(uid=>s?client.from('naitea_services').update(payload).eq('id',s.id).eq('professional_id',uid).select('id').single():client.from('naitea_services').insert({...payload,professional_id:uid}).select('id').single(),'Accompagnement enregistré.',status);
+   const photo=photoBlob,removePhoto=remove.checked,v=generation;
+   mutate(async uid=>{
+    const result=await(s?client.from('naitea_services').update(payload).eq('id',s.id).eq('professional_id',uid).select('id').single():client.from('naitea_services').insert({...payload,professional_id:uid}).select('id').single());
+    if(result.error||!result.data?.id||!safe(v,uid))return result;
+    if(photo||removePhoto){try{const bucket=client.storage.from(COVER_BUCKET),key=root.NaiteaProWorkshops.coverPath(uid,result.data.id);const r=photo?await bucket.upload(key,photo,{contentType:'image/jpeg',upsert:true}):await bucket.remove([key]);if(r.error)throw Error();}catch{return {...result,coverWarning:'La prestation est enregistrée, mais pas la modification de la photo. Ouvre la fiche pour réessayer.'};}}
+    return result;
+   },'Accompagnement enregistré.',status);
   });
  }
  function offers(panel){
@@ -83,7 +150,7 @@ function create(d){
   const metrics=node('div','naitea-family-metrics');for(const [l,n] of [['Accompagnements',services.filter(s=>s.status!=='archived').length],['Actifs',services.filter(s=>s.status==='active').length],['Brouillons',services.filter(s=>s.status==='draft').length]]){const c=node('div','naitea-family-detail');c.append(text('span',l),text('strong',String(n)));metrics.append(c);}panel.append(metrics);
   if(!services.length){panel.append(text('p','Tu n’as pas encore créé d’accompagnement. Commence par ta première prestation !'));return;}
   const grid=node('div','naitea-service-grid');
-  for(const s of services){const c=node('article','naitea-family-detail naitea-service-card');c.append(text('h2',s.title),text('p',STATES[s.status]),text('p',s.description||'Pas de description.'),text('strong',money(s.price_cents)),text('p',s.duration_minutes+' min · pause '+s.buffer_minutes+' min · '+MODES[s.modality]));if(s.location)c.append(text('p',s.location));c.append(text('p',rules.filter(r=>r.service_id===s.id).length+' plage(s) hebdomadaire(s)'));
+  for(const s of services){const c=node('article','naitea-family-detail naitea-service-card');const img=node('img','v6-cover naitea-service-cover');img.alt='Couverture de '+s.title;img.hidden=true;c.append(img);attachImage(s,img);c.append(text('h2',s.title),text('p',STATES[s.status]),text('p',s.description||'Pas de description.'),text('strong',money(s.price_cents)),text('p',s.duration_minutes+' min · pause '+s.buffer_minutes+' min · ' +modesOf(s).map(k=>MODES[k]).join(' · ')));const detail=s.modality_details||{};if(detail.office?.address)c.append(text('p','Cabinet : '+detail.office.address));if(detail.home?.zone)c.append(text('p','Domicile : '+detail.home.zone));if(detail.home?.fees?.enabled)c.append(text('p','Frais de déplacement : '+[detail.home.fees.perKm?money(Math.round(detail.home.fees.perKm*100))+'/km':'',detail.home.fees.fixed?money(Math.round(detail.home.fees.fixed*100))+' forfait':''].filter(Boolean).join(' + ')));if(detail.video?.platform)c.append(text('p','Visio : '+(detail.video.other||detail.video.platform)));if(detail.phone?.number)c.append(text('p','Téléphone : '+detail.phone.number));if(s.audience)c.append(text('p','Public : '+s.audience));if(s.extra)c.append(text('p',s.extra));c.append(text('p',rules.filter(r=>r.service_id===s.id).length+' plage(s) hebdomadaire(s)'));
    const buttons=node('div','naitea-family-actions'),status=statusLine();buttons.append(button('Modifier',()=>{edit=s.id;paint();}),button('Disponibilités',()=>{chosen=s.id;d.go('rendezvous');}));if(s.status!=='archived')buttons.append(button('Archiver',()=>{if(confirm('Archiver cette prestation ? Ses informations restent conservées.'))mutate(uid=>client.from('naitea_services').update({status:'archived'}).eq('id',s.id).eq('professional_id',uid).select('id').single(),'Prestation archivée.',status);}));
    c.append(buttons,status);grid.append(c);
   }panel.append(grid);

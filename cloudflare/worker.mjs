@@ -9,6 +9,7 @@ import {createCancellationHandler} from '../server/cancellations.mjs';
 import {bookingConfig} from '../server/booking-config.mjs';
 import { createAccountHandler } from '../server/account-profile.mjs';
 import fontHandler from '../api/font.js';
+import draftHandler from '../api/review-reply.js';
 import videoSizes from '../dist/video-sizes.json' with { type: 'json' };
 
 export const capabilities = Object.freeze({
@@ -160,6 +161,21 @@ async function route(request, env, ctx, pathname) {
   if (!pathname) return json({ error: 'Adresse invalide.' }, 400);
   if (pathname === '/api/account') return accountHandler(request, env);
   if (pathname === '/api/workshops') return workshopsHandler(request, env);
+  if (pathname === '/api/service-description') {
+    const config=bookingConfig(env);
+    if(!config||url.origin!==config.origin||env.NAITEA_SERVICE_AI_ENABLED!=='true')return json({error:'Aide IA non activée pour cette bêta.'},503);
+    if(request.method!=='POST')return json({error:'Méthode non autorisée.'},405);
+    if(request.headers.get('Origin')!==url.origin)return json({error:'Origine non autorisée.'},403);
+    if(!request.headers.get('Content-Type')?.startsWith('application/json'))return json({error:'Format invalide.'},400);
+    const reader=request.body?.getReader();if(!reader)return json({error:'Requête vide.'},400);let size=0,parts=[];
+    try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>4096){await reader.cancel();return json({error:'Requête trop longue.'},413);}parts.push(value);}}catch{return json({error:'Requête invalide.'},400);}
+    const bytes=new Uint8Array(size);let pos=0;for(const p of parts){bytes.set(p,pos);pos+=p.length;}
+    let body;try{body=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));}catch{return json({error:'Requête invalide.'},400);}
+    const handler=draftHandler.createHandler({task:'service',env:{...env,VERCEL_OIDC_TOKEN:undefined}});
+    let status=200,content;const headers=new Headers();
+    await handler({method:'POST',headers:{origin:url.origin,host:url.host,authorization:request.headers.get('Authorization')||''},body},{setHeader(k,v){headers.set(k,String(v));},status(s){status=s;return this;},json(v){content=v;return this;}});
+    return json(content||{error:'Service indisponible.'},status,Object.fromEntries(headers));
+  }
   if (pathname === '/api/manual-bookings') return manualBookingHandler(request, env);
   if (pathname === '/api/waitlist') return waitlistHandler(request, env);
   if (pathname === '/api/cancellations') return cancellationHandler(request, env);

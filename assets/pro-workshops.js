@@ -858,7 +858,7 @@ function create(d){
   }
   return {start,decorate,openFamilyBooking};
 }
-const api={create,calendarDates,upcomingRows,rowsOnDate,coverPath,dimensions,cropRect};
+const api={create,calendarDates,upcomingRows,rowsOnDate,coverPath,dimensions,cropRect,compressCover};
 if(typeof module==='object'&&module.exports)module.exports=api;
 else root.NaiteaProWorkshops=api;
 })(globalThis);
