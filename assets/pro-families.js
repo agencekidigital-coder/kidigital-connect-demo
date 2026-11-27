@@ -41,7 +41,7 @@ function create(d){
    loading=true;loaded=false;selected=null;editing=false;history=[];notice='Chargement de tes familles…';paint();
    const v=++serial;
    try{
-     if(!await connect()){if(v===serial)loading=false;return;}
+     if(!await connect()){if(v===serial){loading=false;setTimeout(()=>{if(v===serial&&active&&isPage()&&!loaded&&d.getClient())load();},500);}return;}
      const auth=await client.auth.getUser();if(v!==serial||!active||!isPage())return;
      if(auth.error||!auth.data?.user||auth.data.user.is_anonymous){notice='Connecte-toi pour accéder à ton fichier familles.';owner=null;return;}
      owner=auth.data.user.id;const uid=owner;
