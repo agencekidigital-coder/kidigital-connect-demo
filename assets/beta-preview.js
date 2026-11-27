@@ -61,7 +61,7 @@
       status.timer = browser.setTimeout(() => { status.hidden = true; }, 8000);
     };
     function decorate() {
-      const message = (doc.body.classList.contains('naitea-private-workspace') || doc.body.classList.contains('naitea-family-workspace')) ? 'Bêta : ateliers et familles privés synchronisés avec ton compte. Les autres fonctions restent en démonstration.' : 'Démonstration : données fictives uniquement. Les modifications restent dans ce navigateur.';
+      const message = (doc.body.classList.contains('naitea-private-workspace') || doc.body.classList.contains('naitea-family-workspace') || doc.body.classList.contains('naitea-service-workspace')) ? 'Bêta : ateliers, familles, accompagnements et disponibilités synchronisés avec ton compte. Les autres fonctions restent en démonstration.' : 'Démonstration : données fictives uniquement. Les modifications restent dans ce navigateur.';
       if (notice.textContent !== message) notice.textContent = message;
       // The account page and its API belong to the Cloudflare beta only.
       for (const link of doc.querySelectorAll('a.naitea-login-link, .nav a[href="/connexion.html"]')) {
