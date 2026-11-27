@@ -12,7 +12,9 @@ const clock=n=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStar
 function priceCents(s){s=String(s).trim().replace(',','.');if(!/^\d{1,6}(?:\.\d{1,2})?$/.test(s))throw Error('Indique un tarif valide en euros.');const n=Math.round(Number(s)*100);if(n>10000000)throw Error('Tarif trop élevé.');return n;}
 function parisDay(){const p=Object.fromEntries(new Intl.DateTimeFormat('fr-CA',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()).map(v=>[v.type,v.value]));return p.year+'-'+p.month+'-'+p.day;}
 function locationDefault(s,mode){const d=s?.modality_details||{};return mode==='practice'?d.office?.address||'':mode==='home'?d.home?.zone||'':mode==='video'?d.video?.other||d.video?.platform||'':mode==='phone'?'':'';}
-function groupLocations(rows){const groups=new Map();for(const r of rows){const key=JSON.stringify([r.modality,r.location_label||'',r.location_details||'']);if(!groups.has(key))groups.set(key,{modality:r.modality,label:r.location_label||'',details:r.location_details||'',rows:[]});groups.get(key).rows.push(r);}return [...groups.values()];}
+function optionsOf(r){return Array.isArray(r?.options)&&r.options.length?r.options:[{modality:r.modality,location_label:r.location_label,location_details:r.location_details}];}
+function optionKey(o){return JSON.stringify([o.modality,o.location_label||'',o.location_details||'']);}
+function groupLocations(rows){const groups=new Map();for(const r of rows)for(const o of optionsOf(r)){const key=optionKey(o);if(!groups.has(key))groups.set(key,{modality:o.modality,label:o.location_label||'',details:o.location_details||'',rows:[]});groups.get(key).rows.push(r);}return [...groups.values()];}
 function create(d){
  let client=null,owner=null,enabled=false,checked=false,active=false,view='',generation=0,loading=false,loaded=false,busy=false,notice='',failed=false,services=[],rules=[],closed=[],edit=null,chosen='',ruleEdit=null,allPlanning=false,parentPreview=false;
  const node=(tag,cls)=>{const e=document.createElement(tag);if(cls)e.className=cls;return e;};
@@ -134,7 +136,7 @@ function create(d){
     if(chosenModes.includes('home')){if(!val('homeZone'))throw Error('Précise la zone d’intervention.');const enabled=!!f.get('travelFees'),perKm=enabled?priceCents(val('feePerKm')||'0')/100:0,fixed=enabled?priceCents(val('feeFixed')||'0')/100:0,includedKm=enabled?Number(val('feeIncludedKm')||0):0;if(enabled&&(!perKm&&!fixed||!Number.isInteger(includedKm)||includedKm<0||includedKm>10000))throw Error('Vérifie les frais de déplacement.');detail.home={zone:val('homeZone'),fees:{enabled,perKm,fixed,includedKm}};}
     if(chosenModes.includes('video')){const platform=val('videoPlatform'),other=val('videoOther');if(!['Zoom','Google Meet','Microsoft Teams','WhatsApp','Autre'].includes(platform)||platform==='Autre'&&!other)throw Error('Précise l’outil de visio.');detail.video={platform,other:platform==='Autre'?other:'',linkMode:'manual'};}
     if(chosenModes.includes('phone'))detail.phone={number:val('offerPhone')};
-    if(s&&rules.some(r=>r.service_id===s.id&&!chosenModes.includes(r.modality)))throw Error('Modifie ou retire les plages de cette modalité dans Rendez-vous avant de la désactiver.');
+    if(s&&rules.some(r=>r.service_id===s.id&&optionsOf(r).some(o=>!chosenModes.includes(o.modality))))throw Error('Modifie ou retire les plages de cette modalité dans Rendez-vous avant de la désactiver.');
     const location=(detail.office?.address||detail.home?.zone||'').replace(/[\r\n\t]+/g,' ').slice(0,250)||null;
     payload={title,description:val('description'),duration_minutes:duration,buffer_minutes:buffer,price_cents:priceCents(f.get('price')),modality:chosenModes[0],modalities:chosenModes,modality_details:detail,location,audience:val('audience'),extra:val('extra'),status:val('status')};
    }catch(err){status.textContent=err.message;return;}
@@ -160,7 +162,7 @@ function create(d){
  }
  function availability(panel){
   const available=services.filter(s=>s.status!=='archived');const actions=node('div','naitea-family-actions');actions.append(button('Gérer mes accompagnements',()=>d.go('offers')),button('Actualiser',load));panel.append(actions);
-  panel.append(text('h2','Ma semaine type'),text('p','Choisis les lieux et les jours où tu reçois les familles. Les horaires se répètent chaque semaine (heure de Paris).'));
+  panel.append(text('h2','Ma semaine type'),text('p','Choisis les jours et les modalités possibles sur chaque plage. Une famille choisira une seule option lors de sa réservation. Les horaires se répètent chaque semaine (heure de Paris).'));
   if(!available.length)panel.append(text('p','Crée d’abord un accompagnement pour définir ses disponibilités.'));
   else{
    const service=selectField('Accompagnement','service',available.map(s=>[s.id,s.title]),chosen||available[0].id);const sel=service.querySelector('select');sel.addEventListener('change',()=>{chosen=sel.value;ruleEdit=null;allPlanning=false;paint();});panel.append(service);
@@ -177,14 +179,14 @@ function create(d){
     const col=node('section','naitea-planning-day');const title=node('div','naitea-planning-dayhead');title.append(text('h3',day),text('span',String(visible.filter(r=>r.weekday===i+1).length)+' plage(s)'));col.append(title);
     const dayRules=visible.filter(r=>r.weekday===i+1).sort((a,b)=>a.start_minute-b.start_minute||a.end_minute-b.end_minute);
     if(!dayRules.length)col.append(text('p','Repos / non disponible'));
-    for(const r of dayRules){const card=node('article','naitea-planning-slot mode-'+r.modality),serviceRow=services.find(s=>s.id===r.service_id);
-     card.append(text('strong',clock(r.start_minute)+' – '+clock(r.end_minute)),text('span',MODES[r.modality]||'Modalité à préciser'));
-     if(r.location_label)card.append(text('b',r.location_label));
-     if(r.location_details)card.append(text('p',r.location_details));
+    for(const r of dayRules){const opts=optionsOf(r),card=node('article','naitea-planning-slot '+(opts.length>1?'mode-flexible':'mode-'+opts[0].modality)),serviceRow=services.find(s=>s.id===r.service_id);
+     card.append(text('strong',clock(r.start_minute)+' – '+clock(r.end_minute)));
+     if(opts.length>1)card.append(text('span',opts.length+' modalités au choix'));
+     for(const o of opts){const part=node('div','naitea-planning-option mode-'+o.modality);part.append(text('b',MODES[o.modality]||'Modalité à préciser'));if(o.location_label)part.append(text('p',o.location_label));if(o.location_details)part.append(text('p',o.location_details));card.append(part);}
      if(allPlanning)card.append(text('p',serviceRow?.title||'Accompagnement'));
      if(serviceRow&&r.end_minute-r.start_minute<serviceRow.duration_minutes)card.append(text('p','Plage trop courte pour la durée actuelle.'));
-     const conflict=rules.some(o=>o.id!==r.id&&o.service_id!==r.service_id&&available.some(s=>s.id===o.service_id)&&o.weekday===r.weekday&&o.start_minute<r.end_minute&&o.end_minute>r.start_minute&&(o.modality!==r.modality||String(o.location_details||'')!==String(r.location_details||'')||String(o.location_label||'')!==String(r.location_label||'')));
-     if(conflict){const warn=text('p','Attention : autre prestation au même horaire, lieu ou modalité différent.');warn.className='naitea-planning-warning';card.append(warn);}
+     const conflict=rules.some(o=>o.id!==r.id&&o.service_id!==r.service_id&&available.some(s=>s.id===o.service_id)&&o.weekday===r.weekday&&o.start_minute<r.end_minute&&o.end_minute>r.start_minute&&!optionsOf(o).some(a=>opts.some(b=>optionKey(a)===optionKey(b))));
+     if(conflict){const warn=text('p','Autre prestation au même horaire, avec des lieux ou modalités différents.');warn.className='naitea-planning-warning';card.append(warn);}
      const tools=node('div','naitea-planning-tools'),status=statusLine();tools.append(button('Modifier',()=>{chosen=r.service_id;ruleEdit={...r};paint();document.getElementById('naiteaPlanningForm')?.scrollIntoView({block:'nearest',behavior:'smooth'});}),button('Retirer',()=>{if(confirm('Retirer cette disponibilité hebdomadaire ?'))mutate(uid=>client.from('naitea_service_availability').delete().eq('id',r.id).eq('professional_id',uid).select('id').single(),'Disponibilité retirée.',status);}));card.append(tools,status);col.append(card);
     }
     col.append(button('+ Ajouter',()=>{ruleEdit={weekday:i+1};paint();document.getElementById('naiteaPlanningForm')?.scrollIntoView({block:'nearest',behavior:'smooth'});}));
@@ -196,27 +198,38 @@ function create(d){
     const groups=groupLocations(rules.filter(r=>r.service_id===selected.id&&r.end_minute-r.start_minute>=selected.duration_minutes));
     if(!groups.length)preview.append(text('p','Aucune disponibilité configurée.'));
     for(const g of groups){const card=node('div','naitea-planning-slot mode-'+g.modality);card.append(text('strong',g.label||MODES[g.modality]),text('p',g.label?MODES[g.modality]:''));if(g.details)card.append(text('p',g.details));for(const r of g.rows)card.append(text('p',DAYS[r.weekday-1]+' · '+clock(r.start_minute)+' – '+clock(r.end_minute)));preview.append(card);}
-    preview.append(text('p','Aperçu des horaires habituels seulement. Les dates, absences, ateliers et rendez-vous occupés seront pris en compte par le moteur de réservation. Aucun créneau ne peut être réservé ici.'));panel.append(preview);
+    preview.append(text('p','Les mêmes horaires peuvent apparaître dans plusieurs modalités : la famille en choisira une seule. Aperçu des horaires habituels, sans réservation réelle. Les créneaux occupés et les absences seront pris en compte par le futur moteur.'));panel.append(preview);
    }
    const form=node('form','naitea-service-form');form.id='naiteaPlanningForm';const existing=ruleEdit?.id?ruleEdit:null;
    form.append(text('h2',existing?'Modifier une disponibilité':'Ajouter une disponibilité'));
-   const modality=selectField('Où se déroule la prestation ?','modality',modesOf(selected).map(k=>[k,MODES[k]]),existing?.modality||modesOf(selected)[0]);const mode=modality.querySelector('select');form.append(modality);
-   const nameField=field('Nom du lieu (facultatif)','location_label','text',existing?.location_label||'',{maxlength:120,placeholder:'Ex. Pôle santé Les Tilleuls'});const detailField=field('Adresse / zone / outil','location_details','text',existing?.location_details??locationDefault(selected,mode.value),{maxlength:300});form.append(nameField,detailField);
-   const syncPlace=reset=>{const k=mode.value;nameField.hidden=k==='video'||k==='phone';nameField.querySelector('input').disabled=nameField.hidden;detailField.querySelector('span').textContent=k==='practice'?'Adresse du cabinet / pôle santé *':k==='home'?'Zone d’intervention *':k==='video'?'Outil de visioconférence':'Précision (facultative)';const input=detailField.querySelector('input');input.required=k==='practice'||k==='home';input.placeholder=k==='practice'?'Rue, code postal, ville':k==='home'?'Ex. 15 km autour de Lille':k==='video'?'Google Meet, Zoom…':'Appel téléphonique';if(reset){input.value=locationDefault(selected,k);nameField.querySelector('input').value='';}};mode.addEventListener('change',()=>syncPlace(true));syncPlace(false);
-   form.append(text('p','Tu peux préciser un lieu différent de celui de la fiche prestation, par exemple un second cabinet.'));
+   form.append(text('h3','Quelles modalités proposes-tu à ces horaires ?'),text('p','Coche une ou plusieurs options. Elles partagent la même plage horaire, elles ne représentent pas plusieurs places.'));
+   const modeGrid=node('div','naitea-planning-modes');const previous=existing?optionsOf(existing):[];const allowed=modesOf(selected);
+   for(const k of allowed){
+    const prior=previous.find(o=>o.modality===k),box=node('section','naitea-planning-mode-choice mode-'+k),label=node('label','naitea-planning-mode-check'),check=node('input');
+    check.type='checkbox';check.name='modalities';check.value=k;check.checked=existing?!!prior:allowed.length===1;
+    label.append(check,text('strong',MODES[k]));box.append(label);
+    const fields=node('div','naitea-planning-mode-fields');
+    if(k==='practice'||k==='home')fields.append(field('Nom du lieu (facultatif)','label_'+k,'text',prior?.location_label||'',{maxlength:120,placeholder:k==='practice'?'Ex. Pôle santé Les Tilleuls':'Ex. Métropole lilloise'}));
+    const detail=field(k==='practice'?'Adresse du cabinet / pôle santé *':k==='home'?'Zone d’intervention *':k==='video'?'Outil de visioconférence':'Précision (facultative)','details_'+k,'text',prior?.location_details??locationDefault(selected,k),{maxlength:300,placeholder:k==='practice'?'Rue, code postal, ville':k==='home'?'Ex. 15 km autour de Lille':k==='video'?'Google Meet, Zoom…':'Appel téléphonique'});
+    detail.querySelector('input').required=k==='practice'||k==='home';fields.append(detail);box.append(fields);
+    const sync=()=>{fields.hidden=!check.checked;for(const e of fields.querySelectorAll('input'))e.disabled=!check.checked;box.classList.toggle('is-selected',check.checked);};check.addEventListener('change',sync);sync();modeGrid.append(box);
+   }
+   form.append(modeGrid,text('p','Les lieux sont préremplis depuis ton accompagnement. Tu peux les personnaliser pour cette plage.'));
    const days=node('div','naitea-planning-days');for(const [i,label] of DAYS.entries()){const l=node('label','naitea-planning-daychoice'),c=node('input');c.type='checkbox';c.name='weekday';c.value=String(i+1);c.checked=(ruleEdit?.weekday||1)===i+1;if(existing)c.addEventListener('change',()=>{if(c.checked)days.querySelectorAll('input').forEach(other=>{if(other!==c)other.checked=false;});});l.append(c,text('span',label));days.append(l);}form.append(text('h3',existing?'Jour':'Jour(s) de la semaine'),days);
    const grid=node('div','naitea-family-fields');grid.append(field('De','start','time',existing?clock(existing.start_minute):'09:00',{required:true,step:300}),field('À','end','time',existing?clock(existing.end_minute):'17:00',{required:true,step:300}));form.append(grid);
    const add=text('button',existing?'Enregistrer la modification':'Ajouter à mon planning');add.type='submit';add.className='btn';const status=statusLine(),buttons=node('div','naitea-family-actions');buttons.append(add);if(ruleEdit)buttons.append(button('Annuler',()=>{ruleEdit=null;paint();}));form.append(buttons,status);panel.append(form);
    form.addEventListener('submit',e=>{
-    e.preventDefault();e.stopImmediatePropagation();const f=new FormData(form),start=minutes(f.get('start')),end=minutes(f.get('end')),weekdays=f.getAll('weekday').map(Number),modality=String(f.get('modality')),label=String(f.get('location_label')||'').trim(),details=String(f.get('location_details')||'').trim();
+    e.preventDefault();e.stopImmediatePropagation();const f=new FormData(form),start=minutes(f.get('start')),end=minutes(f.get('end')),weekdays=f.getAll('weekday').map(Number),chosenModes=f.getAll('modalities').map(String);
     if(!weekdays.length||existing&&weekdays.length!==1){status.textContent='Choisis au moins un jour.';return;}
     if(!Number.isInteger(start)||!Number.isInteger(end)||start%5||end%5||end-start<selected.duration_minutes){status.textContent='La plage doit être au moins aussi longue que la séance, avec des horaires par pas de 5 minutes.';return;}
-    if(!modesOf(selected).includes(modality)||['practice','home'].includes(modality)&&!details){status.textContent='Précise la modalité et le lieu.';return;}
-    if(weekdays.some(day=>rules.some(r=>r.id!==existing?.id&&r.service_id===selected.id&&r.weekday===day&&r.start_minute<end&&r.end_minute>start))){status.textContent='Une plage existe déjà sur cet horaire pour cet accompagnement. Modifie-la plutôt que de la superposer.';return;}
-    const payload={start_minute:start,end_minute:end,modality,location_label:label||null,location_details:details||null};
+    if(!chosenModes.length||chosenModes.some(k=>!modesOf(selected).includes(k))){status.textContent='Choisis au moins une modalité.';return;}
+    const options=chosenModes.map(modality=>({modality,location_label:String(f.get('label_'+modality)||'').trim()||null,location_details:String(f.get('details_'+modality)||'').trim()||null}));
+    if(options.some(o=>['practice','home'].includes(o.modality)&&!o.location_details)){status.textContent='Précise le lieu ou la zone pour chaque modalité sélectionnée.';return;}
+    if(weekdays.some(day=>rules.some(r=>r.id!==existing?.id&&r.service_id===selected.id&&r.weekday===day&&r.start_minute<end&&r.end_minute>start))){status.textContent='Une plage existe déjà à cet horaire. Modifie-la pour ajouter les autres modalités.';return;}
+    const payload={start_minute:start,end_minute:end,options};
     mutate(async uid=>{if(existing)return client.from('naitea_service_availability').update({...payload,weekday:weekdays[0]}).eq('id',existing.id).eq('professional_id',uid).select('id').single();const result=await client.from('naitea_service_availability').insert(weekdays.map(weekday=>({...payload,weekday,professional_id:uid,service_id:selected.id}))).select('id');return result.error||result.data?.length!==weekdays.length?{...result,data:null}:{...result,data:{id:result.data[0].id}};},existing?'Disponibilité modifiée.':'Disponibilité ajoutée au planning.',status);
    });
-   panel.append(text('p','Les mêmes horaires peuvent être proposés pour plusieurs accompagnements. Les conflits de lieu sont signalés ; le verrouillage global des réservations sera raccordé à la prochaine étape.'));
+   panel.append(text('p','Plusieurs modalités sur une plage sont des alternatives pour un seul rendez-vous. Le verrouillage global de l’horaire, toutes prestations et modalités confondues, sera raccordé au moteur de réservation.'));
   }
   panel.append(text('h2','Dates d’indisponibilité'));
   const form=node('form','naitea-service-form'),status=statusLine();form.append(field('Journée à bloquer','date','date',parisDay(),{required:true,min:parisDay(),max:'2100-12-31'}));const add=text('button','Bloquer cette journée');add.type='submit';add.className='btn';form.append(add,status);panel.append(form);
@@ -239,5 +252,5 @@ function create(d){
  window.addEventListener('pagehide',leave);window.addEventListener('pageshow',e=>{if(e.persisted){decorate();if(enabled&&!loaded&&!loading)load();}});
  return {start,decorate};
 }
-const api={create,minutes,clock,priceCents,locationDefault,groupLocations};if(typeof module==='object'&&module.exports)module.exports=api;else root.NaiteaProServices=api;
+const api={create,minutes,clock,priceCents,locationDefault,groupLocations,optionsOf};if(typeof module==='object'&&module.exports)module.exports=api;else root.NaiteaProServices=api;
 })(globalThis);
