@@ -47,7 +47,12 @@ function guard(response, request, { embed = false, auth = false, account = false
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors "+(publicEmbed?'https:':"'none'")+"; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
     headers.set('Referrer-Policy','no-referrer');
   }
-  if(/^\/accompagnement\/[a-f0-9-]{36}(?:\/photo)?$/.test(new URL(request.url).pathname)||new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
+  const appointmentURL=new URL(request.url),appointmentEmbed=['GET','HEAD'].includes(request.method)&&/^\/accompagnement\/[a-f0-9-]{36}$/.test(appointmentURL.pathname)&&appointmentURL.searchParams.get('embed')==='1';
+  if(appointmentEmbed){
+    headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors https:; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
+    headers.delete('X-Frame-Options');headers.set('Referrer-Policy','no-referrer');
+  }
+  if((!appointmentEmbed&&/^\/accompagnement\/[a-f0-9-]{36}(?:\/photo)?$/.test(appointmentURL.pathname))||new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com");
     // HTML form POSTs need a non-null Origin for the strict same-origin check.
     // Only the origin, never the page path or confirmation fragment, is disclosed.
