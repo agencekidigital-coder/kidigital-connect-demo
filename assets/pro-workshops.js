@@ -465,12 +465,12 @@ function create(d){
     if(version!==revision||req!==countRequest||!d.isPage())return;
     for(const node of document.querySelectorAll('[data-naitea-fill]')){const w=rows.find(w=>w.id===node.dataset.naiteaFill);if(w)paintBookingCount(node,w);}
   }
-  function manualForm(w,target,loadList,version,uid){
+  function manualForm(w,target,loadList,version,uid,prefill=null){
     const root=document.createElement('div');root.className='naitea-manual-booking';
     const start=button('+ Ajouter un inscrit',()=>{start.hidden=true;panel.hidden=false;search.focus();});start.className='btn';
     const panel=document.createElement('div');panel.className='naitea-manual-panel';panel.hidden=true;
     panel.append(text('h3','Ajouter un participant'),text('p','Mode test : utilise uniquement des coordonnées fictives. Pour un email réel de test, utilise l’adresse autorisée Naïtéa.'));
-    const searchLabel=text('label','Rechercher une famille déjà inscrite');searchLabel.htmlFor='naitea-family-search';
+    const searchLabel=text('label','Rechercher dans mes familles');searchLabel.htmlFor='naitea-family-search';
     const search=document.createElement('input');search.id=searchLabel.htmlFor;search.placeholder='Nom, prénom ou email';search.maxLength=100;
     const found=document.createElement('div');found.setAttribute('role','status');
     const form=document.createElement('form');form.className='naitea-manual-form';
@@ -545,6 +545,7 @@ function create(d){
       }catch{if(target.isConnected){await loadList('Enregistrement non confirmé. Vérifie la liste avant de réessayer.');return;}}
       finally{if(form.isConnected){submitting=false;for(const node of form.elements)node.disabled=false;for(const fieldset of form.querySelectorAll('fieldset'))fieldset.disabled=fieldset.hidden;lookup.disabled=false;}}
     });
+    if(prefill){start.hidden=true;panel.hidden=false;for(const [field,property] of [['first_name','first_name'],['last_name','last_name'],['parent_email','email'],['phone','phone']])form.elements[field].value=prefill[property]||'';found.textContent='Coordonnées reprises depuis la fiche famille. Vérifie les participants avant de confirmer.';}
     root.append(start,panel);return root;
   }
   function waitingGroup(w,entries,target,loadList,version,uid){
@@ -625,7 +626,7 @@ function create(d){
     });submit.className='btn naitea-cancel-danger';
     const actions=document.createElement('div');actions.className='naitea-cancel-actions';actions.append(back,submit);panel.append(label,reason,caution,status,actions);target.append(panel);reason.focus();
   }
-  async function showBookings(w){
+  async function showBookings(w,prefill=null){
     if(!ready||busy||!owner||!d.isPage())return;
     const version=revision,uid=owner;
     const root=document.createElement('div');root.id='naiteaPrivateBookings';root.append(text('p','Chargement des inscriptions…'));
@@ -643,7 +644,7 @@ function create(d){
         target.replaceChildren();
         const summary=document.createElement('div');summary.className='naitea-fill';summary.dataset.naiteaFill=w.id;paintBookingCount(summary,w);target.append(summary);
         if(notice){const n=text('p',notice);n.setAttribute('role','status');target.append(n);}
-        if(manualEnabled&&w.status==='published'&&Date.parse(w.starts_at)>Date.now())target.append(manualForm(w,target,loadList,version,uid));
+        if(manualEnabled&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
         const confirmed=data.slice(0,1000).filter(b=>b.status==='confirmed'),cancelled=data.slice(0,1000).filter(b=>b.status==='cancelled');
         const group=(label,items,empty)=>{const section=document.createElement('section');section.className='naitea-booking-group';section.append(text('h3',label+' ('+items.length+(data.length>1000?'+':'')+')'));if(!items.length)section.append(text('p',empty));return section;};
         const active=group('Inscriptions confirmées',confirmed,'Aucune inscription confirmée.');
@@ -850,7 +851,12 @@ function create(d){
   window.addEventListener('focus',()=>{if(d.isPage())refreshBookingCounts();});
   window.addEventListener('pagehide',()=>{clear();if(enabled&&d.isPage())decorate();});
   window.addEventListener('pageshow',event=>{if(event.persisted&&client)load();});
-  return {start,decorate};
+  function openFamilyBooking(f,wid){
+    const w=rows.find(r=>r.id===wid&&r.status==='published'&&Date.parse(r.starts_at)>Date.now());
+    if(!manualEnabled||!ready||busy||uncertain||!owner||f.professional_id!==owner||!w)return false;
+    d.goWorkshops();if(!d.isPage())return false;showBookings(w,f);return true;
+  }
+  return {start,decorate,openFamilyBooking};
 }
 const api={create,calendarDates,upcomingRows,rowsOnDate,coverPath,dimensions,cropRect};
 if(typeof module==='object'&&module.exports)module.exports=api;
