@@ -36,7 +36,12 @@ function build() {
   fs.rmSync(OUTPUT, { recursive: true, force: true });
   fs.mkdirSync(path.join(OUTPUT, 'assets'), { recursive: true });
   copyAssets(path.join(ROOT, 'assets'), path.join(OUTPUT, 'assets'), files);
-  const extra = '<link rel="stylesheet" href="/assets/beta-preview.css"><script src="/assets/beta-preview.js" defer></script><script src="/assets/pro-workshops.js"></script><script src="/assets/pro-families.js"></script>';
+  // Pinned SheetJS is served locally, used only in a disposable import Worker.
+  const vendor=path.join(OUTPUT,'assets','vendor');fs.mkdirSync(vendor,{recursive:true});
+  for(const [src,dest] of [['dist/xlsx.full.min.js','xlsx.full.min.js'],['LICENSE','xlsx-LICENSE.txt']]){
+    fs.copyFileSync(path.join(ROOT,'node_modules','xlsx',src),path.join(vendor,dest));files.push('assets/vendor/'+dest);
+  }
+  const extra = '<link rel="stylesheet" href="/assets/beta-preview.css"><script src="/assets/beta-preview.js" defer></script><script src="/assets/pro-workshops.js"></script><script src="/assets/family-import.js"></script><script src="/assets/pro-families.js"></script>';
   for (const file of ['connexion.html', 'bienvenue.html', 'compte.html', 'mes-ateliers.html']) {
     let html = fs.readFileSync(path.join(ROOT, file), 'utf8');
     if (file === 'bienvenue.html') html = html.replace('<p class="tester-demo">', '<p class="tester-account"><a href="/compte">Gérer mon compte</a></p><p class="tester-demo">');
