@@ -3,6 +3,7 @@ import { createWorkshopsHandler } from '../server/workshops.mjs';
 import { createPublicWorkshopHandler } from '../server/public-workshop.mjs';
 import { createPublicCatalogHandler } from '../server/public-catalog.mjs';
 import {createBookingHandler} from '../server/bookings.mjs';
+import {createPublicAppointmentHandler} from '../server/public-appointments.mjs';
 import {createManualBookingHandler} from '../server/manual-bookings.mjs';
 import {createWaitlistHandler} from '../server/waitlist.mjs';
 import {createCancellationHandler} from '../server/cancellations.mjs';
@@ -26,6 +27,7 @@ const workshopsHandler = createWorkshopsHandler();
 const publicWorkshopHandler = createPublicWorkshopHandler();
 const publicCatalogHandler = createPublicCatalogHandler();
 const bookingHandler = createBookingHandler();
+const publicAppointmentHandler = createPublicAppointmentHandler();
 const manualBookingHandler = createManualBookingHandler();
 const waitlistHandler = createWaitlistHandler();
 const cancellationHandler = createCancellationHandler();
@@ -45,7 +47,7 @@ function guard(response, request, { embed = false, auth = false, account = false
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors "+(publicEmbed?'https:':"'none'")+"; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
     headers.set('Referrer-Policy','no-referrer');
   }
-  if(new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
+  if(/^\/accompagnement\/[a-f0-9-]{36}(?:\/photo)?$/.test(new URL(request.url).pathname)||new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com");
     // HTML form POSTs need a non-null Origin for the strict same-origin check.
     // Only the origin, never the page path or confirmation fragment, is disclosed.
@@ -180,6 +182,8 @@ async function route(request, env, ctx, pathname) {
   if (pathname === '/api/waitlist') return waitlistHandler(request, env);
   if (pathname === '/api/cancellations') return cancellationHandler(request, env);
   if(pathname==='/reservation/confirmer')return bookingHandler(request,env);
+  const appointmentMatch=/^\/accompagnement\/([a-f0-9-]{36})(?:\/(photo))?$/.exec(pathname);
+  if(appointmentMatch)return publicAppointmentHandler(request,env,appointmentMatch[1],appointmentMatch[2]==='photo');
   const bookingMatch=/^\/atelier\/([a-z0-9-]{1,180})\/reserver$/.exec(pathname);
   if(bookingMatch)return bookingHandler(request,env,bookingMatch[1]);
   const publicMatch=/^\/atelier\/([a-zA-Z0-9-]{1,180})(?:\/(photo|portrait))?$/.exec(pathname);

@@ -167,6 +167,17 @@ function create(d){
   const modes=node('div','naitea-service-grid'),detail=s.modality_details||{};
   for(const k of modesOf(s)){const card=node('section','naitea-family-detail');card.append(text('h3',MODES[k]));if(k==='practice'&&detail.office?.address)card.append(text('p',detail.office.address));if(k==='home'){if(detail.home?.zone)card.append(text('p',detail.home.zone));const f=detail.home?.fees;if(f?.enabled)card.append(text('p','Frais de déplacement : '+[f.perKm?money(Math.round(f.perKm*100))+'/km':'',f.fixed?money(Math.round(f.fixed*100))+' forfait':'',f.includedKm?f.includedKm+' km inclus':''].filter(Boolean).join(' · ')));}if(k==='video'&&detail.video?.platform)card.append(text('p',detail.video.other||detail.video.platform));if(k==='phone'&&detail.phone?.number)card.append(text('p',detail.phone.number));modes.append(card);}
   panel.append(modes,text('p','Pause entre séances : '+s.buffer_minutes+' min · '+rules.filter(r=>r.service_id===s.id).length+' plage(s) hebdomadaire(s)'));
+  if(s.status==='active'){
+   const share=node('section','naitea-family-detail naitea-service-share');share.append(text('h3','Réservation en ligne'));
+   const info=statusLine();share.append(text('p',s.booking_link?'Ce lien est accessible aux personnes à qui tu le transmets. En bêta, seules les coordonnées de test sont acceptées.':'Active ton lien pour permettre aux familles de choisir un créneau. Vérifie que les informations et les lieux de cet accompagnement peuvent être publiés.'));
+   const changeLink=async link=>{const r=await client.from('naitea_services').update({booking_link:link}).eq('id',s.id).eq('professional_id',owner).select('id').single();return {...r,nextFilter:'active'};};
+   if(s.booking_link){
+    const url=location.origin+'/accompagnement/'+s.booking_link,link=node('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Lien de réservation');share.append(link);
+    const tools=node('div','naitea-family-actions');const preview=text('a','Ouvrir la réservation');preview.href=url;preview.target='_blank';preview.rel='noopener noreferrer';preview.className='btn';
+    tools.append(preview,button('Copier le lien',async()=>{try{await navigator.clipboard.writeText(url);info.textContent='Lien copié.';}catch{link.select();info.textContent='Sélectionne et copie le lien.';}}),button('Désactiver le lien',()=>{if(confirm('Désactiver ce lien ? Les rendez-vous déjà confirmés sont conservés.'))mutate(()=>changeLink(null),'Lien de réservation désactivé.',info);}));share.append(tools);
+   }else share.append(button('Activer mon lien de réservation',()=>{if(confirm('Rendre la description, la couverture, les tarifs, les modalités et les lieux de cette prestation accessibles via un lien de test ?'))mutate(()=>changeLink(crypto.randomUUID()),'Lien activé. Ouvre la fiche pour le copier.',info);},true));
+   share.append(info);panel.append(share);
+  }
   const status=statusLine();panel.append(button(s.status==='archived'?'Réactiver l’accompagnement':'Archiver l’accompagnement',()=>setServiceStatus(s,s.status==='archived'?'active':'archived',status)),status);
  }
  function offers(panel){
