@@ -43,7 +43,13 @@ function create(d){
  const status=text('p','');status.setAttribute('role','status');status.className='naitea-import-status';
  const body=node('div','naitea-family-import');
  const back=button('← Mes familles',()=>{if(!busy)d.close();});
- element.append(back,text('h2','Importer un fichier clients'),info,warning,choose,status,body);
+ const model=button('Télécharger un modèle CSV',()=>{
+  if(!alive())return;
+  const csv='\ufeffPrénom;Nom;Email;Téléphone\r\nCamille;Martin;camille-import@example.invalid;0600000001\r\nÉlodie;Dupont;elodie-import@example.invalid;0600000002\r\n';
+  const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  const a=node('a');a.href=url;a.download='modele-import-familles-naitea.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ });
+ element.append(back,text('h2','Importer un fichier clients'),info,warning,model,choose,status,body);
  function sampleTable(rows){
   const box=node('div','naitea-import-preview'),table=node('table'),thead=node('thead'),tr=node('tr');
   for(const h of ['Ligne','Prénom / nom','Email','Téléphone','État'])tr.append(text('th',h));thead.append(tr);table.append(thead);
