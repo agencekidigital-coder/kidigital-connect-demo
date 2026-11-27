@@ -22,3 +22,6 @@ Activation explicite depuis la fiche d'un accompagnement actif, UUID révocable,
 
 ## Agenda public V9 et iframe accompagnement
 Reprise de la grille mensuelle Codex v9-booking-calendar/v9-month : navigation mensuelle, jours disponibles calculés par RPC service-role du même moteur, absences et occupations exclues, légende par modalité. Les horaires du jour sont affichés une fois avec toutes leurs options. Iframe ?embed=1 en GET/HEAD sur HTTPS, navigation du calendrier, confirmation dans un nouvel onglet (pas de POST ni Turnstile dans le cadre). Aucun changement d’email. Rendu navigateur et iframe à tester.
+
+## SEO et réservation en étapes
+Ville de référence explicitement renseignée ; slug stable /accompagnement-nom-ville, suffixe unique en cas de collision. Ancien lien UUID actif redirigé vers le slug, y compris iframe et photo ; révocation effective. Bêta toujours noindex. Calendrier V9 puis heures compactes, puis modalités de l’heure sélectionnée, puis coordonnées. Navigation GET serveur, choix préservé depuis iframe (aucune coordonnée dans URL). Confirmation POST hors cadre protégée par Turnstile ; contrôle serveur inchangé. Consignes pratiques facultatives (2000 caractères) sauvegardées au moment du RDV, affichées dans récapitulatif et email Brevo. Pas de modification des anciens RDV. Rendu et email réel à vérifier.

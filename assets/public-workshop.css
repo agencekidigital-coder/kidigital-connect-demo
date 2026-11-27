@@ -49,3 +49,20 @@ body.naitea-public-workshop{margin:0;background:#FEF8ED;color:#590425;min-height
 .naitea-slot-details{min-width:0;display:grid;gap:12px}.naitea-slot-details h3{text-transform:capitalize;margin:0;color:#590425}.naitea-slot-row{margin:0!important;padding:12px 14px!important}.naitea-slot-row legend{font-size:17px}.naitea-slot-row .naitea-public-appointment-times{display:grid;gap:6px}
 .naitea-slot-row .naitea-public-appointment-time,.naitea-slot-mode{display:flex;align-items:center;padding:9px 12px;border-radius:8px;border:1px solid #E9D9CA;overflow-wrap:anywhere;font-size:14px}.dot-bg-practice{background:#F2E3E9}.dot-bg-home{background:#F4E5D5}.dot-bg-video{background:#E5EBDD}.dot-bg-phone{background:#E5EAF4}.naitea-slot-row .naitea-public-appointment-time:has(input:checked){background:#590425;color:#fff;border-color:#590425}.naitea-appointment-contact{display:grid;gap:14px;border-top:1px solid #E9D9CA;padding-top:24px}
 @media(max-width:740px){.naitea-real-booking.v9-booking-layout{grid-template-columns:1fr;gap:18px}.naitea-real-calendar{padding:12px}.naitea-service-price-banner{padding:16px;gap:16px}.naitea-service-price-banner>div+div{padding-left:16px}}
+
+#naitea-reservation{scroll-margin-top:16px}
+.naitea-calendar-steps.v9-booking-layout{grid-template-columns:minmax(300px,1.1fr) minmax(260px,.9fr);gap:28px}
+.naitea-calendar-steps>div{min-width:0}.naitea-calendar-steps h3{margin:0 0 12px;color:#590425}
+.naitea-calendar-steps .naitea-cal-day{min-height:clamp(44px,5vw,60px);font-size:16px}
+.naitea-booking-side{display:grid;gap:20px;min-width:0}
+.naitea-book-time-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;max-height:280px;overflow-y:auto;padding:3px}
+.naitea-book-time{display:flex;align-items:center;justify-content:center;min-height:44px;padding:8px;border:1px solid #CAB1B8;border-radius:9px;color:#590425;text-decoration:none;background:#FFFDF8;font-weight:700}
+.naitea-book-time.is-selected,.naitea-mode-choice.is-selected{background:#590425;color:#fff;border-color:#590425}
+.naitea-book-time:hover,.naitea-mode-choice:hover{outline:2px solid #BF5B45;outline-offset:1px}
+.naitea-book-modes{display:grid;gap:8px;border-top:1px solid #E9D9CA;padding-top:18px}.naitea-mode-list{display:grid;gap:8px}
+.naitea-mode-choice{display:flex!important;align-items:center;justify-content:flex-start;text-align:left;gap:10px;min-height:44px;padding:10px 12px;border:1px solid #E9D9CA;border-radius:9px;text-decoration:none;color:#590425;font-size:14px;line-height:1.4;min-width:0}
+.naitea-mode-choice>span:last-child{min-width:0;flex:1;white-space:normal;overflow-wrap:anywhere;text-align:left}
+.naitea-mode-radio{width:16px;height:16px;flex:0 0 16px;border:1px solid currentColor;border-radius:50%}
+.naitea-mode-choice.is-selected .naitea-mode-radio{box-shadow:inset 0 0 0 4px #590425;background:#fff}
+.naitea-selected-recap{display:grid;gap:8px;margin:16px 0}.naitea-practical-info{white-space:pre-wrap}
+@media(max-width:740px){.naitea-calendar-steps.v9-booking-layout{grid-template-columns:1fr;gap:20px}.naitea-book-time-grid{max-height:220px}.naitea-mode-choice{font-size:14px}}

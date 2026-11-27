@@ -47,12 +47,12 @@ function guard(response, request, { embed = false, auth = false, account = false
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors "+(publicEmbed?'https:':"'none'")+"; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
     headers.set('Referrer-Policy','no-referrer');
   }
-  const appointmentURL=new URL(request.url),appointmentEmbed=['GET','HEAD'].includes(request.method)&&/^\/accompagnement\/[a-f0-9-]{36}$/.test(appointmentURL.pathname)&&appointmentURL.searchParams.get('embed')==='1';
+  const appointmentURL=new URL(request.url),appointmentPath=/^(?:\/accompagnement\/[a-f0-9-]{36}|\/accompagnement-[a-z0-9]+(?:-[a-z0-9]+)*)(?:\/photo)?$/.test(appointmentURL.pathname),appointmentEmbed=['GET','HEAD'].includes(request.method)&&appointmentPath&&!appointmentURL.pathname.endsWith('/photo')&&appointmentURL.searchParams.get('embed')==='1';
   if(appointmentEmbed){
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors https:; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self' data:");
     headers.delete('X-Frame-Options');headers.set('Referrer-Policy','no-referrer');
   }
-  if((!appointmentEmbed&&/^\/accompagnement\/[a-f0-9-]{36}(?:\/photo)?$/.test(appointmentURL.pathname))||new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
+  if((!appointmentEmbed&&appointmentPath)||new URL(request.url).pathname==='/reservation/confirmer'||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname)){
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com");
     // HTML form POSTs need a non-null Origin for the strict same-origin check.
     // Only the origin, never the page path or confirmation fragment, is disclosed.
@@ -187,8 +187,8 @@ async function route(request, env, ctx, pathname) {
   if (pathname === '/api/waitlist') return waitlistHandler(request, env);
   if (pathname === '/api/cancellations') return cancellationHandler(request, env);
   if(pathname==='/reservation/confirmer')return bookingHandler(request,env);
-  const appointmentMatch=/^\/accompagnement\/([a-f0-9-]{36})(?:\/(photo))?$/.exec(pathname);
-  if(appointmentMatch)return publicAppointmentHandler(request,env,appointmentMatch[1],appointmentMatch[2]==='photo');
+  const appointmentMatch=/^\/(?:accompagnement\/([a-f0-9-]{36})|(accompagnement-[a-z0-9]+(?:-[a-z0-9]+)*))(?:\/(photo))?$/.exec(pathname);
+  if(appointmentMatch)return publicAppointmentHandler(request,env,appointmentMatch[1]||appointmentMatch[2],appointmentMatch[3]==='photo');
   const bookingMatch=/^\/atelier\/([a-z0-9-]{1,180})\/reserver$/.exec(pathname);
   if(bookingMatch)return bookingHandler(request,env,bookingMatch[1]);
   const publicMatch=/^\/atelier\/([a-zA-Z0-9-]{1,180})(?:\/(photo|portrait))?$/.exec(pathname);

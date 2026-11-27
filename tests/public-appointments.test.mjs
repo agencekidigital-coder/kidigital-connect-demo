@@ -1,9 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {renderAppointmentForm,renderAppointmentCalendar} from '../server/public-appointments.mjs';
+import {renderAppointmentForm,renderAppointmentCalendar,bookingSelection} from '../server/public-appointments.mjs';
 import {appointmentEmail} from '../server/workshop-email.mjs';
 test('Public appointment form uses one choice, escapes content and preserves displayed tariff',()=>{
  const s={title:'Sommeil <script>',description:'<img onerror=x>',price_cents:6500,duration_minutes:60,slots:[{rule_id:'12345678-1234-4234-8234-123456789012',modality:'video',location_details:'Google Meet',starts_at:'2026-12-01T09:00:00Z',ends_at:'2026-12-01T10:00:00Z'}]};
- const html=renderAppointmentForm(s,'12345678-1234-4234-8234-123456789012','2026-12-01',{site:'fake-site-key'},'fake-key','2026-11-27');
+ const html=renderAppointmentForm(s,'12345678-1234-4234-8234-123456789012','2026-12-01',{site:'fake-site-key'},'fake-key','2026-11-27',null,false,s.slots[0].starts_at,s.slots[0].rule_id+'|video|'+s.slots[0].starts_at);
  assert(html.includes('&lt;script&gt;'));assert(!html.includes('<img onerror=x>'));assert(html.includes('name="slot"'));assert(html.includes('data-action="appointment_booking"'));assert(html.includes('name="price" value="6500"'));
 });
 test('Confirmation reuses branded email shell and does not promise a generated video link',()=>{
@@ -17,6 +17,14 @@ test('Calendar exposes actual dates, modalities and embed navigation',()=>{
 });
 test('Embed has no booking form or challenge',()=>{
  const s={title:'Sommeil',description:'',price_cents:6500,duration_minutes:60,slots:[{rule_id:'12345678-1234-4234-8234-123456789012',modality:'video',starts_at:'2026-12-05T09:00:00Z',ends_at:'2026-12-05T10:00:00Z'}]};
- const html=renderAppointmentForm(s,'12345678-1234-4234-8234-123456789012','2026-12-05',{site:'fake'},'fake','2026-11-27',{month:'2026-12',availability:[{date:'2026-12-05',modalities:['video']}]},true);
+ const html=renderAppointmentForm(s,'12345678-1234-4234-8234-123456789012','2026-12-05',{site:'fake'},'fake','2026-11-27',{month:'2026-12',availability:[{date:'2026-12-05',modalities:['video']}]},true,s.slots[0].starts_at,s.slots[0].rule_id+'|video|'+s.slots[0].starts_at);
  assert(!html.includes('<form'));assert(!html.includes('cf-turnstile'));assert(html.includes('target="_blank"'));assert(html.includes('60 min'));
+});
+
+test('Selection validates time and modality together',()=>{
+ const a={rule_id:'12345678-1234-4234-8234-123456789012',modality:'video',starts_at:'2026-12-05T09:00:00Z',ends_at:'2026-12-05T10:00:00Z'};
+ const b={...a,modality:'home'};
+ assert.equal(bookingSelection([a,b],a.starts_at,'').groups.length,1);
+ assert.equal(bookingSelection([a,b],a.starts_at,a.rule_id+'|home|'+a.starts_at).selected.modality,'home');
+ assert.equal(bookingSelection([a,b],'bad',a.rule_id+'|home|'+a.starts_at).selected,null);
 });
