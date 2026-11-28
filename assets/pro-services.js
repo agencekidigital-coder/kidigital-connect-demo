@@ -5,6 +5,7 @@ const DAYS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 const MODES={practice:'En cabinet',home:'À domicile',video:'En visio',phone:'Par téléphone'};
 const COVER_BUCKET='naitea-service-covers';
 const modesOf=s=>Array.isArray(s?.modalities)&&s.modalities.length?s.modalities:[s?.modality||'practice'];
+const PAYMENT_MODES={free:'Gratuit',onsite:'Paiement sur place',online:'Paiement intégral en ligne',choice:'Au choix de la famille',deposit:'Acompte en ligne, solde sur place'};
 const STATES={draft:'Brouillon',active:'Active',archived:'Archivée'};
 const money=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n/100);
 const minutes=s=>{if(!/^\d{2}:\d{2}$/.test(s))return NaN;const [h,m]=s.split(':').map(Number);return h<24&&m<60?h*60+m:NaN;};
@@ -92,6 +93,12 @@ function create(d){
   form.elements.offerPhone.value=details.phone?.number||'';
   const footer=form.querySelector('.modalfooter');const more=node('div','naitea-family-fields');
   more.append(field('Pause entre deux séances (minutes)','buffer','number',s?.buffer_minutes??15,{required:true,min:0,max:120,step:5}),selectField('Statut','status',Object.entries(STATES).filter(([k])=>k!=='archived'||s?.status==='archived'),s?.status??'draft'));footer.before(more);
+  const paymentPanel=node('fieldset','naitea-service-audience');paymentPanel.append(text('legend','Modalités de règlement'),text('p','Le paiement en ligne sera ouvert sur les accompagnements autorisés en mode test. Pour l’instant, enregistre ces réglages en brouillon.'));
+  const savedMode=s?.price_cents===0?'free':s?.payment_mode||'onsite';
+  for(const [value,label] of Object.entries(PAYMENT_MODES)){const l=node('label','checkline'),r=node('input');r.type='radio';r.name='payment_mode';r.value=value;r.checked=value===savedMode;r.required=true;l.append(r,document.createTextNode(' '+label));paymentPanel.append(l);}
+  const depositField=field('Acompte par rendez-vous (€)','deposit_amount','number',s?.deposit_cents!=null?s.deposit_cents/100:'',{min:'0.50',step:'0.01'});paymentPanel.append(depositField);const depositInput=depositField.querySelector('input');
+  const syncPayment=()=>{const price=Number(form.elements.price.value),selected=paymentPanel.querySelector('input:checked');if(price===0){paymentPanel.querySelector('[value=free]').checked=true;}else if(selected?.value==='free'){paymentPanel.querySelector('[value=onsite]').checked=true;}const mode=paymentPanel.querySelector('input:checked')?.value;depositField.hidden=mode!=='deposit';depositInput.disabled=mode!=='deposit';depositInput.required=mode==='deposit';if(Number.isFinite(price))depositInput.max=String(Math.max(0,Math.round(price*100-1)/100));};
+  paymentPanel.addEventListener('change',syncPayment);form.elements.price.addEventListener('input',syncPayment);footer.before(paymentPanel);syncPayment();
   const seo=field('Ville de référence pour le lien de réservation','booking_city','text',s?.booking_city||'',{maxlength:100,placeholder:'Ex. Lille'});footer.before(seo,text('p','Le lien reprend le nom de ton accompagnement et cette ville. Une fois créé, il reste stable pour préserver tes partages. Pour une prestation à distance, renseigne ta ville de référence.'));
   const instructions=field('Informations utiles à communiquer aux familles','booking_instructions','textarea',s?.booking_instructions||'',{maxlength:2000,placeholder:'Ex. Prévoir une tenue confortable pour bébé, apporter une serviette…'});footer.before(instructions,text('p','Ces consignes seront ajoutées à l’email de confirmation du rendez-vous. Ne renseigne aucune donnée personnelle.'));
   const video=form.querySelector('[data-modality-panel="En visio"]');const videoSelect=form.elements.videoPlatform,oldTool=details.video?.platform;
@@ -154,7 +161,11 @@ function create(d){
     if(chosenModes.includes('phone'))detail.phone={number:val('offerPhone')};
     if(s&&rules.some(r=>r.service_id===s.id&&optionsOf(r).some(o=>!chosenModes.includes(o.modality))))throw Error('Modifie ou retire les plages de cette modalité dans Rendez-vous avant de la désactiver.');
     const location=(detail.office?.address||detail.home?.zone||'').replace(/[\r\n\t]+/g,' ').slice(0,250)||null;
-    payload={title,description:val('description'),duration_minutes:duration,buffer_minutes:buffer,price_cents:priceCents(f.get('price')),modality:chosenModes[0],modalities:chosenModes,modality_details:detail,location,audience:val('audience'),extra:val('extra'),booking_city:val('booking_city'),booking_instructions:val('booking_instructions'),status:val('status')};
+    const price=priceCents(f.get('price')),paymentMode=price===0?'free':val('payment_mode'),deposit=paymentMode==='deposit'?priceCents(f.get('deposit_amount')):null;
+    if(!Object.hasOwn(PAYMENT_MODES,paymentMode)||price>0&&paymentMode==='free'||['online','choice','deposit'].includes(paymentMode)&&price<50)throw Error('Vérifie la modalité de paiement et le tarif (0,50 € minimum en ligne).');
+    if(paymentMode==='deposit'&&(deposit<50||deposit>=price))throw Error('L’acompte doit être d’au moins 0,50 € et inférieur au tarif.');
+    if(['online','choice','deposit'].includes(paymentMode)&&val('status')==='active')throw Error('Enregistre cet accompagnement en brouillon : le paiement de test sera activé après validation.');
+    payload={payment_mode:paymentMode,deposit_cents:deposit,title,description:val('description'),duration_minutes:duration,buffer_minutes:buffer,price_cents:priceCents(f.get('price')),modality:chosenModes[0],modalities:chosenModes,modality_details:detail,location,audience:val('audience'),extra:val('extra'),booking_city:val('booking_city'),booking_instructions:val('booking_instructions'),status:val('status')};
    }catch(err){status.textContent=err.message;return;}
    const photo=photoBlob,removePhoto=remove.checked,v=generation;
    mutate(async uid=>{
@@ -166,6 +177,7 @@ function create(d){
   });
  }
  function setServiceStatus(s,state,status){
+  if(state==='active'&&['online','choice','deposit'].includes(s.payment_mode)){status.textContent='Le paiement en ligne de cet accompagnement n’est pas encore activé en test.';return;}
   const message=state==='archived'?'Archiver cet accompagnement ? Ses informations et disponibilités sont conservées.':'Réactiver cet accompagnement ? Ses disponibilités enregistrées seront conservées.';
   if(!confirm(message))return;
   mutate(async uid=>{const r=await client.from('naitea_services').update({status:state}).eq('id',s.id).eq('professional_id',uid).select('id').single();return {...r,nextFilter:state};},state==='archived'?'Accompagnement archivé.':'Accompagnement réactivé.',status);
@@ -173,7 +185,7 @@ function create(d){
  function serviceDetail(panel,s){
   const actions=node('div','naitea-family-actions');actions.append(button('← Mes accompagnements',()=>{detailId=null;paint();}),button('Modifier',()=>{edit=s.id;paint();},true));if(s.status!=='archived')actions.append(button('Disponibilités',()=>{chosen=s.id;d.go('rendezvous');}));panel.append(actions);
   const photo=node('img','naitea-service-detail-cover');photo.alt='Couverture de '+s.title;photo.hidden=true;panel.append(photo);attachImage(s,photo);
-  const head=node('div','naitea-service-summary');head.append(text('h2',s.title),text('strong',money(s.price_cents)+' · '+s.duration_minutes+' min'),text('p',STATES[s.status]));panel.append(head);
+  const head=node('div','naitea-service-summary');head.append(text('h2',s.title),text('strong',money(s.price_cents)+' · '+s.duration_minutes+' min'),text('p',STATES[s.status]),text('p',PAYMENT_MODES[s.price_cents===0?'free':s.payment_mode||'onsite']+(s.payment_mode==='deposit'?' · '+money(s.deposit_cents)+' d’acompte · '+money(s.price_cents-s.deposit_cents)+' sur place':'')));panel.append(head);
   const content=node('section','naitea-family-detail naitea-service-description');content.append(text('h3','Description'),text('p',s.description||'Pas de description.'));if(s.audience)content.append(text('h3','Public concerné'),text('p',s.audience));if(s.extra)content.append(text('h3','Informations complémentaires'),text('p',s.extra));if(s.booking_city)content.append(text('h3','Ville de référence'),text('p',s.booking_city));if(s.booking_instructions)content.append(text('h3','Informations utiles envoyées aux familles'),text('p',s.booking_instructions));panel.append(content);
   const modes=node('div','naitea-service-grid'),detail=s.modality_details||{};
   for(const k of modesOf(s)){const card=node('section','naitea-family-detail');card.append(text('h3',MODES[k]));if(k==='practice'&&detail.office?.address)card.append(text('p',detail.office.address));if(k==='home'){if(detail.home?.zone)card.append(text('p',detail.home.zone));const f=detail.home?.fees;if(f?.enabled)card.append(text('p','Frais de déplacement : '+[f.perKm?money(Math.round(f.perKm*100))+'/km':'',f.fixed?money(Math.round(f.fixed*100))+' forfait':'',f.includedKm?f.includedKm+' km inclus':''].filter(Boolean).join(' · ')));}if(k==='video'&&detail.video?.platform)card.append(text('p',detail.video.other||detail.video.platform));if(k==='phone'&&detail.phone?.number)card.append(text('p',detail.phone.number));modes.append(card);}
