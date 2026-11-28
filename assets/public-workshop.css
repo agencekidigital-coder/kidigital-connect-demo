@@ -66,3 +66,5 @@ body.naitea-public-workshop{margin:0;background:#FEF8ED;color:#590425;min-height
 .naitea-mode-choice.is-selected .naitea-mode-radio{box-shadow:inset 0 0 0 4px #590425;background:#fff}
 .naitea-selected-recap{display:grid;gap:8px;margin:16px 0}.naitea-practical-info{white-space:pre-wrap}
 @media(max-width:740px){.naitea-calendar-steps.v9-booking-layout{grid-template-columns:1fr;gap:20px}.naitea-book-time-grid{max-height:220px}.naitea-mode-choice{font-size:14px}}
+
+.naitea-coparent{border:0;padding:0;margin:0;display:grid;gap:10px;min-width:0}.naitea-coparent legend{font-weight:700;margin-bottom:10px}.naitea-coparent-option{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:1px solid #E9D9CA;border-radius:9px;cursor:pointer}.naitea-coparent-option input[type=radio]{width:18px;height:18px;flex:0 0 18px;accent-color:#590425;margin:0}.naitea-coparent-option:has(input:checked){border-color:#590425;background:#F2E3E9}

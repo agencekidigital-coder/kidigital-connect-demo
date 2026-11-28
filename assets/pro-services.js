@@ -16,6 +16,8 @@ function optionsOf(r){return Array.isArray(r?.options)&&r.options.length?r.optio
 function optionKey(o){return JSON.stringify([o.modality,o.location_label||'',o.location_details||'']);}
 function groupLocations(rows){const groups=new Map();for(const r of rows)for(const o of optionsOf(r)){const key=optionKey(o);if(!groups.has(key))groups.set(key,{modality:o.modality,label:o.location_label||'',details:o.location_details||'',rows:[]});groups.get(key).rows.push(r);}return [...groups.values()];}
 const VIDEO_TOOLS=['Google Meet','Zoom'];
+const SERVICE_AUDIENCES=['Futurs parents','Femmes enceintes','Jeunes parents','Mamans','Papás et coparents','Bébés','Tout-petits','Enfants','Familles','Professionnels'].map(v=>v.replace('Papás','Papas'));
+function audienceOptions(value){const saved=String(value||'').split(' · ').map(v=>v.trim()).filter(Boolean);return [...new Set([...SERVICE_AUDIENCES,...saved])];}
 function visibleServices(services,status='active'){return services.filter(s=>s.status===status);}
 function absenceLabel(r){const format=s=>s.split('-').reverse().join('/');return r.closed_date===(r.end_date||r.closed_date)?format(r.closed_date):'Du '+format(r.closed_date)+' au '+format(r.end_date);}
 function create(d){
@@ -80,6 +82,13 @@ function create(d){
   const duration=form.elements.duration;duration.type='number';duration.min='15';duration.max='480';duration.step='5';duration.required=true;duration.closest('.field').querySelector('label').textContent='Durée (minutes)';
   form.elements.price.step='0.01';form.elements.price.max='100000';form.elements.price.required=true;form.elements.price.closest('.field').querySelector('label').textContent='Tarif (€) · 0 si gratuit';
   form.elements.title.maxLength=120;form.elements.audience.maxLength=300;form.elements.extra.maxLength=2000;form.elements.description.maxLength=3000;
+  const audienceInput=form.elements.audience, audienceField=audienceInput.closest('.field');
+  const savedAudiences=String(s?.audience||'').split(' · ').map(v=>v.trim()).filter(Boolean);
+  const audienceGroup=node('fieldset','naitea-service-audience');audienceGroup.append(text('legend','Public concerné'),text('p','Coche un ou plusieurs publics.'));
+  audienceInput.type='hidden';audienceInput.hidden=true;audienceField.replaceChildren(audienceInput,audienceGroup);
+  for(const item of audienceOptions(s?.audience)){const label=node('label','checkline'),check=node('input');check.type='checkbox';check.name='audience_category';check.value=item;check.checked=savedAudiences.includes(item);label.append(check,document.createTextNode(' '+item));audienceGroup.append(label);}
+  const syncAudience=()=>{audienceInput.value=[...audienceGroup.querySelectorAll('input:checked')].map(e=>e.value).join(' · ');};
+  audienceGroup.addEventListener('change',syncAudience);syncAudience();
   form.elements.offerPhone.value=details.phone?.number||'';
   const footer=form.querySelector('.modalfooter');const more=node('div','naitea-family-fields');
   more.append(field('Pause entre deux séances (minutes)','buffer','number',s?.buffer_minutes??15,{required:true,min:0,max:120,step:5}),selectField('Statut','status',Object.entries(STATES).filter(([k])=>k!=='archived'||s?.status==='archived'),s?.status??'draft'));footer.before(more);
@@ -138,7 +147,7 @@ function create(d){
     const title=String(f.get('title')).trim(),duration=Number(f.get('duration')),buffer=Number(f.get('buffer'));
     if(!title||duration<15||duration>480||duration%5||buffer<0||buffer>120||buffer%5)throw Error('Vérifie le titre et la durée.');
     const chosenModes=f.getAll('modality').map(v=>Object.keys(MODES).find(k=>MODES[k]===v));if(!chosenModes.length||chosenModes.some(k=>!k))throw Error('Sélectionne au moins une modalité.');
-    const val=k=>String(f.get(k)||'').trim(),detail={};
+    const val=k=>String(f.get(k)||'').trim(),detail={};if(val('audience').length>300)throw Error('Sélectionne moins de catégories de public.');
     if(chosenModes.includes('practice')){if(!val('officeAddress'))throw Error('Précise l’adresse du cabinet.');detail.office={address:val('officeAddress')};}
     if(chosenModes.includes('home')){if(!val('homeZone'))throw Error('Précise la zone d’intervention.');const enabled=!!f.get('travelFees'),perKm=enabled?priceCents(val('feePerKm')||'0')/100:0,fixed=enabled?priceCents(val('feeFixed')||'0')/100:0,includedKm=enabled?Number(val('feeIncludedKm')||0):0;if(enabled&&(!perKm&&!fixed||!Number.isInteger(includedKm)||includedKm<0||includedKm>10000))throw Error('Vérifie les frais de déplacement.');detail.home={zone:val('homeZone'),fees:{enabled,perKm,fixed,includedKm}};}
     if(chosenModes.includes('video')){const platform=val('videoPlatform'),other=val('videoOther');if((!VIDEO_TOOLS.includes(platform)&&platform!==details.video?.platform)||platform==='Autre'&&!other)throw Error('Précise l’outil de visio.');detail.video={platform,other:platform==='Autre'?other:'',linkMode:'manual'};}

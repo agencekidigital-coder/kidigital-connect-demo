@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {renderAppointmentForm,renderAppointmentCalendar,bookingSelection} from '../server/public-appointments.mjs';
+import {renderAppointmentForm,renderAppointmentCalendar,bookingSelection,validCoparent} from '../server/public-appointments.mjs';
 import {appointmentEmail} from '../server/workshop-email.mjs';
 test('Public appointment form uses one choice, escapes content and preserves displayed tariff',()=>{
  const s={title:'Sommeil <script>',description:'<img onerror=x>',price_cents:6500,duration_minutes:60,slots:[{rule_id:'12345678-1234-4234-8234-123456789012',modality:'video',location_details:'Google Meet',starts_at:'2026-12-01T09:00:00Z',ends_at:'2026-12-01T10:00:00Z'}]};
@@ -42,3 +42,10 @@ test('Practical instructions are escaped in the branded confirmation and include
  const mail=appointmentEmail({title:'Sommeil',modality:'video',price_cents:6500,starts_at:'2026-12-01T09:00:00Z',ends_at:'2026-12-01T10:00:00Z',instructions:'Prévoir une serviette.\nTenue <confortable>.'},'Camille');
  assert(mail.htmlContent.includes('Informations utiles'));assert(mail.htmlContent.includes('&lt;confortable&gt;'));assert(mail.textContent.includes('Prévoir une serviette.'));assert(!/[^\x00-\x7f]/.test(mail.htmlContent));
 });
+
+ test('Coparent response is an explicit three-way choice',()=>{
+  assert(validCoparent('yes'));assert(validCoparent('no'));assert(validCoparent('unsure'));assert(!validCoparent(null));assert(!validCoparent('other'));assert(!validCoparent('constructor'));
+  const a={rule_id:'12345678-1234-4234-8234-123456789012',modality:'video',starts_at:'2026-12-05T09:00:00Z',ends_at:'2026-12-05T10:00:00Z'};
+  const html=renderAppointmentForm({title:'Sommeil',description:'',price_cents:6500,duration_minutes:60,slots:[a]},'accompagnement-sommeil-lille','2026-12-05',{site:'fake'},'fake','2026-11-27',null,false,a.starts_at,a.rule_id+'|video|'+a.starts_at);
+  assert.equal((html.match(/name="coparent"/g)||[]).length,3);assert(html.includes('Je ne sais pas'));assert(!html.includes('name="coparent" value="yes" checked'));
+ });

@@ -68,6 +68,7 @@ function mount(d){
     if(!items.length&&!absent)col.append(text('p','Aucun rendez-vous ni atelier'));
     for(const a of items){const card=node('article','naitea-appointment-item '+a.kind+(a.status==='cancelled'?' is-cancelled':''));card.append(text('strong',hour(a.starts_at)+(a.ends_at?' – '+hour(a.ends_at):'')),text('b',a.title));if(a.kind==='workshop')card.append(text('p','Atelier · '+(a.status==='draft'?'Brouillon':a.status==='cancelled'?'Annulé':'Publié')+(a.duration_label?' · '+a.duration_label:'')));
      else{card.append(text('p',a.family_name||'Famille'),text('p',optionLabel(a)),text('p',a.status==='cancelled'?'Annulé':'Confirmé · '+money(a.price_cents)));
+      if(['yes','no','unsure'].includes(a.coparent_present))card.append(text('p','Coparent présent : '+({yes:'Oui',no:'Non',unsure:'Je ne sais pas'}[a.coparent_present])));
       if(a.booking_source==='online')card.append(text('p','Réservation en ligne · '+({accepted:'Email pris en charge',failed:'Envoi non confirmé',pending:'Statut d’envoi inconnu'}[a.confirmation_email_status]||'Email non confirmé')));
       if(a.status==='confirmed'&&Date.parse(a.starts_at)>Date.now()){const cancelStatus=status();card.append(button('Annuler',()=>{if(confirm('Annuler ce rendez-vous ? Le créneau sera libéré, aucun email ne sera envoyé.'))d.mutate(async()=>({...await d.client.rpc('naitea_cancel_manual_appointment',{p_id:a.id}),appointmentDay:day}),'Rendez-vous annulé.',cancelStatus);}),cancelStatus);}}
      col.append(card);}
