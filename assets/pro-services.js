@@ -16,7 +16,7 @@ function optionsOf(r){return Array.isArray(r?.options)&&r.options.length?r.optio
 function optionKey(o){return JSON.stringify([o.modality,o.location_label||'',o.location_details||'']);}
 function groupLocations(rows){const groups=new Map();for(const r of rows)for(const o of optionsOf(r)){const key=optionKey(o);if(!groups.has(key))groups.set(key,{modality:o.modality,label:o.location_label||'',details:o.location_details||'',rows:[]});groups.get(key).rows.push(r);}return [...groups.values()];}
 const VIDEO_TOOLS=['Google Meet','Zoom'];
-const SERVICE_AUDIENCES=['Futurs parents','Femmes enceintes','Jeunes parents','Mamans','Papás et coparents','Bébés','Tout-petits','Enfants','Familles','Professionnels'].map(v=>v.replace('Papás','Papas'));
+const SERVICE_AUDIENCES=['Futurs parents','Femmes enceintes','Jeunes parents','Mamans','Papas et coparents','Bébés','Tout-petits','Enfants','Familles','Professionnels'];
 function audienceOptions(value){const saved=String(value||'').split(' · ').map(v=>v.trim()).filter(Boolean);return [...new Set([...SERVICE_AUDIENCES,...saved])];}
 function visibleServices(services,status='active'){return services.filter(s=>s.status===status);}
 function absenceLabel(r){const format=s=>s.split('-').reverse().join('/');return r.closed_date===(r.end_date||r.closed_date)?format(r.closed_date):'Du '+format(r.closed_date)+' au '+format(r.end_date);}
@@ -82,7 +82,7 @@ function create(d){
   const duration=form.elements.duration;duration.type='number';duration.min='15';duration.max='480';duration.step='5';duration.required=true;duration.closest('.field').querySelector('label').textContent='Durée (minutes)';
   form.elements.price.step='0.01';form.elements.price.max='100000';form.elements.price.required=true;form.elements.price.closest('.field').querySelector('label').textContent='Tarif (€) · 0 si gratuit';
   form.elements.title.maxLength=120;form.elements.audience.maxLength=300;form.elements.extra.maxLength=2000;form.elements.description.maxLength=3000;
-  const audienceInput=form.elements.audience, audienceField=audienceInput.closest('.field');
+  const audienceField=form.elements.audience.closest('.field'),audienceInput=node('input');audienceInput.name='audience';
   const savedAudiences=String(s?.audience||'').split(' · ').map(v=>v.trim()).filter(Boolean);
   const audienceGroup=node('fieldset','naitea-service-audience');audienceGroup.append(text('legend','Public concerné'),text('p','Coche un ou plusieurs publics.'));
   audienceInput.type='hidden';audienceInput.hidden=true;audienceField.replaceChildren(audienceInput,audienceGroup);
