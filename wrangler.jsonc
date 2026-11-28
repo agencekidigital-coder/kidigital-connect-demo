@@ -39,7 +39,8 @@
       "NAITEA_BOOKING_SENDER": "contact@naitea.fr",
       "NAITEA_BOOKING_ORIGIN": "https://feature-naitea-workshops-persistence-naitea-beta.agence-kidigital.workers.dev",
       "NAITEA_BOOKING_TEST_EMAIL": "contact@naitea.fr",
-      "NAITEA_STRIPE_TEST_ENABLED": "true"
+      "NAITEA_STRIPE_TEST_ENABLED": "true",
+      "NAITEA_WORKSHOP_CHECKOUT_TEST_ENABLED": "true"
     }
   }
 }

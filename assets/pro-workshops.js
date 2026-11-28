@@ -661,7 +661,7 @@ function create(d){
     const target=el('naiteaPrivateBookings');
     const loadList=async(notice='')=>{
       try{
-        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source,cancellation_email_status').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
+        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source,cancellation_email_status,payment_status,amount_paid_cents').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
         if(error||!Array.isArray(data))throw Error('Chargement impossible');
         let waiting=[],closedWaiting=[],waitingError=false;
@@ -671,13 +671,14 @@ function create(d){
         target.replaceChildren();
         const summary=document.createElement('div');summary.className='naitea-fill';summary.dataset.naiteaFill=w.id;paintBookingCount(summary,w);target.append(summary);
         if(notice){const n=text('p',notice);n.setAttribute('role','status');target.append(n);}
-        if(manualEnabled&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
+        if(manualEnabled&&w.payment_mode!=='online'&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
         const confirmed=data.slice(0,1000).filter(b=>b.status==='confirmed'),cancelled=data.slice(0,1000).filter(b=>b.status==='cancelled');
         const group=(label,items,empty)=>{const section=document.createElement('section');section.className='naitea-booking-group';section.append(text('h3',label+' ('+items.length+(data.length>1000?'+':'')+')'));if(!items.length)section.append(text('p',empty));return section;};
         const active=group('Inscriptions confirmées',confirmed,'Aucune inscription confirmée.');
         const history=group('Inscriptions annulées',cancelled,'Aucune inscription annulée.');
         for(const b of [...confirmed,...cancelled]){
           const card=document.createElement('div');card.className='card naitea-booking-entry'+(b.status==='cancelled'?' is-cancelled':'');card.append(text('strong',b.parent_name),text('p',b.parent_email),text('p',b.seats+' place(s) · '+(b.status==='confirmed'?'Confirmée':'Annulée')));
+          if(b.payment_status==='paid')card.append(text('p','Payé en ligne (test) · '+(b.amount_paid_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})));
           if(b.booking_source==='manual')card.append(text('p','Ajout manuel par la professionnelle'));
           if(b.parent_phone)card.append(text('p','Téléphone : '+b.parent_phone));
           if(b.coparent_present)card.append(text('p','Co-parent : '+([b.coparent_first_name,b.coparent_last_name].filter(Boolean).join(' ')||'Présent')));
@@ -737,7 +738,7 @@ function create(d){
               catch{if(target.isConnected){status.textContent='Annulation non confirmée. Actualise avant de réessayer.';back.disabled=false;}}
             });submit.className='btn';
             const buttons=document.createElement('div');buttons.className='naitea-cancel-actions';buttons.append(back,submit);panel.append(label,select,other,warning,status,buttons);card.append(panel);select.focus();
-          });if(manualEnabled)card.append(cancel);active.append(card);
+          });if(manualEnabled&&b.payment_status!=='paid')card.append(cancel);else if(b.payment_status==='paid')card.append(text('p','Annulation et remboursement : non disponibles dans cette phase de test.'));active.append(card);
         }
         target.append(active);
         if(manualEnabled){if(waitingError)target.append(text('p','Liste d’attente indisponible. Actualise pour réessayer.'));else target.append(waitingGroup(w,waiting,target,loadList,version,uid));}
