@@ -68,3 +68,34 @@ body.naitea-public-workshop{margin:0;background:#FEF8ED;color:#590425;min-height
 @media(max-width:740px){.naitea-calendar-steps.v9-booking-layout{grid-template-columns:1fr;gap:20px}.naitea-book-time-grid{max-height:220px}.naitea-mode-choice{font-size:14px}}
 
 .naitea-coparent{border:0;padding:0;margin:0;display:grid;gap:10px;min-width:0}.naitea-coparent legend{font-weight:700;margin-bottom:10px}.naitea-coparent-option{display:flex;align-items:center;gap:10px;min-height:44px;padding:8px 12px;border:1px solid #E9D9CA;border-radius:9px;cursor:pointer}.naitea-coparent-option input[type=radio]{width:18px;height:18px;flex:0 0 18px;accent-color:#590425;margin:0}.naitea-coparent-option:has(input:checked){border-color:#590425;background:#F2E3E9}
+
+/* Appointment checkout: amount first, with explicit deposit and balance. */
+.naitea-public-appointment .naitea-appointment-payment{
+ border:1px solid #e9d9ca;border-radius:18px;background:#fef8ed;
+ padding:20px 22px;margin:10px 0 4px;gap:14px;min-width:0;
+}
+.naitea-public-appointment .naitea-appointment-payment>legend{
+ color:#590425;padding:0 7px;font-size:18px;font-weight:700;margin:0;
+}
+.naitea-public-appointment .naitea-payment-total{
+ display:grid;gap:6px;text-align:center;padding:16px 12px 18px;
+ background:#f3e5ea;border-radius:13px;color:#590425;
+}
+.naitea-public-appointment .naitea-payment-total>span{font-size:14px;font-weight:600;line-height:1.45}
+.naitea-public-appointment .naitea-payment-total>strong{
+ color:#590425;font-size:clamp(34px,7vw,52px);line-height:1.12;font-weight:800;letter-spacing:-.025em;font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+.naitea-public-appointment .naitea-payment-breakdown{display:grid;gap:12px;padding:4px 0}
+.naitea-public-appointment .naitea-payment-detail{display:flex;gap:12px;align-items:baseline;justify-content:space-between;font-size:15px;color:#76525c}
+.naitea-public-appointment .naitea-payment-detail+ .naitea-payment-detail{border-top:1px solid #e9d9ca;padding-top:12px}
+.naitea-public-appointment .naitea-payment-detail>strong{color:#590425;white-space:nowrap;font-size:17px}
+.naitea-public-appointment .naitea-payment-option{display:flex;align-items:center;gap:12px;min-width:0;padding:12px;background:#fffdf9}
+.naitea-public-appointment .naitea-payment-option:has(input:checked){background:#f3e5ea;border-color:#590425}
+.naitea-public-appointment .naitea-payment-option-copy{display:grid;gap:3px;flex:1;min-width:0;text-align:left;color:#590425}
+.naitea-public-appointment .naitea-payment-option-copy small{color:#76525c;font-size:12px;font-weight:400}
+.naitea-public-appointment .naitea-payment-option-amount{font-size:clamp(16px,3vw,22px);white-space:nowrap;color:#590425}
+.naitea-public-appointment .naitea-payment-balance-note{margin:0;font-size:13px;color:#76525c;line-height:1.5}
+.naitea-public-appointment .naitea-payment-trust{display:grid;gap:3px;text-align:center;margin:0;color:#76525c;font-size:12px;line-height:1.5}
+.naitea-public-appointment .naitea-payment-trust strong{color:#590425;font-size:13px}
+.naitea-public-appointment .naitea-appointment-contact:has(.naitea-appointment-payment)>button[type=submit]{width:100%;min-height:50px;white-space:normal}
+@media(max-width:480px){.naitea-public-appointment .naitea-appointment-payment{padding:14px 12px}.naitea-public-appointment .naitea-payment-option{gap:8px;padding:10px 8px}.naitea-public-appointment .naitea-payment-detail{font-size:13px}}
