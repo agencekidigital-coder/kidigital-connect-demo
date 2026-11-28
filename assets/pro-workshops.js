@@ -661,7 +661,7 @@ function create(d){
     const root=document.createElement('div');root.id='naiteaPrivateBookings';root.append(text('p','Chargement des inscriptions…'));
     d.showModal('Inscriptions · '+w.title,'Retrouve tes inscriptions confirmées et l’historique des annulations.',root.outerHTML);
     const target=el('naiteaPrivateBookings');
-    const loadList=async(notice='',paymentNotice=false)=>{
+    const loadList=async(notice='',paymentNotice=false,resumeTestUrl=null)=>{
       try{
         const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source,cancellation_email_status,payment_status,amount_paid_cents,balance_due_cents').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
@@ -685,9 +685,11 @@ function create(d){
               const notice=count===0?'Aucun paiement en attente à synchroniser.':result.paid+' paiement(s) confirmé(s) · '+result.pending+' en attente · '+(result.expired+result.failed)+' non finalisé(s)'+(result.errors?' · '+result.errors+' vérification(s) non aboutie(s)':'')+(result.more?' · D’autres paiements restent à vérifier.':'');
               const labels={session_missing:'Session Stripe non associée. Ne refais pas de paiement.',checkout_open:'Stripe indique que le paiement n’a pas été finalisé (session encore ouverte).',payment_processing:'Stripe traite encore le règlement.',stripe_pending:'Stripe n’a pas confirmé le règlement.',stripe_unavailable:'Impossible de consulter la session Stripe.',session_mismatch:'La session Stripe ne correspond pas à la réservation.',settlement_unavailable:'Règlement vérifié mais enregistrement indisponible.',settlement_conflict:'Le règlement vérifié ne peut pas encore être enregistré.',verification_unavailable:'Vérification indisponible.'};
               const details=Object.entries(result.diagnostics||{}).filter(([k,v])=>Object.hasOwn(labels,k)&&Number.isInteger(v)&&v>0).map(([k,v])=>v+' × '+labels[k]).join(' ');
-              await loadList(notice+(details?' — '+details:''),true);
+              await loadList(notice+(details?' — '+details:''),true,result.resume_test_url);
             }catch{if(version===revision&&owner===uid&&target.isConnected)await loadList('Synchronisation non confirmée. Réessaie sans refaire de paiement.',true);}
-          });sync.className='btn';paymentPanel.append(sync);if(notice&&paymentNotice){const n=text('p',notice);n.setAttribute('role','status');paymentPanel.append(n);}target.append(paymentPanel);
+          });sync.className='btn';paymentPanel.append(sync);if(notice&&paymentNotice){const n=text('p',notice);n.setAttribute('role','status');paymentPanel.append(n);}
+          if(typeof resumeTestUrl==='string'){try{const url=new URL(resumeTestUrl);if(url.origin==='https://checkout.stripe.com'&&!url.username&&!url.password&&url.pathname.startsWith('/c/pay/cs_test_')){const link=text('a','Reprendre le paiement de test');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.className='btn secondary';paymentPanel.append(link,text('p','Rouvre uniquement la session existante. Aucun nouveau paiement n’est créé.'));}}catch{}}
+          target.append(paymentPanel);
         }
         if(manualEnabled&&!['online','deposit'].includes(w.payment_mode)&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
         const confirmed=data.slice(0,1000).filter(b=>b.status==='confirmed'),cancelled=data.slice(0,1000).filter(b=>b.status==='cancelled');

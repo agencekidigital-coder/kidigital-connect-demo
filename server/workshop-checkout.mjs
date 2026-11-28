@@ -99,7 +99,7 @@ async function settleVerifiedSession({db,c,fetchImpl,bookingId,account,s,outcome
 // Explicit recovery of an existing bound session, never a new charge. The
 // opaque return token identifies the server-side booking; no client-supplied
 // Stripe account, session, amount or status is accepted.
-export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash,diagnose=()=>{}}){
+export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash,diagnose=()=>{},resumeTestCheckout=null}){
  if(!checkoutEnabled(env)||!HEX.test(hash||''))throw Error('Recovery disabled');
  const url=new URL('/rest/v1/naitea_workshop_test_payments',c.url);
  url.searchParams.set('return_hash','eq.'+hash);
@@ -117,7 +117,12 @@ export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash,diagnose=(
  if(session.id!==held.session_id||!validSession(session,held)){diagnose('session_mismatch');throw Error('Payment mismatch');}
  // No synthetic failed event: an unpaid complete session can still settle.
  const outcome=paymentOutcome('checkout.session.expired',session);
- if(!outcome){diagnose(session.status==='open'&&session.payment_status==='unpaid'?'checkout_open':session.status==='complete'&&session.payment_status==='unpaid'?'payment_processing':'stripe_pending');return 'pending';}
+ if(!outcome){const open=session.status==='open'&&session.payment_status==='unpaid';diagnose(open?'checkout_open':session.status==='complete'&&session.payment_status==='unpaid'?'payment_processing':'stripe_pending');
+  // Resume only an existing verified, unpaid, test checkout for the configured test email. Never expose a real family checkout.
+  if(open&&resumeTestCheckout&&typeof c.testEmail==='string'&&session.customer_email===c.testEmail&&Number.isInteger(session.expires_at)&&session.expires_at>Date.now()/1000&&typeof session.url==='string'){
+   try{const u=new URL(session.url);if(u.origin==='https://checkout.stripe.com'&&!u.username&&!u.password&&u.pathname.startsWith('/c/pay/'+held.session_id))resumeTestCheckout(u.href);}catch{}
+  }
+  return 'pending';}
  let result;try{result=await settleVerifiedSession({db,c,fetchImpl,bookingId:held.booking_id,account:held.stripe_account_id,s:session,outcome});}catch(e){diagnose('settlement_unavailable');throw e;}
  if(['CONFIRMED','RELEASED','ALREADY_SETTLED'].includes(result.code))return outcome;
  // A concurrent webhook can settle while this request is in progress.
@@ -144,19 +149,20 @@ async function syncProfessionalWorkshop(request,{c,env,fetchImpl,db}){
   const owned=await get('/rest/v1/naitea_workshops',{id:'eq.'+id,professional_id:'eq.'+user.id,select:'id,professional_id',limit:'2'},headers);
   if(!Array.isArray(owned)||owned.length!==1||owned[0].id!==id||owned[0].professional_id!==user.id)return json(404,{error:'WORKSHOP_NOT_FOUND'});
   const privileged={apikey:c.service,Accept:'application/json'};
-  const rows=await get('/rest/v1/naitea_bookings',{workshop_id:'eq.'+id,status:'eq.pending',payment_status:'eq.pending',select:'id,workshop_id,naitea_workshops!inner(professional_id)','naitea_workshops.professional_id':'eq.'+user.id,order:'id.asc',limit:'6'},privileged);
+  const rows=await get('/rest/v1/naitea_bookings',{workshop_id:'eq.'+id,status:'eq.pending',payment_status:'eq.pending',select:'id,workshop_id,parent_email,naitea_workshops!inner(professional_id)','naitea_workshops.professional_id':'eq.'+user.id,order:'id.asc',limit:'6'},privileged);
   if(!Array.isArray(rows)||rows.some(b=>!UUID.test(b.id||'')||b.workshop_id!==id||b.naitea_workshops?.professional_id!==user.id))throw Error('Booking ownership');
-  const totals={paid:0,pending:0,expired:0,failed:0,errors:0,more:rows.length>5};
+  const totals={paid:0,pending:0,expired:0,failed:0,errors:0,more:rows.length>5};const resumeLinks=[];
   await Promise.all(rows.slice(0,5).map(async b=>{
    let diagnostic;
    try{
     const matches=await get('/rest/v1/naitea_workshop_test_payments',{booking_id:'eq.'+b.id,select:'booking_id,return_hash',limit:'2'},privileged);
     if(!Array.isArray(matches)||matches.length!==1||matches[0].booking_id!==b.id||!HEX.test(matches[0].return_hash||''))throw Error('Payment not found');
-    const state=await recoverWorkshopPayment({db,c,env,fetchImpl,hash:matches[0].return_hash,diagnose:code=>{diagnostic=code;}});
+    const state=await recoverWorkshopPayment({db,c,env,fetchImpl,hash:matches[0].return_hash,diagnose:code=>{diagnostic=code;},resumeTestCheckout:b.parent_email===c.testEmail&&rows.length===1?url=>resumeLinks.push(url):null});
     if(['paid','pending','expired','failed'].includes(state))totals[state]++;else totals.errors++;
    }catch{totals.errors++;diagnostic=diagnostic||'verification_unavailable';}
    if(diagnostic){totals.diagnostics=totals.diagnostics||{};totals.diagnostics[diagnostic]=(totals.diagnostics[diagnostic]||0)+1;}
   }));
+  if(rows.length===1&&resumeLinks.length===1&&totals.pending===1&&totals.errors===0)totals.resume_test_url=resumeLinks[0];
   return json(200,totals);
  }catch{return json(503,{error:'SYNC_UNAVAILABLE'});}
 }
