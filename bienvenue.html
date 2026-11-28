@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#FEF8ED">
+  <title>Bienvenue dans votre essai Naïtea</title>
+  <link rel="icon" href="/_vercel/image?url=%2Fassets%2Flanding%2Ffavicon-transparent.png&amp;w=64&amp;q=80">
+  <link rel="stylesheet" href="/assets/tester-onboarding.css">
+</head>
+<body data-page="tester-welcome">
+  <header class="tester-header"><a href="/decouvrir" aria-label="Naïtea, accueil"><img src="/assets/berceau/transparent/naitea-logo.png" alt="Naïtea" width="180" height="60"></a><a href="/decouvrir">Revoir la présentation</a></header>
+  <main class="tester-main">
+    <p id="onboardingLoading" class="tester-loading" role="status">Vérification de votre connexion…</p>
+    <section id="onboardingGuest" class="tester-guest" hidden>
+      <h1>Retrouvez votre parcours Naïtea.</h1><p id="guestMessage">Connectez-vous pour commencer.</p>
+      <div class="tester-actions"><a class="tester-button" id="welcomeLogin" href="/connexion.html?mode=login">Me connecter</a><a class="tester-button secondary" href="/pro">Explorer la démonstration publique</a></div>
+      <p><a href="/decouvrir#demo-pro">Voir la vidéo de présentation</a></p>
+    </section>
+    <section id="onboardingContent" hidden aria-labelledby="welcomeTitle">
+      <div class="tester-intro"><h1 id="welcomeTitle">Bienvenue sur Naïtea !</h1><p id="welcomeOffer"></p><p class="tester-account"><span id="welcomeEmail"></span><button type="button" id="welcomeLogout">Se déconnecter</button></p></div>
+      <div class="tester-actions"><a class="tester-button" id="openProfessionalApp" href="/pro">Ouvrir l’espace professionnel <span aria-hidden="true">→</span></a><a class="tester-button secondary" id="openFamilyApp" href="/familles">Voir le parcours des familles</a></div>
+      <p class="tester-demo">Version de test : utilisez des exemples fictifs. Les données restent dans ce navigateur ; les paiements et emails de réservation sont simulés.</p>
+      <section class="tester-tutorial" aria-labelledby="tutorialTitle"><h2 id="tutorialTitle">Découvrez les outils en 35 secondes.</h2><p>L’agenda, les ateliers, le suivi des familles et le studio de communication.</p><video id="testerTutorial" controls playsinline preload="none" width="1440" height="900" poster="/assets/landing/demo-pro-poster.jpg"><source src="/assets/landing/demo-pro.mp4" type="video/mp4"><track kind="captions" src="/assets/landing/demo-pro.vtt" srclang="fr" label="Français" default>Votre navigateur peut lire <a href="/assets/landing/demo-pro.mp4">la vidéo de démonstration</a>.</video></section>
+      <section class="tester-steps" aria-labelledby="stepsTitle"><h2 id="stepsTitle">Par où commencer ?</h2><ol><li><h3>Découvrez votre espace professionnel.</h3><p>Parcourez les ateliers, les rendez-vous, les familles et les outils de communication.</p><a href="/pro">Explorer les outils <span aria-hidden="true">→</span></a></li><li><h3>Testez le parcours d’une famille.</h3><p>Ouvrez une fiche de démonstration, choisissez un atelier ou un créneau et suivez les étapes.</p><a href="/familles">Voir la fiche familles <span aria-hidden="true">→</span></a></li><li><h3>Personnalisez un exemple.</h3><p>Essayez vos couleurs dans le studio ou modifiez un atelier fictif pour découvrir les réglages.</p><a href="/pro">Revenir à l’espace pro <span aria-hidden="true">→</span></a></li></ol></section>
+      <p id="welcomeStatus" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <noscript><p class="tester-noscript">Activez JavaScript pour vérifier votre compte et afficher ce parcours. Vous pouvez aussi <a href="/pro">ouvrir la démonstration publique</a>.</p></noscript>
+  <script src="/assets/tester-onboarding.js"></script>
+</body>
+</html>

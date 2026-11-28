@@ -1,0 +1,34 @@
+/* Consent UI is scoped; no optional tracker is installed by this module. */
+.naitea-consent-root{--consent-plum:#590425;--consent-coral:#BF5B45;--consent-cream:#FEF8ED;--consent-muted:#775461;--consent-line:#E7D6C8;font-family:"Source Sans 3",Arial,sans-serif;color:var(--consent-plum)}
+.naitea-consent-root [hidden]{display:none!important}
+.naitea-consent-banner{position:fixed;z-index:70;right:26px;bottom:26px;width:min(650px,calc(100vw - 52px));background:var(--consent-cream);border:1px solid #D8BEAB;border-radius:20px;box-shadow:0 14px 60px #59042528;padding:25px 27px 23px}
+.naitea-consent-overview{display:grid;grid-template-columns:76px minmax(0,1fr);gap:18px;align-items:start}
+.naitea-consent-icon{width:76px;height:76px;object-fit:contain;display:block}
+.naitea-consent-no-icon .naitea-consent-overview{grid-template-columns:1fr}
+.naitea-consent-root h2{font-family:"Naitea Titres",sans-serif;font-size:26px;font-weight:600;line-height:1.2;letter-spacing:-.02em;margin:0 0 12px;text-wrap:pretty}
+.naitea-consent-root p{font:400 16px/1.55 "Source Sans 3",Arial,sans-serif;color:var(--consent-muted);margin:0}
+.naitea-consent-root .naitea-consent-note{font-size:13px;line-height:1.5;margin-top:15px}
+.naitea-consent-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:20px}
+.naitea-consent-choice{display:flex;align-items:center;justify-content:center;min-height:46px;border:1px solid var(--consent-plum);border-radius:9px;padding:11px 10px;background:var(--consent-cream);color:var(--consent-plum);font:600 15px/1.3 "Source Sans 3",Arial,sans-serif;text-align:center;cursor:pointer}
+.naitea-consent-choice:hover{background:#F1DFCD}
+.naitea-consent-root button:focus-visible,.naitea-consent-root [tabindex]:focus-visible{outline:3px solid var(--consent-coral);outline-offset:4px}
+.naitea-consent-dialog{box-sizing:border-box;width:680px;max-width:calc(100vw - 32px);max-height:90dvh;padding:26px 28px;border:1px solid #D8BEAB;border-radius:18px;background:var(--consent-cream);color:var(--consent-plum);overflow:auto;box-shadow:0 24px 80px #29001133}
+.naitea-consent-dialog::backdrop{background:#2F001B99}
+.naitea-consent-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:19px}
+.naitea-consent-heading h2{font-size:30px;margin:3px 0 0}
+.naitea-consent-close{display:grid;place-items:center;width:42px;height:42px;flex:none;border-radius:50%;border:1px solid var(--consent-line);background:var(--consent-cream);color:var(--consent-plum);font:400 27px/1 "Source Sans 3",Arial,sans-serif;cursor:pointer}
+.naitea-consent-categories{margin-top:22px}
+.naitea-consent-categories>section{border-top:1px solid var(--consent-line);padding:20px 0}
+.naitea-consent-categories>section:last-child{border-bottom:1px solid var(--consent-line)}
+.naitea-consent-category-heading{display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap}
+.naitea-consent-category-heading h3{font:600 19px/1.35 "Source Sans 3",Arial,sans-serif;letter-spacing:0;margin:0}
+.naitea-consent-category-heading span{font-size:12px;font-weight:600;border:1px solid var(--consent-line);border-radius:30px;padding:3px 8px}
+.naitea-consent-category-heading input{margin:0 0 0 auto;width:20px;height:20px;accent-color:var(--consent-plum);opacity:1;flex:none}
+.naitea-consent-categories p{font-size:15px;line-height:1.55}
+.naitea-consent-preference-actions{margin-top:22px}
+.naitea-consent-preference-actions .naitea-consent-choice{font-size:14px}
+body.naitea-consent-dialog-open{overflow:hidden}
+/* Keep the existing mobile conversion button out of the banner's hit area. */
+body.naitea-consent-visible .mobile-signup,body.naitea-consent-dialog-open .mobile-signup{display:none!important}
+@media(max-width:760px){.naitea-consent-banner{right:16px;bottom:calc(16px + env(safe-area-inset-bottom));width:calc(100vw - 32px);max-height:calc(100dvh - 110px);overflow:auto;padding:21px 20px;border-radius:17px}.naitea-consent-overview{grid-template-columns:58px minmax(0,1fr);gap:14px}.naitea-consent-icon{width:58px;height:58px}.naitea-consent-root h2{font-size:24px;margin-bottom:10px}.naitea-consent-root p{font-size:15px;line-height:1.5}.naitea-consent-root .naitea-consent-note{font-size:12px;margin-top:14px}.naitea-consent-actions{grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}.naitea-consent-actions>[data-consent-settings],.naitea-consent-actions>[data-consent-choice="customized"]{grid-column:1/-1}.naitea-consent-choice{font-size:14px;min-height:45px;padding:10px}.naitea-consent-dialog{padding:23px 22px}.naitea-consent-heading{gap:15px}.naitea-consent-heading h2{font-size:26px;margin-top:4px}.naitea-consent-dialog .naitea-consent-note{font-size:12px}.naitea-consent-category-heading h3{font-size:18px}.naitea-consent-categories>section{padding-block:18px}.naitea-consent-category-heading{gap:10px}.naitea-consent-categories p{font-size:14px}.naitea-consent-category-heading span{font-size:11px}}
+@media(max-width:360px){.naitea-consent-banner{padding:20px 17px}.naitea-consent-overview{grid-template-columns:46px minmax(0,1fr);gap:11px}.naitea-consent-icon{width:46px;height:46px}.naitea-consent-root h2{font-size:22px}.naitea-consent-root p{font-size:14px}.naitea-consent-choice{font-size:13px}.naitea-consent-dialog{padding:21px 18px}.naitea-consent-heading h2{font-size:24px}.naitea-consent-category-heading span{font-size:10px}}

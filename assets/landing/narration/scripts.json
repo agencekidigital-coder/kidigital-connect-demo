@@ -1,0 +1,166 @@
+{
+  "language": "fr-FR",
+  "voice": "DeniseNeural",
+  "scripts": {
+    "pro": [
+      "Votre activité, dans un seul espace.",
+      "Vos ateliers et vos rendez-vous, sur le même calendrier.",
+      "Créez un atelier, choisissez son public et son format.",
+      "Publiez vos disponibilités pour plusieurs jours.",
+      "Retrouvez chaque famille et ses inscriptions.",
+      "Créez vos publications avec vos textes et vos photos.",
+      "Personnalisez aussi vos bons cadeaux.",
+      "Tout est fictif, sans achat ni envoi réel."
+    ],
+    "familles": [
+      "Une fiche pour découvrir votre approche et vos offres.",
+      "Les familles découvrent vos ateliers et leurs informations.",
+      "Un formulaire clair pour réserver une place.",
+      "Pour une séance individuelle, les dates sont visibles.",
+      "Choisissez un horaire et la modalité de votre séance.",
+      "Offrez un accompagnement avec un bon cadeau.",
+      "Une question ? Préparez un message depuis la fiche.",
+      "Aucun paiement ni e-mail réel dans cette démonstration."
+    ]
+  },
+  "scenes": [
+    {
+      "kind": "pro",
+      "cues": [
+        {
+          "startText": "00:00:00.000",
+          "endText": "00:00:03.514",
+          "start": 0,
+          "end": 3.514,
+          "text": "Votre activité, dans un seul espace.",
+          "file": "pro-01.mp3"
+        },
+        {
+          "startText": "00:00:03.514",
+          "endText": "00:00:07.857",
+          "start": 3.514,
+          "end": 7.857,
+          "text": "Vos ateliers et vos rendez-vous, sur le même calendrier.",
+          "file": "pro-02.mp3"
+        },
+        {
+          "startText": "00:00:07.857",
+          "endText": "00:00:12.304",
+          "start": 7.857,
+          "end": 12.304,
+          "text": "Créez un atelier, choisissez son public et son format.",
+          "file": "pro-03.mp3"
+        },
+        {
+          "startText": "00:00:12.304",
+          "endText": "00:00:16.833",
+          "start": 12.304,
+          "end": 16.833,
+          "text": "Publiez vos disponibilités pour plusieurs jours.",
+          "file": "pro-04.mp3"
+        },
+        {
+          "startText": "00:00:16.833",
+          "endText": "00:00:21.124",
+          "start": 16.833,
+          "end": 21.124,
+          "text": "Retrouvez chaque famille et ses inscriptions.",
+          "file": "pro-05.mp3"
+        },
+        {
+          "startText": "00:00:21.125",
+          "endText": "00:00:26.523",
+          "start": 21.125,
+          "end": 26.523,
+          "text": "Créez vos publications avec vos textes et vos photos.",
+          "file": "pro-06.mp3"
+        },
+        {
+          "startText": "00:00:26.523",
+          "endText": "00:00:30.822",
+          "start": 26.523,
+          "end": 30.822,
+          "text": "Personnalisez aussi vos bons cadeaux.",
+          "file": "pro-07.mp3"
+        },
+        {
+          "startText": "00:00:30.822",
+          "endText": "00:00:34.083",
+          "start": 30.822,
+          "end": 34.083,
+          "text": "Tout est fictif, sans achat ni envoi réel.",
+          "file": "pro-08.mp3"
+        }
+      ]
+    },
+    {
+      "kind": "familles",
+      "cues": [
+        {
+          "startText": "00:00:00.001",
+          "endText": "00:00:04.024",
+          "start": 0.001,
+          "end": 4.024,
+          "text": "Une fiche pour découvrir votre approche et vos offres.",
+          "file": "familles-01.mp3"
+        },
+        {
+          "startText": "00:00:04.025",
+          "endText": "00:00:08.517",
+          "start": 4.025,
+          "end": 8.517,
+          "text": "Les familles découvrent vos ateliers et leurs informations.",
+          "file": "familles-02.mp3"
+        },
+        {
+          "startText": "00:00:08.517",
+          "endText": "00:00:12.801",
+          "start": 8.517,
+          "end": 12.801,
+          "text": "Un formulaire clair pour réserver une place.",
+          "file": "familles-03.mp3"
+        },
+        {
+          "startText": "00:00:12.802",
+          "endText": "00:00:17.731",
+          "start": 12.802,
+          "end": 17.731,
+          "text": "Pour une séance individuelle, les dates sont visibles.",
+          "file": "familles-04.mp3"
+        },
+        {
+          "startText": "00:00:17.732",
+          "endText": "00:00:22.491",
+          "start": 17.732,
+          "end": 22.491,
+          "text": "Choisissez un horaire et la modalité de votre séance.",
+          "file": "familles-05.mp3"
+        },
+        {
+          "startText": "00:00:22.491",
+          "endText": "00:00:27.257",
+          "start": 22.491,
+          "end": 27.257,
+          "text": "Offrez un accompagnement avec un bon cadeau.",
+          "file": "familles-06.mp3"
+        },
+        {
+          "startText": "00:00:27.257",
+          "endText": "00:00:31.434",
+          "start": 27.257,
+          "end": 31.434,
+          "text": "Une question ? Préparez un message depuis la fiche.",
+          "file": "familles-07.mp3"
+        },
+        {
+          "startText": "00:00:31.435",
+          "endText": "00:00:35.641",
+          "start": 31.435,
+          "end": 35.641,
+          "text": "Aucun paiement ni e-mail réel dans cette démonstration.",
+          "file": "familles-08.mp3"
+        }
+      ]
+    }
+  ]
+}
