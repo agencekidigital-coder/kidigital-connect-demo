@@ -178,7 +178,29 @@ function create(d){
       finally{if(version===revision&&uid===owner){busy=false;decorate();}}
     });
   }
+  const PAYMENT_LABELS={free:'Gratuit',onsite:'Paiement sur place',online:'Paiement intégral en ligne',choice:'Au choix de la famille',deposit:'Acompte en ligne, solde sur place'};
+  const paymentLabel=w=>PAYMENT_LABELS[w.price_cents===0?'free':w.payment_mode||'onsite'];
+  const pendingOnline=w=>['online','choice','deposit'].includes(w.payment_mode);
+  function paymentControls(w){
+    const panel=document.createElement('fieldset');panel.className='naitea-workshop-payment';panel.append(text('legend','Modalités de paiement'));
+    const info=text('p','Choisis comment les familles régleront cet atelier. Aucun frais de commission Naïtéa. Les modes en ligne peuvent être préparés en brouillon mais ne sont pas encore publiables.');info.className='fine';panel.append(info);
+    const grid=document.createElement('div');grid.className='naitea-workshop-payment-options';
+    for(const [mode,label] of Object.entries(PAYMENT_LABELS)){const line=document.createElement('label');line.className='naitea-workshop-payment-option';const input=document.createElement('input');input.type='radio';input.name='payment_mode';input.value=mode;input.required=true;if(mode===(w?.price_cents===0?'free':w?.payment_mode||'onsite'))input.setAttribute('checked','');const span=document.createElement('span');span.append(text('strong',label));if(['online','choice','deposit'].includes(mode))span.append(text('small','En préparation · brouillon uniquement'));line.append(input,span);grid.append(line);}
+    panel.append(grid);
+    const deposit=document.createElement('label');deposit.className='field';deposit.dataset.paymentDeposit='1';deposit.append(text('span','Acompte par place (€)'));const amount=document.createElement('input');amount.name='deposit_amount';amount.type='number';amount.step='0.01';amount.min='0.01';amount.value=w?.deposit_cents!=null?String(w.deposit_cents/100):'';amount.setAttribute('value',amount.value);deposit.append(amount);panel.append(deposit);
+    const help=text('p','');help.dataset.paymentHelp='1';help.className='fine';panel.append(help);return panel;
+  }
+  function syncPayment(form){
+    const e=form.elements,radios=[...form.querySelectorAll('[name=payment_mode]')];if(!radios.length)return;
+    const price=Number(e.price.value),free=radios.find(x=>x.value==='free'),onsite=radios.find(x=>x.value==='onsite');
+    if(e.price.value!==''&&price===0)free.checked=true;else if(free.checked&&price>0)onsite.checked=true;
+    for(const radio of radios)radio.disabled=radio.value==='free'?price>0:price===0&&e.price.value!=='';
+    const mode=radios.find(x=>x.checked)?.value||'onsite',deposit=form.querySelector('[data-payment-deposit]'),amount=e.deposit_amount;
+    deposit.hidden=mode!=='deposit';amount.disabled=mode!=='deposit';amount.required=mode==='deposit';if(Number.isFinite(price))amount.max=String(Math.max(0,Math.round(price*100-1)/100));
+    form.querySelector('[data-payment-help]').textContent=mode==='free'?'Les familles réservent sans paiement.':mode==='onsite'?'La famille réserve en ligne et règle directement auprès de toi.':'Le réglage est enregistré dans ton brouillon. La publication sera ouverte après validation du paiement en ligne.';
+  }
   function fields(form){
+    syncPayment(form);
     syncReminders(form);
     const e=form.elements;const pricingLabel=form.querySelector('[data-pricing-label]');if(pricingLabel)pricingLabel.textContent=e.pricing_unit.value==='duo'?'Prix par duo parent-enfant (€) *':'Prix par personne (€) *';
     const video=form.querySelector('[name="workshopModality"]:checked')?.value==='video';
@@ -194,7 +216,9 @@ function create(d){
     const extra=d.tools.workshop(values),date=new Date(values.date+'T'+values.time);
     if(!Number.isFinite(date.getTime())||localDate(date.toISOString())!==values.date+'T'+values.time)throw Error('Choisis une date et une heure valides.');
     const age=extra.childAge, address=extra.venueAddress;
-    return {title:values.title,description:values.description||null,starts_at:date.toISOString(),capacity:Number(values.capacity),price_cents:Math.round(Number(values.price)*100),pricing_unit:values.pricing_unit,category:extra.category,duration_label:values.duration?.trim()||null,timezone_name:Intl.DateTimeFormat().resolvedOptions().timeZone,modality:extra.workshopModality,venue_name:extra.venueName||null,venue_street:address?.street||null,venue_postal_code:address?.postalCode||null,venue_city:address?.city||null,video_platform:extra.videoPlatform||null,target_audiences:extra.targetAudiences,child_age_min:age?.min??null,child_age_max:age?.max??null,child_age_unit:age?.unit??null,...reminderPayload(form),...(w?{id:w.id}:{})};
+    const cents=Math.round(Number(values.price)*100),mode=cents===0?'free':values.payment_mode||'onsite',deposit=mode==='deposit'?Math.round(Number(values.deposit_amount)*100):null;
+    if(mode==='deposit'&&(!Number.isInteger(deposit)||deposit<=0||deposit>=cents))throw Error('L’acompte doit être supérieur à 0 € et inférieur au prix total.');
+    return {payment_mode:mode,deposit_cents:deposit,title:values.title,description:values.description||null,starts_at:date.toISOString(),capacity:Number(values.capacity),price_cents:Math.round(Number(values.price)*100),pricing_unit:values.pricing_unit,category:extra.category,duration_label:values.duration?.trim()||null,timezone_name:Intl.DateTimeFormat().resolvedOptions().timeZone,modality:extra.workshopModality,venue_name:extra.venueName||null,venue_street:address?.street||null,venue_postal_code:address?.postalCode||null,venue_city:address?.city||null,video_platform:extra.videoPlatform||null,target_audiences:extra.targetAudiences,child_age_min:age?.min??null,child_age_max:age?.max??null,child_age_unit:age?.unit??null,...reminderPayload(form),...(w?{id:w.id}:{})};
   }
   function open(w){
     if(!ready||busy||uncertain||!owner||!d.isPage())return;
@@ -218,11 +242,13 @@ function create(d){
     for(const [value,label] of [['person','Par personne (bébé bienvenu)'],['duo','Par duo parent-enfant']]){const opt=text('option',label);opt.value=value;unit.append(opt);}
     unit.value=w?.pricing_unit==='duo'?'duo':'person';unitField.append(unitLabel,unit);priceField.before(unitField);
     const priceLabel=priceField.querySelector('label');priceLabel.dataset.pricingLabel='1';priceLabel.textContent=unit.value==='duo'?'Prix par duo parent-enfant (€) *':'Prix par personne (€) *';
+    priceField.after(paymentControls(w));
     form.querySelector('.modalfooter').before(reminderFields(w));
     form.querySelector('[type="submit"]').textContent='Enregistrer le brouillon';
     d.showModal(w?'Modifier mon atelier':'Créer un atelier','Les informations restent privées tant que la publication n’est pas ouverte.',container.innerHTML);
     const active=el('naiteaPrivateWorkshopForm');fields(active);
     active.addEventListener('change',event=>{syncReminders(active,event.target);fields(active);});
+    active.elements.price.addEventListener('input',()=>syncPayment(active));
     const status=text('p','');status.setAttribute('role','status');active.append(status);
     const fileInput=active.querySelector('#naiteaCoverFile'), removeInput=active.querySelector('#naiteaCoverRemove'), preview=active.querySelector('#naiteaCoverPreview'), coverStatus=active.querySelector('#naiteaCoverStatus');
     attachCover(w,preview,()=>!fileInput.files.length&&!removeInput.checked);
@@ -302,7 +328,7 @@ function create(d){
     if(age&&!audiences.includes('Bébés'))audience.append(document.createTextNode(' · '),text('em',age));
     const price=text('p',(w.price_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})+(w.pricing_unit==='duo'?' / duo parent-enfant':' / personne')+' · '+w.capacity+' places au total');price.className='naitea-public-price';
     const professional=document.createElement('section');professional.className='naitea-public-pro';professional.id='naiteaPreviewProfessional';professional.hidden=true;
-    body.append(tag,text('h1',w.title),professional,time,desc,text('p',location),audience,price);
+    body.append(tag,text('h1',w.title),professional,time,desc,text('p',location),audience,price,text('p',paymentLabel(w)+(pendingOnline(w)?' · En préparation, non activé':'')));
     const reserve=text('button','Réservation bientôt disponible');reserve.className='btn';reserve.disabled=true;body.append(reserve);root.append(body);
     d.showModal('Aperçu côté familles','Aperçu privé des informations visibles sur ta page publiée.',root.outerHTML);
     const active=el('naiteaPrivatePublicPreviewCover');if(active)attachCover(w,active);
@@ -336,6 +362,7 @@ function create(d){
   }
   async function changeStatus(w,status){
     if(!publication||!ready||busy||uncertain||!owner||!d.isPage())return;
+    if(status==='published'&&pendingOnline(w)){message='Les paiements en ligne sont en préparation. Ce brouillon est conservé ; choisis le paiement sur place pour le publier dès maintenant.';decorate();return;}
     if(status==='published'&&!complete(w)){message='Complète la date, la catégorie, le public et le lieu ou la visioconférence avant publication.';decorate();return;}
     if(!window.confirm(status==='published'?'Publier cet atelier ? Son titre, description, adresse de l’atelier, nom professionnel et photo seront accessibles sans compte. N’utilise aucune donnée privée de famille.':'Dépublier cet atelier ? Son lien ne sera plus accessible aux familles.'))return;
     const version=revision;busy=true;decorate();
@@ -734,7 +761,8 @@ function create(d){
       const publish=button(w.status==='draft'?'Publier':'Dépublier',()=>changeStatus(w,w.status==='draft'?'published':'draft'));publish.disabled=!ready||busy||uncertain;
       if(w.status==='draft')publish.className='btn';
       actions.append(publish);
-      if(w.status==='published'){const share=button('Partager',()=>shareWorkshop(w));share.disabled=!ready||busy||uncertain;actions.append(share);content.append(text('p','Pour modifier un atelier publié, repasse-le en brouillon.'));}
+      content.append(text('p',paymentLabel(w)+(pendingOnline(w)?' · En préparation, brouillon uniquement':'')));
+    if(w.status==='published'){const share=button('Partager',()=>shareWorkshop(w));share.disabled=!ready||busy||uncertain;actions.append(share);content.append(text('p','Pour modifier un atelier publié, repasse-le en brouillon.'));}
     }
     if(w.status==='cancelled'&&w.cancellation_reason){content.append(text('p','Motif : '+w.cancellation_reason));if(w.cancelled_at)content.append(text('p','Annulé le '+new Date(w.cancelled_at).toLocaleString('fr-FR')));}
     if(manualEnabled&&['published','draft'].includes(w.status)&&Date.parse(w.starts_at)>Date.now()){const reminder=button('Rappels',()=>editReminders(w));reminder.disabled=busy||uncertain;actions.append(reminder);content.append(text('p',w.reminder_hours?.length?'Rappels : '+w.reminder_hours.slice().sort((a,b)=>b-a).map(h=>h+' h').join(' · ')+' avant l’atelier':'Rappels désactivés'));}

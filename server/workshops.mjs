@@ -1,7 +1,7 @@
 import publicConfig from './public-config.cjs';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EXTRA = ['category','duration_label','timezone_name','modality','venue_name','venue_street','venue_postal_code','venue_city','video_platform','target_audiences','child_age_min','child_age_max','child_age_unit'];
-const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at','public_slug','pricing_unit','cancellation_reason','cancelled_at','reminder_hours','reminder_instructions',...EXTRA].join(',');
+const FIELDS = ['id','professional_id','title','description','starts_at','capacity','price_cents','status','created_at','public_slug','pricing_unit','payment_mode','deposit_cents','cancellation_reason','cancelled_at','reminder_hours','reminder_instructions',...EXTRA].join(',');
 const AUDIENCES = new Set(['Future maman','Futurs parents','Jeune maman','Jeunes parents','Co-parent','Bébés','Enfants','Adolescents','Toute la famille']);
 function extraFields(input) {
   if(!EXTRA.some(k=>Object.hasOwn(input,k)))return {};
@@ -22,6 +22,14 @@ function extraFields(input) {
   return {category,duration_label,timezone_name,modality,...location,target_audiences:audiences,child_age_min:min,child_age_max:max,child_age_unit:unit};
 }
 const EDIT = ['title','description','starts_at','capacity','price_cents'];
+export function paymentFields(input){
+ const mode=input.payment_mode,deposit=input.deposit_cents;
+ if(!Object.hasOwn(input,'payment_mode')&&!Object.hasOwn(input,'deposit_cents'))return {};
+ if(!Object.hasOwn(input,'payment_mode')||!Object.hasOwn(input,'deposit_cents')||!['free','onsite','online','choice','deposit'].includes(mode))throw Error('payment mode');
+ if(mode==='free'&&input.price_cents!==0||['online','choice','deposit'].includes(mode)&&input.price_cents<=0)throw Error('payment price');
+ if(mode==='deposit'?(!Number.isInteger(deposit)||deposit<=0||deposit>=input.price_cents):deposit!==null)throw Error('deposit');
+ return {payment_mode:mode,deposit_cents:deposit};
+}
 const reply = (status, body, headers={}) => new Response(JSON.stringify(body), {status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',...headers}});
 const fail = (status, code) => reply(status,{code});
 async function bounded(stream, max) {
@@ -54,14 +62,14 @@ function reminderFields(input){
 }
 function validate(input, method) {
   if(!input||typeof input!=='object'||Array.isArray(input))throw Error('body');
-  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,...EXTRA,'pricing_unit','reminder_hours','reminder_instructions','id']:[...EDIT,...EXTRA,'pricing_unit','reminder_hours','reminder_instructions'];
+  const keys=Object.keys(input), allowed=method==='PATCH'?[...EDIT,...EXTRA,'pricing_unit','payment_mode','deposit_cents','reminder_hours','reminder_instructions','id']:[...EDIT,...EXTRA,'pricing_unit','payment_mode','deposit_cents','reminder_hours','reminder_instructions'];
   if(keys.some(k=>!allowed.includes(k))||!EDIT.every(k=>Object.hasOwn(input,k)))throw Error('fields');
   if(method==='PATCH'&&(typeof input.id!=='string'||!UUID.test(input.id)))throw Error('id');
   if(Object.hasOwn(input,'pricing_unit')&&!['person','duo'].includes(input.pricing_unit))throw Error('pricing_unit');
   const {capacity,price_cents,starts_at}=input;
   if(!Number.isInteger(capacity)||capacity<1||capacity>1000||!Number.isInteger(price_cents)||price_cents<0||price_cents>10000000)throw Error('numbers');
   if(starts_at!==null&&(typeof starts_at!=='string'||! /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(starts_at)||!Number.isFinite(Date.parse(starts_at))||new Date(starts_at).toISOString()!==starts_at))throw Error('date');
-  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,5000),starts_at,capacity,price_cents,...(Object.hasOwn(input,'pricing_unit')?{pricing_unit:input.pricing_unit}:{}),...extraFields(input),...reminderFields(input)};
+  return {title:cleanText(input.title,160,true),description:input.description===null?null:cleanText(input.description,5000),starts_at,capacity,price_cents,...(Object.hasOwn(input,'pricing_unit')?{pricing_unit:input.pricing_unit}:{}),...extraFields(input),...reminderFields(input),...paymentFields(input)};
 }
 export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
   return async(request,env={})=>{
