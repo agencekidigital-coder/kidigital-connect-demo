@@ -32,7 +32,7 @@ export function checkoutParams(held,origin,returnToken,email){
   expires_at:String(held.expires_at),customer_email:email,client_reference_id:held.booking_id,
   'metadata[naitea_booking_id]':held.booking_id,'metadata[naitea_kind]':'workshop_test',
   'line_items[0][quantity]':String(held.seats),'line_items[0][price_data][currency]':'eur',
-  'line_items[0][price_data][unit_amount]':String(held.unit_cents),'line_items[0][price_data][product_data][name]':held.title,
+  'line_items[0][price_data][unit_amount]':String(held.unit_cents),'line_items[0][price_data][product_data][name]':held.payment_mode==='deposit'?'Acompte — '+held.title:held.title,
   'adaptive_pricing[enabled]':'false','integration_identifier':'naitea-workshop-qmvrkstp'
  });
 }
@@ -90,7 +90,7 @@ async function settleVerifiedSession({db,c,fetchImpl,bookingId,account,s,outcome
  if(result?.code==='CONFIRMED'){
   let sent=false;
   if(result.email===c.testEmail&&result.workshop){
-   try{const response=await fetchImpl('https://api.brevo.com/v3/smtp/email',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(8000),headers:{'api-key':c.brevo,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({sender:{name:'Naïtéa',email:c.sender},to:[{email:result.email}],...workshopEmail('confirmed',result.workshop,result.first_name,result.seats,'',{amount_cents:result.amount_cents})})});sent=response.ok;response.body?.cancel().catch(()=>{});}catch{}
+   try{const response=await fetchImpl('https://api.brevo.com/v3/smtp/email',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(8000),headers:{'api-key':c.brevo,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({sender:{name:'Naïtéa',email:c.sender},to:[{email:result.email}],...workshopEmail('confirmed',result.workshop,result.first_name,result.seats,'',{amount_cents:result.amount_cents,balance_due_cents:result.balance_due_cents||0})})});sent=response.ok;response.body?.cancel().catch(()=>{});}catch{}
   }
   return {code:result.code,mail:sent?'accepted':'unconfirmed'};
  }

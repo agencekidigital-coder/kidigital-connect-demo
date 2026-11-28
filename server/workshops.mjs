@@ -28,7 +28,7 @@ export function paymentFields(input){
  if(!Object.hasOwn(input,'payment_mode')&&!Object.hasOwn(input,'deposit_cents'))return {};
  if(!Object.hasOwn(input,'payment_mode')||!Object.hasOwn(input,'deposit_cents')||!['free','onsite','online','choice','deposit'].includes(mode))throw Error('payment mode');
  if(mode==='free'&&input.price_cents!==0||['online','choice','deposit'].includes(mode)&&input.price_cents<=0)throw Error('payment price');
- if(mode==='deposit'?(!Number.isInteger(deposit)||deposit<=0||deposit>=input.price_cents):deposit!==null)throw Error('deposit');
+ if(mode==='deposit'?(!Number.isInteger(deposit)||deposit<50||deposit>=input.price_cents):deposit!==null)throw Error('deposit');
  return {payment_mode:mode,deposit_cents:deposit};
 }
 const reply = (status, body, headers={}) => new Response(JSON.stringify(body), {status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff',...headers}});
@@ -118,7 +118,7 @@ export function createWorkshopsHandler({fetchImpl=globalThis.fetch}={}) {
         endpoint.searchParams.set('professional_id','eq.'+owner);
         endpoint.searchParams.set('id','eq.'+input.id);
         endpoint.searchParams.set('status',reminderOnly?'in.(draft,published)':transition&&input.status==='draft'?'eq.published':'eq.draft');
-        if(transition&&input.status==='published')endpoint.searchParams.set('payment_mode',checkoutEnabled(env)&&env.NAITEA_BOOKING_ORIGIN===url.origin?'in.(onsite,free,online)':'in.(onsite,free)');
+        if(transition&&input.status==='published')endpoint.searchParams.set('payment_mode',checkoutEnabled(env)&&env.NAITEA_BOOKING_ORIGIN===url.origin?'in.(onsite,free,online,choice,deposit)':'in.(onsite,free)');
       }
       const response=await requestProvider(endpoint.href,{method,headers:method==='GET'?headers:{...headers,'Content-Type':'application/json',Prefer:'return=representation'},...(payload?{body:JSON.stringify(payload)}:{})});
       if(!response.ok){response.body?.cancel().catch(()=>{});if(transition&&[400,409].includes(response.status))return fail(400,'WORKSHOP_NOT_PUBLISHABLE');return fail(response.status===401?401:response.status===403?403:503,'WORKSHOPS_UNAVAILABLE');}

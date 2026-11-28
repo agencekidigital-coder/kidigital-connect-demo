@@ -180,14 +180,14 @@ function create(d){
   }
   const PAYMENT_LABELS={free:'Gratuit',onsite:'Paiement sur place',online:'Paiement intégral en ligne',choice:'Au choix de la famille',deposit:'Acompte en ligne, solde sur place'};
   const paymentLabel=w=>PAYMENT_LABELS[w.price_cents===0?'free':w.payment_mode||'onsite'];
-  const pendingOnline=w=>['choice','deposit'].includes(w.payment_mode)||(w.payment_mode==='online'&&!checkoutConfigured);
+  const pendingOnline=w=>['choice','deposit'].includes(w.payment_mode)||(w.payment_mode==='online'&&!checkoutConfigured); // choice/deposit stay in draft until the pilot scope is enabled
   function paymentControls(w){
     const panel=document.createElement('fieldset');panel.className='naitea-workshop-payment';panel.append(text('legend','Modalités de paiement'));
     const info=text('p','Choisis comment les familles régleront cet atelier. Aucun frais de commission Naïtéa. Le paiement intégral est ouvert pour un atelier autorisé en test. Les autres modes en ligne restent en préparation.');info.className='fine';panel.append(info);
     const grid=document.createElement('div');grid.className='naitea-workshop-payment-options';
     for(const [mode,label] of Object.entries(PAYMENT_LABELS)){const line=document.createElement('label');line.className='naitea-workshop-payment-option';const input=document.createElement('input');input.type='radio';input.name='payment_mode';input.value=mode;input.required=true;if(mode===(w?.price_cents===0?'free':w?.payment_mode||'onsite'))input.setAttribute('checked','');const span=document.createElement('span');span.append(text('strong',label));if(['online','choice','deposit'].includes(mode))span.append(text('small',mode==='online'&&checkoutConfigured?'Test uniquement · atelier autorisé':'En préparation · brouillon uniquement'));line.append(input,span);grid.append(line);}
     panel.append(grid);
-    const deposit=document.createElement('label');deposit.className='field';deposit.dataset.paymentDeposit='1';deposit.append(text('span','Acompte par place (€)'));const amount=document.createElement('input');amount.name='deposit_amount';amount.type='number';amount.step='0.01';amount.min='0.01';amount.value=w?.deposit_cents!=null?String(w.deposit_cents/100):'';amount.setAttribute('value',amount.value);deposit.append(amount);panel.append(deposit);
+    const deposit=document.createElement('label');deposit.className='field';deposit.dataset.paymentDeposit='1';deposit.append(text('span','Acompte par place (€)'));const amount=document.createElement('input');amount.name='deposit_amount';amount.type='number';amount.step='0.01';amount.min='0.50';amount.value=w?.deposit_cents!=null?String(w.deposit_cents/100):'';amount.setAttribute('value',amount.value);deposit.append(amount);panel.append(deposit);
     const help=text('p','');help.dataset.paymentHelp='1';help.className='fine';panel.append(help);return panel;
   }
   function syncPayment(form){
@@ -217,7 +217,7 @@ function create(d){
     if(!Number.isFinite(date.getTime())||localDate(date.toISOString())!==values.date+'T'+values.time)throw Error('Choisis une date et une heure valides.');
     const age=extra.childAge, address=extra.venueAddress;
     const cents=Math.round(Number(values.price)*100),mode=cents===0?'free':values.payment_mode||'onsite',deposit=mode==='deposit'?Math.round(Number(values.deposit_amount)*100):null;
-    if(mode==='deposit'&&(!Number.isInteger(deposit)||deposit<=0||deposit>=cents))throw Error('L’acompte doit être supérieur à 0 € et inférieur au prix total.');
+    if(mode==='deposit'&&(!Number.isInteger(deposit)||deposit<50||deposit>=cents))throw Error('L’acompte doit être d’au moins 0,50 € et inférieur au prix total.');
     return {payment_mode:mode,deposit_cents:deposit,title:values.title,description:values.description||null,starts_at:date.toISOString(),capacity:Number(values.capacity),price_cents:Math.round(Number(values.price)*100),pricing_unit:values.pricing_unit,category:extra.category,duration_label:values.duration?.trim()||null,timezone_name:Intl.DateTimeFormat().resolvedOptions().timeZone,modality:extra.workshopModality,venue_name:extra.venueName||null,venue_street:address?.street||null,venue_postal_code:address?.postalCode||null,venue_city:address?.city||null,video_platform:extra.videoPlatform||null,target_audiences:extra.targetAudiences,child_age_min:age?.min??null,child_age_max:age?.max??null,child_age_unit:age?.unit??null,...reminderPayload(form),...(w?{id:w.id}:{})};
   }
   function open(w){
@@ -600,7 +600,8 @@ function create(d){
         }catch{if(target.isConnected)await loadList('Action non confirmée. Vérifie les inscriptions avant de réessayer.');}
       };
       const promote=button('Confirmer l’inscription',()=>run('promote'));promote.className='btn';
-      const count=bookingCounts.get(w.id);promote.disabled=w.status!=='published'||Date.parse(w.starts_at)<=Date.now()||Number.isInteger(count)&&w.capacity-count<b.seats;
+      const count=bookingCounts.get(w.id);promote.disabled=['online','deposit'].includes(w.payment_mode)||w.status!=='published'||Date.parse(w.starts_at)<=Date.now()||Number.isInteger(count)&&w.capacity-count<b.seats;
+      if(['online','deposit'].includes(w.payment_mode))card.append(text('p','Paiement requis : invite la famille à réserver depuis le lien public lorsqu’une place se libère.'));
       const withdraw=button('Retirer de la liste',()=>run('withdraw'));actions.append(promote,withdraw);
       card.append(status,actions);section.append(card);
     }
@@ -662,7 +663,7 @@ function create(d){
     const target=el('naiteaPrivateBookings');
     const loadList=async(notice='')=>{
       try{
-        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source,cancellation_email_status,payment_status,amount_paid_cents').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
+        const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source,cancellation_email_status,payment_status,amount_paid_cents,balance_due_cents').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
         if(error||!Array.isArray(data))throw Error('Chargement impossible');
         let waiting=[],closedWaiting=[],waitingError=false;
@@ -672,7 +673,7 @@ function create(d){
         target.replaceChildren();
         const summary=document.createElement('div');summary.className='naitea-fill';summary.dataset.naiteaFill=w.id;paintBookingCount(summary,w);target.append(summary);
         if(notice){const n=text('p',notice);n.setAttribute('role','status');target.append(n);}
-        if(checkoutConfigured&&w.payment_mode==='online'){
+        if(checkoutConfigured&&['online','choice','deposit'].includes(w.payment_mode)){
           const paymentPanel=document.createElement('section');paymentPanel.className='card naitea-booking-group';paymentPanel.append(text('h3','Paiements Stripe (test)'),text('p','Vérifie les paiements en attente, même si la famille a fermé sa page de réservation. Aucun nouveau débit.'));
           const sync=button('Synchroniser les paiements Stripe',async()=>{
             sync.disabled=true;sync.textContent='Vérification en cours…';
@@ -686,14 +687,14 @@ function create(d){
             }catch{if(version===revision&&owner===uid&&target.isConnected)await loadList('Synchronisation non confirmée. Réessaie sans refaire de paiement.');}
           });sync.className='btn';paymentPanel.append(sync);target.append(paymentPanel);
         }
-        if(manualEnabled&&w.payment_mode!=='online'&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
+        if(manualEnabled&&!['online','deposit'].includes(w.payment_mode)&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
         const confirmed=data.slice(0,1000).filter(b=>b.status==='confirmed'),cancelled=data.slice(0,1000).filter(b=>b.status==='cancelled');
         const group=(label,items,empty)=>{const section=document.createElement('section');section.className='naitea-booking-group';section.append(text('h3',label+' ('+items.length+(data.length>1000?'+':'')+')'));if(!items.length)section.append(text('p',empty));return section;};
         const active=group('Inscriptions confirmées',confirmed,'Aucune inscription confirmée.');
         const history=group('Inscriptions annulées',cancelled,'Aucune inscription annulée.');
         for(const b of [...confirmed,...cancelled]){
           const card=document.createElement('div');card.className='card naitea-booking-entry'+(b.status==='cancelled'?' is-cancelled':'');card.append(text('strong',b.parent_name),text('p',b.parent_email),text('p',b.seats+' place(s) · '+(b.status==='confirmed'?'Confirmée':'Annulée')));
-          if(b.payment_status==='paid')card.append(text('p','Payé en ligne (test) · '+(b.amount_paid_cents/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'})));
+          if(b.payment_status==='paid'){const euros=c=>(c/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});card.append(text('p',(b.balance_due_cents>0?'Acompte payé (test) · ':'Payé en ligne (test) · ')+euros(b.amount_paid_cents)));if(b.balance_due_cents>0)card.append(text('p','Reste à régler sur place : '+euros(b.balance_due_cents)));}else if(b.status==='confirmed'&&w.price_cents>0)card.append(text('p','Règlement sur place · Paiement non vérifié en ligne'));
           if(b.booking_source==='manual')card.append(text('p','Ajout manuel par la professionnelle'));
           if(b.parent_phone)card.append(text('p','Téléphone : '+b.parent_phone));
           if(b.coparent_present)card.append(text('p','Co-parent : '+([b.coparent_first_name,b.coparent_last_name].filter(Boolean).join(' ')||'Présent')));

@@ -59,3 +59,5 @@ test('Professional sync recovers only a verified bound payment in their workshop
  }});
  const r=await h(syncRequest(),env,'/api/workshop-payment-sync');assert.equal(r.status,200);assert.deepEqual(await r.json(),{paid:1,pending:0,expired:0,failed:0,errors:0,more:false});assert.equal(settled,1);
 });
+
+test('Deposit checkout charges only the stored deposit and labels it clearly',()=>{const p=checkoutParams({...hold,payment_mode:'deposit',unit_cents:1000,amount_cents:2000},'https://beta.example.com','a'.repeat(64),'test@example.com');assert.equal(p.get('line_items[0][price_data][unit_amount]'),'1000');assert.equal(p.get('line_items[0][price_data][product_data][name]'),'Acompte — Massage bébé');});
