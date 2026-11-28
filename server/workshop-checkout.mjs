@@ -10,12 +10,12 @@ const digest=async value=>hex(new Uint8Array(await crypto.subtle.digest('SHA-256
 export function checkoutEnabled(env={}){
  return env.NAITEA_WORKSHOP_CHECKOUT_TEST_ENABLED==='true'&&env.NAITEA_STRIPE_TEST_ENABLED==='true'&&/^sk_test_[A-Za-z0-9]{16,250}$/.test(env.NAITEA_STRIPE_TEST_SECRET_KEY||'')&&/^whsec_[A-Za-z0-9]{16,250}$/.test(env.NAITEA_STRIPE_TEST_WEBHOOK_SECRET||'')&&!!bookingConfig(env);
 }
-async function readJSON(response,max=262144){
+export async function readJSON(response,max=262144){
  if(!response.ok){response.body?.cancel().catch(()=>{});throw Error('provider');}
  return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(await bytes(response,max)));
 }
-const rpc=(c,fetchImpl)=>async(name,args)=>readJSON(await fetchImpl(c.url+'/rest/v1/rpc/'+name,{method:'POST',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{apikey:c.service,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(args)}));
-async function stripe(env,fetchImpl,path,{account,params,idempotency}={}){
+export const rpc=(c,fetchImpl)=>async(name,args)=>readJSON(await fetchImpl(c.url+'/rest/v1/rpc/'+name,{method:'POST',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{apikey:c.service,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(args)}));
+export async function stripe(env,fetchImpl,path,{account,params,idempotency}={}){
  const response=await fetchImpl('https://api.stripe.com'+path,{method:params?'POST':'GET',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{Authorization:'Bearer '+env.NAITEA_STRIPE_TEST_SECRET_KEY,'Stripe-Version':VERSION,Accept:'application/json',...(account?{'Stripe-Account':account}:{}),...(params?{'Content-Type':'application/x-www-form-urlencoded'}:{}),...(idempotency?{'Idempotency-Key':idempotency}:{})},...(params?{body:params}:{})});
  if(!response.ok){
   let rejected=false;
@@ -173,7 +173,7 @@ async function syncProfessionalWorkshop(request,{c,env,fetchImpl,db}){
   return json(200,totals);
  }catch{return json(503,{error:'SYNC_UNAVAILABLE'});}
 }
-export function createWorkshopPaymentHandler({fetchImpl=globalThis.fetch}={}){
+export function createWorkshopPaymentHandler({fetchImpl=globalThis.fetch,appointmentWebhook=null}={}){
  return async(request,env,path)=>{
   const c=bookingConfig(env),u=new URL(request.url);
   if(!c||u.origin!==c.origin||!checkoutEnabled(env))return json(423,{error:'CHECKOUT_TEST_DISABLED'});
@@ -197,7 +197,9 @@ export function createWorkshopPaymentHandler({fetchImpl=globalThis.fetch}={}){
    const raw=await bytes(request,512*1024);
    if(!await verifyStripeSignature(raw,request.headers.get('Stripe-Signature'),env.NAITEA_STRIPE_TEST_WEBHOOK_SECRET))return json(400,{error:'INVALID_SIGNATURE'});
    const e=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw)),obj=e.data?.object;
-   if(e.livemode!==false||!EVENTS.has(e.type)||obj?.metadata?.naitea_kind!=='workshop_test')return json(200,{received:true});
+   if(e.livemode!==false||!EVENTS.has(e.type))return json(200,{received:true});
+   if(obj?.metadata?.naitea_kind==='appointment_test'&&appointmentWebhook)return await appointmentWebhook({event:e,c,env,fetchImpl});
+   if(obj?.metadata?.naitea_kind!=='workshop_test')return json(200,{received:true});
    if(!ACCOUNT.test(e.account||'')||!SESSION.test(obj.id||'')||!UUID.test(obj.metadata.naitea_booking_id||''))return json(400,{error:'INVALID_EVENT'});
    const bookingId=obj.metadata.naitea_booking_id,held=await db('naitea_get_workshop_checkout',{p_booking_id:bookingId,p_account:e.account});
    if(!held)return json(200,{received:true,ignored:true});

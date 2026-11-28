@@ -4,6 +4,7 @@ import { createPublicWorkshopHandler } from '../server/public-workshop.mjs';
 import { createPublicCatalogHandler } from '../server/public-catalog.mjs';
 import {createBookingHandler} from '../server/bookings.mjs';
 import {createWorkshopPaymentHandler,checkoutEnabled} from '../server/workshop-checkout.mjs';
+import {createAppointmentPaymentHandler,appointmentWebhook} from '../server/appointment-checkout.mjs';
 import {createPublicAppointmentHandler} from '../server/public-appointments.mjs';
 import {createManualBookingHandler} from '../server/manual-bookings.mjs';
 import {createWaitlistHandler} from '../server/waitlist.mjs';
@@ -29,7 +30,8 @@ const workshopsHandler = createWorkshopsHandler();
 const publicWorkshopHandler = createPublicWorkshopHandler();
 const publicCatalogHandler = createPublicCatalogHandler();
 const bookingHandler = createBookingHandler();
-const workshopPaymentHandler=createWorkshopPaymentHandler();
+const workshopPaymentHandler=createWorkshopPaymentHandler({appointmentWebhook});
+const appointmentPaymentHandler=createAppointmentPaymentHandler();
 const publicAppointmentHandler = createPublicAppointmentHandler();
 const manualBookingHandler = createManualBookingHandler();
 const waitlistHandler = createWaitlistHandler();
@@ -60,10 +62,10 @@ function guard(response, request, { embed = false, auth = false, account = false
     headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; connect-src https://challenges.cloudflare.com");
     // HTML form POSTs need a non-null Origin for the strict same-origin check.
     // Only the origin, never the page path or confirmation fragment, is disclosed.
-    if(/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname))headers.set('Content-Security-Policy',headers.get('Content-Security-Policy').replace("form-action 'self'","form-action 'self' https://checkout.stripe.com"));
+    if(appointmentPath||/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname))headers.set('Content-Security-Policy',headers.get('Content-Security-Policy').replace("form-action 'self'","form-action 'self' https://checkout.stripe.com"));
     headers.set('X-Frame-Options','DENY');headers.set('Referrer-Policy','strict-origin');
   }
-  if(new URL(request.url).pathname==='/reservation/paiement'){headers.set('Referrer-Policy','strict-origin');headers.set('X-Frame-Options','DENY');headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self'");}
+  if(['/reservation/paiement','/reservation/rendez-vous-paiement'].includes(new URL(request.url).pathname)){headers.set('Referrer-Policy','strict-origin');headers.set('X-Frame-Options','DENY');headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self'");}
   if (auth) headers.set('X-Frame-Options', 'DENY');
   if (headers.get('Content-Type')?.includes('text/html')) headers.set('Cache-Control', 'no-store');
   return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, statusText: response.statusText, headers });
@@ -193,6 +195,7 @@ async function route(request, env, ctx, pathname) {
   if (pathname === '/api/manual-bookings') return manualBookingHandler(request, env);
   if (pathname === '/api/waitlist') return waitlistHandler(request, env);
   if (pathname === '/api/cancellations') return cancellationHandler(request, env);
+  if(pathname==='/reservation/rendez-vous-paiement'||pathname==='/api/appointment-payment-sync')return appointmentPaymentHandler(request,env,pathname);
   if(pathname==='/api/stripe-test-webhook'||pathname==='/reservation/paiement'||pathname==='/api/workshop-payment-sync')return workshopPaymentHandler(request,env,pathname);
   if(pathname==='/reservation/confirmer')return bookingHandler(request,env);
   const appointmentMatch=/^\/(?:accompagnement\/([a-f0-9-]{36})|(accompagnement-[a-z0-9]+(?:-[a-z0-9]+)*))(?:\/(photo))?$/.exec(pathname);
