@@ -661,7 +661,7 @@ function create(d){
     const root=document.createElement('div');root.id='naiteaPrivateBookings';root.append(text('p','Chargement des inscriptions…'));
     d.showModal('Inscriptions · '+w.title,'Retrouve tes inscriptions confirmées et l’historique des annulations.',root.outerHTML);
     const target=el('naiteaPrivateBookings');
-    const loadList=async(notice='',paymentNotice=false,resumeTestUrl=null)=>{
+    const loadList=async(notice='',paymentNotice=false,resumeTestUrl=null,expireTestId=null)=>{
       try{
         const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source,cancellation_email_status,payment_status,amount_paid_cents,balance_due_cents').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
@@ -675,20 +675,21 @@ function create(d){
         if(notice&&!paymentNotice){const n=text('p',notice);n.setAttribute('role','status');target.append(n);}
         if(checkoutConfigured&&['online','choice','deposit'].includes(w.payment_mode)){
           const paymentPanel=document.createElement('section');paymentPanel.className='card naitea-booking-group';paymentPanel.append(text('h3','Paiements Stripe (test)'),text('p','Vérifie les paiements en attente, même si la famille a fermé sa page de réservation. Aucun nouveau débit.'));
-          const sync=button('Synchroniser les paiements Stripe',async()=>{
+          const syncAction=async(expireId=null)=>{
             sync.disabled=true;sync.textContent='Vérification en cours…';
             try{
               const {data,error}=await client.auth.getSession();if(version!==revision||owner!==uid||!target.isConnected)return;if(error||data?.session?.user?.id!==uid||!data.session.access_token)throw Error();
-              const response=await fetch('/api/workshop-payment-sync',{method:'POST',credentials:'omit',cache:'no-store',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({workshop_id:w.id})});
+              const response=await fetch('/api/workshop-payment-sync',{method:'POST',credentials:'omit',cache:'no-store',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({workshop_id:w.id,...(expireId?{expire_test_booking_id:expireId}:{})})});
               const result=await response.json();if(!response.ok)throw Error();if(version!==revision||owner!==uid||!target.isConnected)return;
               const count=result.paid+result.pending+result.expired+result.failed+result.errors;
               const notice=count===0?'Aucun paiement en attente à synchroniser.':result.paid+' paiement(s) confirmé(s) · '+result.pending+' en attente · '+(result.expired+result.failed)+' non finalisé(s)'+(result.errors?' · '+result.errors+' vérification(s) non aboutie(s)':'')+(result.more?' · D’autres paiements restent à vérifier.':'');
               const labels={session_missing:'Session Stripe non associée. Ne refais pas de paiement.',checkout_open:'Stripe indique que le paiement n’a pas été finalisé (session encore ouverte).',payment_processing:'Stripe traite encore le règlement.',stripe_pending:'Stripe n’a pas confirmé le règlement.',stripe_unavailable:'Impossible de consulter la session Stripe.',session_mismatch:'La session Stripe ne correspond pas à la réservation.',settlement_unavailable:'Règlement vérifié mais enregistrement indisponible.',settlement_conflict:'Le règlement vérifié ne peut pas encore être enregistré.',verification_unavailable:'Vérification indisponible.'};
               const details=Object.entries(result.diagnostics||{}).filter(([k,v])=>Object.hasOwn(labels,k)&&Number.isInteger(v)&&v>0).map(([k,v])=>v+' × '+labels[k]).join(' ');
-              await loadList(notice+(details?' — '+details:''),true,result.resume_test_url);
+              await loadList(notice+(details?' — '+details:''),true,result.resume_test_url,result.expire_test_booking_id);
             }catch{if(version===revision&&owner===uid&&target.isConnected)await loadList('Synchronisation non confirmée. Réessaie sans refaire de paiement.',true);}
-          });sync.className='btn';paymentPanel.append(sync);if(notice&&paymentNotice){const n=text('p',notice);n.setAttribute('role','status');paymentPanel.append(n);}
-          if(typeof resumeTestUrl==='string'){try{const url=new URL(resumeTestUrl);if(url.origin==='https://checkout.stripe.com'&&!url.username&&!url.password&&url.pathname.startsWith('/c/pay/cs_test_')){const link=text('a','Reprendre le paiement de test');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.className='btn secondary';paymentPanel.append(link,text('p','Rouvre uniquement la session existante. Aucun nouveau paiement n’est créé.'));}}catch{}}
+          };const sync=button('Synchroniser les paiements Stripe',()=>syncAction());sync.className='btn';paymentPanel.append(sync);if(notice&&paymentNotice){const n=text('p',notice);n.setAttribute('role','status');paymentPanel.append(n);}
+          if(typeof resumeTestUrl==='string'){try{const url=new URL(resumeTestUrl);if(url.origin==='https://checkout.stripe.com'&&!url.username&&!url.password&&/^\/(?:c\/)?pay\/cs_test_[A-Za-z0-9_]+$/.test(url.pathname)){const link=text('a','Reprendre le paiement de test');link.href=url.href;link.target='_blank';link.rel='noopener noreferrer';link.className='btn secondary';paymentPanel.append(link,text('p','Rouvre uniquement la session existante. Aucun nouveau paiement n’est créé.'));}}catch{}}
+          if(typeof expireTestId==='string'&&/^[a-f0-9-]{36}$/i.test(expireTestId)){const abandon=button('Abandonner ce paiement de test',async()=>{if(!window.confirm('Fermer définitivement cette session Stripe non payée et libérer la place ? Aucun remboursement ni nouveau débit.'))return;abandon.disabled=true;await syncAction(expireTestId);});abandon.className='btn secondary';paymentPanel.append(abandon,text('p','Si tu ne peux pas reprendre le paiement, ferme la session existante avant de recommencer.'));}
           target.append(paymentPanel);
         }
         if(manualEnabled&&!['online','deposit'].includes(w.payment_mode)&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
