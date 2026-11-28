@@ -1,6 +1,7 @@
 import {bookingConfig} from './booking-config.mjs';
 import {bytes} from './public-workshop.mjs';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i,ACCOUNT=/^acct_[A-Za-z0-9]+$/;
+const STRIPE_VERSION='2026-11-18.endive';
 const json=(status,data)=>new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'private, no-store','Referrer-Policy':'no-referrer'}});
 export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
  return async(request,env={})=>{
@@ -11,7 +12,7 @@ export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
   if(request.method==='POST'&&(request.headers.get('Origin')!==url.origin||request.headers.get('Content-Type')!=='application/json'))return json(403,{error:'ORIGIN_FORBIDDEN'});
   const call=(u,opts={})=>fetchImpl(u,{redirect:'manual',signal:AbortSignal.timeout(10000),...opts});
   const read=async(r,max=262144)=>{if(!r.ok){r.body?.cancel().catch(()=>{});throw Error('provider');}return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(await bytes(r,max)));};
-  let stage='AUTH';
+  let stage='AUTH',stripeStatus=null;
   try{
    const auth=await call(c.url+'/auth/v1/user',{headers:{apikey:c.publishableKey,Authorization:token}});
    if(!auth.ok){auth.body?.cancel().catch(()=>{});return json(401,{error:'AUTH_REQUIRED'});}
@@ -21,26 +22,37 @@ export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
    const uid=user.id.toLowerCase(),table=c.url+'/rest/v1/naitea_stripe_test_accounts',dbHeaders={apikey:c.service,Accept:'application/json'};
    const get=async()=>{const u=new URL(table);u.searchParams.set('professional_id','eq.'+uid);u.searchParams.set('select','stripe_account_id');const rows=await read(await call(u.href,{headers:dbHeaders}),8192);if(!Array.isArray(rows)||rows.length>1||rows.length&& !ACCOUNT.test(rows[0]?.stripe_account_id||''))throw Error('account');return rows[0]?.stripe_account_id||null;};
    let id=await get();
-   const stripe=async(path,params,idem)=>read(await call('https://api.stripe.com/v1/'+path,{method:params?'POST':'GET',headers:{Authorization:'Bearer '+key,...(params?{'Content-Type':'application/x-www-form-urlencoded'}:{}),...(idem?{'Idempotency-Key':idem}:{})},...(params?{body:new URLSearchParams(params)}:{})}));
+   const stripe=async(path,params,idem)=>{
+    stripeStatus=null;
+    const response=await call('https://api.stripe.com/v2/core/'+path,{method:params?'POST':'GET',headers:{Authorization:'Bearer '+key,'Stripe-Version':STRIPE_VERSION,Accept:'application/json',...(params?{'Content-Type':'application/json'}:{}),...(idem?{'Idempotency-Key':idem}:{})},...(params?{body:JSON.stringify(params)}:{})});
+    stripeStatus=response.status;
+    return read(response);
+   };
    if(!id&&request.method==='GET')return json(200,{status:'not_connected'});
    if(!id){
     stage='STRIPE_CREATE';
-    const a=await stripe('accounts',{type:'standard',country:'FR'},'naitea-test-connect-'+uid);
-    if(!ACCOUNT.test(a?.id||'')||a.type!=='standard')throw Error('account');
+    const a=await stripe('accounts',{
+     identity:{country:'FR'},dashboard:'full',
+     configuration:{merchant:{capabilities:{card_payments:{requested:true}}}},
+     defaults:{currency:'eur',responsibilities:{fees_collector:'stripe',losses_collector:'stripe'}},
+     include:['configuration.merchant','defaults']
+    },'naitea-test-connect-v2-'+uid);
+    if(!ACCOUNT.test(a?.id||'')||a.livemode===true)throw Error('account');
     stage='DATABASE_SAVE';
     const inserted=await call(table,{method:'POST',headers:{...dbHeaders,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify({professional_id:uid,stripe_account_id:a.id})});if(!inserted.ok){inserted.body?.cancel().catch(()=>{});throw Error('database');}inserted.body?.cancel().catch(()=>{});
     id=await get();if(!id)throw Error('account');
    }
    stage='STRIPE_STATUS';
-   const account=await stripe('accounts/'+id);
-   if(account.id!==id||account.type!=='standard')throw Error('account');
-   const ready=account.details_submitted===true&&account.charges_enabled===true&&account.payouts_enabled===true;
+   const query=new URLSearchParams();for(const field of ['configuration.merchant','defaults','requirements'])query.append('include[]',field);
+   const account=await stripe('accounts/'+id+'?'+query.toString());
+   if(account.id!==id||account.livemode===true||account.dashboard!=='full'||account.defaults?.responsibilities?.fees_collector!=='stripe'||account.defaults?.responsibilities?.losses_collector!=='stripe'||!account.configuration?.merchant)throw Error('account configuration');
+   const ready=account.configuration.merchant.capabilities?.card_payments?.status==='active';
    if(request.method==='GET'||ready)return json(200,{status:ready?'ready':'incomplete'});
    const back=c.origin+'/compte#stripeTestPanel';
    stage='STRIPE_ONBOARDING';
-   const link=await stripe('account_links',{account:id,refresh_url:back,return_url:back,type:'account_onboarding'});
+   const link=await stripe('account_links',{account:id,use_case:{type:'account_onboarding',account_onboarding:{configurations:['merchant'],collection_options:{fields:'eventually_due'},refresh_url:back,return_url:back}}});
    const target=new URL(link.url);if(target.origin!=='https://connect.stripe.com'||target.username||target.password)throw Error('link');
    return json(200,{status:'incomplete',url:target.href});
-  }catch{return json(503,{error:'STRIPE_TEST_UNAVAILABLE',stage});}
+  }catch{return json(503,{error:'STRIPE_TEST_UNAVAILABLE',stage,...(stage.startsWith('STRIPE_')&&Number.isInteger(stripeStatus)?{stripe_status:stripeStatus}:{})});}
  };
 }

@@ -6,3 +6,38 @@ test('Stripe status checks only authenticated owner without creating an account'
 test('Stripe requires same origin for POST',async()=>{const h=createStripeTestHandler({fetchImpl:async()=>{throw Error();}});assert.equal((await h(req('POST',{Authorization:'Bearer aa.bb.cc','Content-Type':'application/json',Origin:'https://other.example.com'}),env)).status,403);});
 
 test('Stripe exposes a fixed diagnostic stage without provider secrets',async()=>{let calls=0;const uid='12345678-1234-4234-8234-123456789012';const h=createStripeTestHandler({fetchImpl:async()=>++calls===1?Response.json({id:uid}):new Response('private provider error',{status:403})});const r=await h(req('GET',{Authorization:'Bearer aa.bb.cc'}),env);assert.equal(r.status,503);assert.deepEqual(await r.json(),{error:'STRIPE_TEST_UNAVAILABLE',stage:'DATABASE_READ'});});
+
+const owner='12345678-1234-4234-8234-123456789012',accountId='acct_Test123',postHeaders={Authorization:'Bearer aa.bb.cc','Content-Type':'application/json',Origin:origin};
+function v2Account(status='pending'){return {id:accountId,livemode:false,dashboard:'full',defaults:{responsibilities:{fees_collector:'stripe',losses_collector:'stripe'}},configuration:{merchant:{capabilities:{card_payments:{status}}}}};}
+test('Creates merchant account with v2 JSON, preserves owner mapping and opens v2 onboarding',async()=>{
+ let calls=[],mapped=false;
+ const h=createStripeTestHandler({fetchImpl:async(u,o)=>{
+  calls.push([u,o]);const url=new URL(u);
+  if(url.pathname==='/auth/v1/user')return Response.json({id:owner});
+  if(url.pathname==='/rest/v1/naitea_stripe_test_accounts'){
+   if(o.method==='POST'){assert.deepEqual(JSON.parse(o.body),{professional_id:owner,stripe_account_id:accountId});mapped=true;return new Response(null,{status:201});}
+   return Response.json(mapped?[{stripe_account_id:accountId}]:[]);
+  }
+  assert.equal(o.headers['Stripe-Version'],'2026-11-18.endive');
+  if(url.pathname==='/v2/core/accounts'){
+   assert.equal(o.headers['Content-Type'],'application/json');assert.equal(o.headers['Idempotency-Key'],'naitea-test-connect-v2-'+owner);
+   const p=JSON.parse(o.body);assert.equal(p.identity.country,'FR');assert.equal(p.dashboard,'full');assert.deepEqual(p.defaults.responsibilities,{fees_collector:'stripe',losses_collector:'stripe'});assert.equal(p.configuration.merchant.capabilities.card_payments.requested,true);assert.equal(p.defaults.currency,'eur');assert(!('type' in p));return Response.json(v2Account());
+  }
+  if(url.pathname==='/v2/core/accounts/'+accountId){assert(url.searchParams.getAll('include[]').includes('configuration.merchant'));return Response.json(v2Account());}
+  if(url.pathname==='/v2/core/account_links'){
+   const p=JSON.parse(o.body);assert.equal(p.account,accountId);assert.equal(p.use_case.type,'account_onboarding');assert.deepEqual(p.use_case.account_onboarding.configurations,['merchant']);assert.equal(p.use_case.account_onboarding.return_url,origin+'/compte#stripeTestPanel');return Response.json({url:'https://connect.stripe.com/setup/test'});
+  }
+  throw Error('Unexpected request');
+ }});
+ const r=await h(req('POST',postHeaders),env);assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:'incomplete',url:'https://connect.stripe.com/setup/test'});assert.equal(calls.length,7);
+});
+test('Existing v2 account must have active merchant card capability to be ready',async()=>{
+ for(const status of ['active','pending']){
+  const h=createStripeTestHandler({fetchImpl:async(u)=>{const path=new URL(u).pathname;return Response.json(path==='/auth/v1/user'?{id:owner}:path.startsWith('/rest/')?[{stripe_account_id:accountId}]:v2Account(status));}});
+  const r=await h(req('GET',{Authorization:'Bearer aa.bb.cc'}),env);assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:status==='active'?'ready':'incomplete'});
+ }
+});
+test('Stripe error exposes HTTP status but not secret response content',async()=>{
+ const h=createStripeTestHandler({fetchImpl:async(u)=>{const path=new URL(u).pathname;return path==='/auth/v1/user'?Response.json({id:owner}):path.startsWith('/rest/')?Response.json([]):new Response('private Stripe details',{status:400});}});
+ const r=await h(req('POST',postHeaders),env);assert.equal(r.status,503);assert.deepEqual(await r.json(),{error:'STRIPE_TEST_UNAVAILABLE',stage:'STRIPE_CREATE',stripe_status:400});
+});
