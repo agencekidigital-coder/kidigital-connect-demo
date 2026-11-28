@@ -166,7 +166,7 @@ function create(d){
     const price=priceCents(f.get('price')),paymentMode=price===0?'free':val('payment_mode'),deposit=paymentMode==='deposit'?priceCents(f.get('deposit_amount')):null;
     if(!Object.hasOwn(PAYMENT_MODES,paymentMode)||price>0&&paymentMode==='free'||['online','choice','deposit'].includes(paymentMode)&&price<50)throw Error('Vérifie la modalité de paiement et le tarif (0,50 € minimum en ligne).');
     if(paymentMode==='deposit'&&(deposit<50||deposit>=price))throw Error('L’acompte doit être d’au moins 0,50 € et inférieur au tarif.');
-    if(['online','choice','deposit'].includes(paymentMode)&&val('status')==='active'&&!(pilotAllowed&&paymentMode==='online'))throw Error('Enregistre cet accompagnement en brouillon : le paiement de test sera activé après validation.');
+    if(['online','choice','deposit'].includes(paymentMode)&&val('status')==='active'&&!pilotAllowed)throw Error('Enregistre cet accompagnement en brouillon : le paiement de test sera activé après validation.');
     payload={payment_mode:paymentMode,deposit_cents:deposit,title,description:val('description'),duration_minutes:duration,buffer_minutes:buffer,price_cents:priceCents(f.get('price')),modality:chosenModes[0],modalities:chosenModes,modality_details:detail,location,audience:val('audience'),extra:val('extra'),booking_city:val('booking_city'),booking_instructions:val('booking_instructions'),status:val('status')};
    }catch(err){status.textContent=err.message;return;}
    const photo=photoBlob,removePhoto=remove.checked,v=generation;
@@ -179,7 +179,7 @@ function create(d){
   });
  }
  function setServiceStatus(s,state,status){
-  if(state==='active'&&['online','choice','deposit'].includes(s.payment_mode)&&!(checkoutConfigured&&s.id===PAYMENT_PILOT_ID&&s.payment_mode==='online')){status.textContent='Le paiement en ligne de cet accompagnement n’est pas encore activé en test.';return;}
+  if(state==='active'&&['online','choice','deposit'].includes(s.payment_mode)&&!(checkoutConfigured&&s.id===PAYMENT_PILOT_ID)){status.textContent='Le paiement en ligne de cet accompagnement n’est pas encore activé en test.';return;}
   const message=state==='archived'?'Archiver cet accompagnement ? Ses informations et disponibilités sont conservées.':'Réactiver cet accompagnement ? Ses disponibilités enregistrées seront conservées.';
   if(!confirm(message))return;
   mutate(async uid=>{const r=await client.from('naitea_services').update({status:state}).eq('id',s.id).eq('professional_id',uid).select('id').single();return {...r,nextFilter:state};},state==='archived'?'Accompagnement archivé.':'Accompagnement réactivé.',status);
