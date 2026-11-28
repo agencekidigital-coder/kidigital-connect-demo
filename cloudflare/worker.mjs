@@ -8,6 +8,7 @@ import {createManualBookingHandler} from '../server/manual-bookings.mjs';
 import {createWaitlistHandler} from '../server/waitlist.mjs';
 import {createCancellationHandler} from '../server/cancellations.mjs';
 import {bookingConfig} from '../server/booking-config.mjs';
+import {createStripeTestHandler} from '../server/stripe-test-connect.mjs';
 import { createAccountHandler } from '../server/account-profile.mjs';
 import fontHandler from '../api/font.js';
 import draftHandler from '../api/review-reply.js';
@@ -31,6 +32,7 @@ const publicAppointmentHandler = createPublicAppointmentHandler();
 const manualBookingHandler = createManualBookingHandler();
 const waitlistHandler = createWaitlistHandler();
 const cancellationHandler = createCancellationHandler();
+const stripeTestHandler = createStripeTestHandler();
 
 function guard(response, request, { embed = false, auth = false, account = false } = {}) {
   const headers = new Headers(response.headers);
@@ -167,6 +169,7 @@ async function route(request, env, ctx, pathname) {
   const url = new URL(request.url);
   if (!pathname) return json({ error: 'Adresse invalide.' }, 400);
   if (pathname === '/api/account') return accountHandler(request, env);
+  if (pathname === '/api/stripe-test-connect') return stripeTestHandler(request,env);
   if (pathname === '/api/workshops') return workshopsHandler(request, env);
   if (pathname === '/api/service-description') {
     const config=bookingConfig(env);

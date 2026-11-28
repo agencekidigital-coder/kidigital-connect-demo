@@ -9,6 +9,7 @@
     controller?.abort(); controller = null; currentUser = ''; pending = false;
     $('accountForm').reset(); $('accountEmail').textContent = ''; $('accountSaveStatus').textContent = '';
     $('accountDetails').hidden = true;
+    $('stripeTestPanel').hidden=true;$('stripeTestConnect').hidden=true;$('stripeTestStatus').textContent='';
     $('accountLogout').hidden = true;
     return version;
   }
@@ -76,10 +77,31 @@
       $('accountEmail').textContent = user.email || 'Compte connecté';
       $('accountFullName').value = data.full_name || ''; $('accountBusinessName').value = data.business_name || '';
       $('accountNotice').hidden = true; $('accountDetails').hidden = false; $('accountLogout').hidden = false;
+      $('stripeTestPanel').hidden=false;stripeStatus(false);
     } catch (error) {
       if (snapshot === version) notice('Votre profil est indisponible.', error.name === 'AbortError' ? 'Le service met trop de temps à répondre. Réessayez.' : error.message, { retry: true });
     }
   }
+  let stripeBusyVersion=null;
+  async function stripeStatus(connect){
+    const snapshot=version;if(!client||!currentUser||stripeBusyVersion===snapshot)return;stripeBusyVersion=snapshot;
+    const label=$('stripeTestStatus'),action=$('stripeTestConnect'),refresh=$('stripeTestRefresh');
+    action.disabled=true;refresh.disabled=true;label.textContent=connect?'Ouverture sécurisée de Stripe…':'Vérification de Stripe…';
+    try{
+      const result=await client.auth.getSession();if(snapshot!==version)return;
+      const session=result.data?.session;if(result.error||!session?.access_token||session.user?.id!==currentUser)throw Error();
+      const r=await fetch('/api/stripe-test-connect',{method:connect?'POST':'GET',credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(20000),headers:{Authorization:'Bearer '+session.access_token,...(connect?{'Content-Type':'application/json'}:{})},...(connect?{body:'{}'}:{})});
+      const data=await r.json();if(snapshot!==version)return;
+      if(r.status===423){action.hidden=true;label.textContent='Configuration Stripe de test non activée par Naïtea.';return;}
+      if(!r.ok)throw Error();
+      if(connect&&data.url){const target=new URL(data.url);if(target.origin!=='https://connect.stripe.com')throw Error();location.assign(target.href);return;}
+      const states={not_connected:'Aucun compte Stripe de test connecté.',incomplete:'Configuration Stripe de test à terminer.',ready:'Compte de test connecté et autorisé à accepter les paiements de test.'};
+      if(!Object.hasOwn(states,data.status))throw Error();label.textContent=states[data.status];action.hidden=data.status==='ready';action.textContent=data.status==='incomplete'?'Terminer ma configuration Stripe':'Configurer Stripe en mode test';
+    }catch{if(snapshot===version){label.textContent='Impossible de vérifier Stripe. Actualise avant de réessayer.';action.hidden=true;}}
+    finally{if(stripeBusyVersion===snapshot)stripeBusyVersion=null;if(snapshot===version){action.disabled=false;refresh.disabled=false;}}
+  }
+  $('stripeTestConnect').addEventListener('click',()=>stripeStatus(true));
+  $('stripeTestRefresh').addEventListener('click',()=>stripeStatus(false));
   $('accountRetry').addEventListener('click', () => { if (client) scheduleLoad(); });
   $('accountForm').addEventListener('submit', async event => {
     event.preventDefault();

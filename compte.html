@@ -37,6 +37,12 @@
       </form>
       <p id="accountSaveStatus" role="status" aria-live="polite"></p>
     </section>
+    <section class="account-panel" id="stripeTestPanel" hidden aria-labelledby="stripeTestTitle">
+      <h2 id="stripeTestTitle">Mes paiements – Stripe Connect</h2>
+      <p>Mode test uniquement. Naïtea ne prélève aucune commission sur les réservations. Aucun argent réel ne sera débité ni encaissé.</p>
+      <p id="stripeTestStatus" role="status" aria-live="polite">Vérification…</p>
+      <div class="tester-actions"><button class="tester-button" id="stripeTestConnect" type="button" hidden>Configurer Stripe en mode test</button><button class="tester-button secondary" id="stripeTestRefresh" type="button">Actualiser le statut</button></div>
+    </section>
     <button class="account-logout" id="accountLogout" type="button" hidden>Se déconnecter</button>
     <p class="account-return"><a href="/mes-ateliers">Mes ateliers – aperçu de sauvegarde</a></p>
     <p class="account-return"><a href="/bienvenue">Revenir au parcours de découverte</a></p>

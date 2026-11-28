@@ -1,0 +1,7 @@
+# Stripe Connect — bêta Cloudflare, phase configuration
+
+Mode test uniquement : les comptes Stripe de test sont isolés dans naitea_stripe_test_accounts, accès service_role uniquement. Le Worker vérifie l'utilisateur auprès de Supabase, crée un compte Standard uniquement au clic explicite, génère un lien d'onboarding à usage unique, puis vérifie details_submitted, charges_enabled et payouts_enabled auprès de Stripe. Un retour n'est pas une preuve d'activation. L'URL de retour/rafraîchissement est /compte#stripeTestPanel ; la professionnelle peut relancer le lien. Aucun paiement n'est activé.
+
+Configuration Cloudflare preview : NAITEA_STRIPE_TEST_ENABLED=true et secret NAITEA_STRIPE_TEST_SECRET_KEY (sk_test_ uniquement). Ne jamais mettre la clé dans Git, dans une variable publique ni dans le navigateur. Tester l'onboarding depuis Mon compte. L'ancienne table naitea_stripe_accounts n'est pas modifiée. Si la professionnelle souhaite connecter un compte Standard existant, prévoir un flux OAuth distinct avec state à usage unique.
+
+Phase suivante : réservation temporaire atomique, prix serveur et compte connecté vérifié, Stripe Checkout direct charge sans application_fee_amount ; webhook Connect signé sur corps brut, vérification account/id/montant/devise/mode, idempotence et expiration/libération des places. Paiements sur place restent disponibles. Ne pas confirmer de réservation payante sur simple retour navigateur. Aucun secret webhook ni charge réelle dans cette phase.
