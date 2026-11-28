@@ -88,3 +88,32 @@ body .modal input[type=radio],body .modal input[type=checkbox]{width:18px!import
 @media(max-width:850px){.naitea-gift-editor-layout{grid-template-columns:1fr}.naitea-gift-design>.naitea-section-title .naitea-pictogram{width:55px;height:55px}}
 @media(max-width:600px){.naitea-title-picto{width:52px;height:52px;margin-right:4px}.naitea-pictogram{width:52px;height:52px}.naitea-check-grid{grid-template-columns:1fr}.naitea-workshop-location,.naitea-audiences,.naitea-booking-modality{padding:12px}.naitea-choice-row>.btn{white-space:normal}.naitea-gift-art-content{padding:22px}.naitea-gift-art.photo .naitea-gift-art-content{width:70%;padding:16px}.naitea-gift-art.photo .naitea-gift-photo{width:30%}.naitea-gift-service{font-size:17px}.naitea-template{padding:8px;font-size:13px}.naitea-gift-shop-mode .main{padding:16px}#naiteaChatLauncher{bottom:85px;right:16px}#naiteaChat{right:16px;bottom:157px;max-height:calc(100dvh - 230px)}}
 @media(max-width:600px){#naiteaChat{padding:17px;gap:11px}#naiteaChat h2{font-size:20px}#naiteaChatMessages{min-height:75px}#naiteaChat>.fine{font-size:11px}#naiteaChatMessages p{font-size:14px}.naitea-chat-actions .btn{font-size:12px}#naiteaChatForm>.btn{font-size:14px;padding-inline:10px}}
+
+/* Individual service form: consistent, accessible option alignment, scoped to these two fieldsets. */
+#naiteaPrivateServiceForm .naitea-service-choice-panel{
+ box-sizing:border-box;display:block;min-width:0;width:100%;margin:0 0 20px;padding:16px 18px;
+ border:1px solid #e4d3c3;border-radius:14px;background:#fdf8ee;
+}
+#naiteaPrivateServiceForm .naitea-service-choice-panel>legend{
+ padding:0 6px;color:#590425;font-size:16px;font-weight:700;line-height:1.4;
+}
+#naiteaPrivateServiceForm .naitea-service-choice-panel>p{
+ margin:0 0 12px;font-size:14px;line-height:1.5;color:#76525c;
+}
+#naiteaPrivateServiceForm .naitea-service-choice-panel>label.naitea-service-choice{
+ display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;
+ gap:10px!important;width:100%;min-width:0;box-sizing:border-box;margin:0!important;padding:9px 2px;
+ text-align:left!important;color:#590425;font-size:14px;line-height:1.45;font-weight:500;cursor:pointer;
+}
+#naiteaPrivateServiceForm .naitea-service-choice-panel>label.naitea-service-choice>input:is([type="checkbox"],[type="radio"]){
+ display:inline-block!important;appearance:auto;flex:0 0 18px!important;width:18px!important;height:18px!important;
+ min-width:18px!important;max-width:18px!important;min-height:18px!important;max-height:18px!important;
+ margin:0!important;padding:0!important;align-self:center!important;accent-color:#89515f;
+}
+#naiteaPrivateServiceForm .naitea-service-choice-panel>label.naitea-service-choice>span{
+ flex:1 1 auto;min-width:0;width:auto!important;margin:0!important;padding:0;
+ text-align:left!important;line-height:1.45;color:inherit;font:inherit;overflow-wrap:break-word;
+}
+#naiteaPrivateServiceForm .naitea-service-payment-panel>.field{margin:12px 0 0}
+#naiteaPrivateServiceForm .naitea-service-payment-panel>.field[hidden]{display:none!important}
+@media(max-width:600px){#naiteaPrivateServiceForm .naitea-service-choice-panel{padding:12px 14px}}

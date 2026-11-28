@@ -5,6 +5,7 @@ const DAYS=['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi','Dimanche'];
 const MODES={practice:'En cabinet',home:'À domicile',video:'En visio',phone:'Par téléphone'};
 const COVER_BUCKET='naitea-service-covers';
 const modesOf=s=>Array.isArray(s?.modalities)&&s.modalities.length?s.modalities:[s?.modality||'practice'];
+const PAYMENT_PILOT_ID='165ad658-3a45-4d7b-b8c4-64365312c248';
 const PAYMENT_MODES={free:'Gratuit',onsite:'Paiement sur place',online:'Paiement intégral en ligne',choice:'Au choix de la famille',deposit:'Acompte en ligne, solde sur place'};
 const STATES={draft:'Brouillon',active:'Active',archived:'Archivée'};
 const money=n=>new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(n/100);
@@ -22,7 +23,7 @@ function audienceOptions(value){const saved=String(value||'').split(' · ').map(
 function visibleServices(services,status='active'){return services.filter(s=>s.status===status);}
 function absenceLabel(r){const format=s=>s.split('-').reverse().join('/');return r.closed_date===(r.end_date||r.closed_date)?format(r.closed_date):'Du '+format(r.closed_date)+' au '+format(r.end_date);}
 function create(d){
- let client=null,owner=null,enabled=false,checked=false,active=false,view='',generation=0,loading=false,loaded=false,busy=false,notice='',failed=false,services=[],rules=[],closed=[],edit=null,chosen='',ruleEdit=null,allPlanning=false,parentPreview=false,offerFilter='active',detailId=null,agendaDay=null;
+ let client=null,owner=null,enabled=false,checkoutConfigured=false,checked=false,active=false,view='',generation=0,loading=false,loaded=false,busy=false,notice='',failed=false,services=[],rules=[],closed=[],edit=null,chosen='',ruleEdit=null,allPlanning=false,parentPreview=false,offerFilter='active',detailId=null,agendaDay=null;
  const node=(tag,cls)=>{const e=document.createElement(tag);if(cls)e.className=cls;return e;};
  const text=(tag,v)=>{const e=node(tag);e.textContent=v;return e;};
  const button=(label,fn,primary=false)=>{const b=text('button',label);b.type='button';b.className=primary?'btn':'btn secondary';b.addEventListener('click',fn);return b;};
@@ -85,17 +86,18 @@ function create(d){
   form.elements.title.maxLength=120;form.elements.audience.maxLength=300;form.elements.extra.maxLength=2000;form.elements.description.maxLength=3000;
   const audienceField=form.elements.audience.closest('.field'),audienceInput=node('input');audienceInput.name='audience';
   const savedAudiences=String(s?.audience||'').split(' · ').map(v=>v.trim()).filter(Boolean);
-  const audienceGroup=node('fieldset','naitea-service-audience');audienceGroup.append(text('legend','Public concerné'),text('p','Coche un ou plusieurs publics.'));
+  const audienceGroup=node('fieldset','naitea-service-audience naitea-service-choice-panel');audienceGroup.append(text('legend','Public concerné'),text('p','Coche un ou plusieurs publics.'));
   audienceInput.type='hidden';audienceInput.hidden=true;audienceField.replaceChildren(audienceInput,audienceGroup);
-  for(const item of audienceOptions(s?.audience)){const label=node('label','checkline'),check=node('input');check.type='checkbox';check.name='audience_category';check.value=item;check.checked=savedAudiences.includes(item);label.append(check,document.createTextNode(' '+item));audienceGroup.append(label);}
+  for(const item of audienceOptions(s?.audience)){const label=node('label','checkline naitea-service-choice'),check=node('input');check.type='checkbox';check.name='audience_category';check.value=item;check.checked=savedAudiences.includes(item);label.append(check,text('span',item));audienceGroup.append(label);}
   const syncAudience=()=>{audienceInput.value=[...audienceGroup.querySelectorAll('input:checked')].map(e=>e.value).join(' · ');};
   audienceGroup.addEventListener('change',syncAudience);syncAudience();
   form.elements.offerPhone.value=details.phone?.number||'';
   const footer=form.querySelector('.modalfooter');const more=node('div','naitea-family-fields');
   more.append(field('Pause entre deux séances (minutes)','buffer','number',s?.buffer_minutes??15,{required:true,min:0,max:120,step:5}),selectField('Statut','status',Object.entries(STATES).filter(([k])=>k!=='archived'||s?.status==='archived'),s?.status??'draft'));footer.before(more);
-  const paymentPanel=node('fieldset','naitea-service-audience');paymentPanel.append(text('legend','Modalités de règlement'),text('p','Le paiement en ligne sera ouvert sur les accompagnements autorisés en mode test. Pour l’instant, enregistre ces réglages en brouillon.'));
+  const pilotAllowed=checkoutConfigured&&s?.id===PAYMENT_PILOT_ID;
+  const paymentPanel=node('fieldset','naitea-service-audience naitea-service-choice-panel naitea-service-payment-panel');paymentPanel.append(text('legend','Modalités de règlement'),text('p',pilotAllowed?'Paiement en ligne disponible en mode test pour cet accompagnement. Aucun argent réel ne sera débité.':'Le paiement en ligne est réservé aux accompagnements autorisés en mode test. Enregistre les autres réglages en brouillon.'));
   const savedMode=s?.price_cents===0?'free':s?.payment_mode||'onsite';
-  for(const [value,label] of Object.entries(PAYMENT_MODES)){const l=node('label','checkline'),r=node('input');r.type='radio';r.name='payment_mode';r.value=value;r.checked=value===savedMode;r.required=true;l.append(r,document.createTextNode(' '+label));paymentPanel.append(l);}
+  for(const [value,label] of Object.entries(PAYMENT_MODES)){const l=node('label','checkline naitea-service-choice'),r=node('input');r.type='radio';r.name='payment_mode';r.value=value;r.checked=value===savedMode;r.required=true;l.append(r,text('span',label));paymentPanel.append(l);}
   const depositField=field('Acompte par rendez-vous (€)','deposit_amount','number',s?.deposit_cents!=null?s.deposit_cents/100:'',{min:'0.50',step:'0.01'});paymentPanel.append(depositField);const depositInput=depositField.querySelector('input');
   const syncPayment=()=>{const price=Number(form.elements.price.value),selected=paymentPanel.querySelector('input:checked');if(price===0){paymentPanel.querySelector('[value=free]').checked=true;}else if(selected?.value==='free'){paymentPanel.querySelector('[value=onsite]').checked=true;}const mode=paymentPanel.querySelector('input:checked')?.value;depositField.hidden=mode!=='deposit';depositInput.disabled=mode!=='deposit';depositInput.required=mode==='deposit';if(Number.isFinite(price))depositInput.max=String(Math.max(0,Math.round(price*100-1)/100));};
   paymentPanel.addEventListener('change',syncPayment);form.elements.price.addEventListener('input',syncPayment);footer.before(paymentPanel);syncPayment();
@@ -164,7 +166,7 @@ function create(d){
     const price=priceCents(f.get('price')),paymentMode=price===0?'free':val('payment_mode'),deposit=paymentMode==='deposit'?priceCents(f.get('deposit_amount')):null;
     if(!Object.hasOwn(PAYMENT_MODES,paymentMode)||price>0&&paymentMode==='free'||['online','choice','deposit'].includes(paymentMode)&&price<50)throw Error('Vérifie la modalité de paiement et le tarif (0,50 € minimum en ligne).');
     if(paymentMode==='deposit'&&(deposit<50||deposit>=price))throw Error('L’acompte doit être d’au moins 0,50 € et inférieur au tarif.');
-    if(['online','choice','deposit'].includes(paymentMode)&&val('status')==='active')throw Error('Enregistre cet accompagnement en brouillon : le paiement de test sera activé après validation.');
+    if(['online','choice','deposit'].includes(paymentMode)&&val('status')==='active'&&!(pilotAllowed&&paymentMode==='online'))throw Error('Enregistre cet accompagnement en brouillon : le paiement de test sera activé après validation.');
     payload={payment_mode:paymentMode,deposit_cents:deposit,title,description:val('description'),duration_minutes:duration,buffer_minutes:buffer,price_cents:priceCents(f.get('price')),modality:chosenModes[0],modalities:chosenModes,modality_details:detail,location,audience:val('audience'),extra:val('extra'),booking_city:val('booking_city'),booking_instructions:val('booking_instructions'),status:val('status')};
    }catch(err){status.textContent=err.message;return;}
    const photo=photoBlob,removePhoto=remove.checked,v=generation;
@@ -177,7 +179,7 @@ function create(d){
   });
  }
  function setServiceStatus(s,state,status){
-  if(state==='active'&&['online','choice','deposit'].includes(s.payment_mode)){status.textContent='Le paiement en ligne de cet accompagnement n’est pas encore activé en test.';return;}
+  if(state==='active'&&['online','choice','deposit'].includes(s.payment_mode)&&!(checkoutConfigured&&s.id===PAYMENT_PILOT_ID&&s.payment_mode==='online')){status.textContent='Le paiement en ligne de cet accompagnement n’est pas encore activé en test.';return;}
   const message=state==='archived'?'Archiver cet accompagnement ? Ses informations et disponibilités sont conservées.':'Réactiver cet accompagnement ? Ses disponibilités enregistrées seront conservées.';
   if(!confirm(message))return;
   mutate(async uid=>{const r=await client.from('naitea_services').update({status:state}).eq('id',s.id).eq('professional_id',uid).select('id').single();return {...r,nextFilter:state};},state==='archived'?'Accompagnement archivé.':'Accompagnement réactivé.',status);
@@ -205,7 +207,7 @@ function create(d){
    }else if(s.booking_slug)share.append(button('Activer mon lien de réservation',()=>{if(confirm('Rendre la description, la couverture, les tarifs, les modalités et les lieux de cette prestation accessibles via un lien de test ?'))mutate(()=>changeLink(crypto.randomUUID()),'Lien activé. Ouvre la fiche pour le copier.',info);},true));
    share.append(info);panel.append(share);
   }
-  const status=statusLine();panel.append(button(s.status==='archived'?'Réactiver l’accompagnement':'Archiver l’accompagnement',()=>setServiceStatus(s,s.status==='archived'?'active':'archived',status)),status);
+  const status=statusLine();if(s.status==='draft')panel.append(button('Activer l’accompagnement',()=>setServiceStatus(s,'active',status),true));panel.append(button(s.status==='archived'?'Réactiver l’accompagnement':'Archiver l’accompagnement',()=>setServiceStatus(s,s.status==='archived'?'active':'archived',status)),status);
  }
  function offers(panel){
   if(edit!==null){serviceForm(panel,edit==='new'?null:services.find(x=>x.id===edit));return;}
@@ -324,7 +326,7 @@ function create(d){
   if(!d.isPage()){leave();return;}document.body.classList.add('naitea-service-workspace');
   const next=d.page();if(!active||view!==next){generation++;loading=busy=false;active=true;view=next;edit=null;ruleEdit=null;detailId=null;if(next==='offers')offerFilter='active';paint();if(enabled&&!loaded)load();}else if(!document.getElementById('naiteaPrivateServices'))paint();
  }
- async function start(){try{const r=await fetch('/api/deployment',{cache:'no-store',credentials:'omit'});enabled=r.ok&&(await r.json()).realBookings===true;}catch{}finally{checked=true;if(d.isPage()){decorate();paint();if(enabled&&!loaded&&!loading)load();}}}
+ async function start(){try{const r=await fetch('/api/deployment',{cache:'no-store',credentials:'omit'});if(r.ok){const flags=await r.json();enabled=flags.realBookings===true;checkoutConfigured=flags.workshopCheckoutConfigured===true;}else{enabled=false;checkoutConfigured=false;}}catch{}finally{checked=true;if(d.isPage()){decorate();paint();if(enabled&&!loaded&&!loading)load();}}}
  window.addEventListener('pagehide',leave);window.addEventListener('pageshow',e=>{if(e.persisted){decorate();if(enabled&&!loaded&&!loading)load();}});
  function openAgenda(day){agendaDay=day;d.go('rendezvous');if(current()&&loaded)paint();}
  return {start,decorate,openAgenda};
