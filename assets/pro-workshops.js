@@ -180,12 +180,12 @@ function create(d){
   }
   const PAYMENT_LABELS={free:'Gratuit',onsite:'Paiement sur place',online:'Paiement intégral en ligne',choice:'Au choix de la famille',deposit:'Acompte en ligne, solde sur place'};
   const paymentLabel=w=>PAYMENT_LABELS[w.price_cents===0?'free':w.payment_mode||'onsite'];
-  const pendingOnline=w=>['choice','deposit'].includes(w.payment_mode)||(w.payment_mode==='online'&&!checkoutConfigured); // choice/deposit stay in draft until the pilot scope is enabled
+  const pendingOnline=w=>['online','choice','deposit'].includes(w.payment_mode)&&!checkoutConfigured;
   function paymentControls(w){
     const panel=document.createElement('fieldset');panel.className='naitea-workshop-payment';panel.append(text('legend','Modalités de paiement'));
     const info=text('p','Choisis comment les familles régleront cet atelier. Aucun frais de commission Naïtéa. Le paiement intégral est ouvert pour un atelier autorisé en test. Les autres modes en ligne restent en préparation.');info.className='fine';panel.append(info);
     const grid=document.createElement('div');grid.className='naitea-workshop-payment-options';
-    for(const [mode,label] of Object.entries(PAYMENT_LABELS)){const line=document.createElement('label');line.className='naitea-workshop-payment-option';const input=document.createElement('input');input.type='radio';input.name='payment_mode';input.value=mode;input.required=true;if(mode===(w?.price_cents===0?'free':w?.payment_mode||'onsite'))input.setAttribute('checked','');const span=document.createElement('span');span.append(text('strong',label));if(['online','choice','deposit'].includes(mode))span.append(text('small',mode==='online'&&checkoutConfigured?'Test uniquement · atelier autorisé':'En préparation · brouillon uniquement'));line.append(input,span);grid.append(line);}
+    for(const [mode,label] of Object.entries(PAYMENT_LABELS)){const line=document.createElement('label');line.className='naitea-workshop-payment-option';const input=document.createElement('input');input.type='radio';input.name='payment_mode';input.value=mode;input.required=true;if(mode===(w?.price_cents===0?'free':w?.payment_mode||'onsite'))input.setAttribute('checked','');const span=document.createElement('span');span.append(text('strong',label));if(['online','choice','deposit'].includes(mode))span.append(text('small',checkoutConfigured?'Test uniquement · atelier autorisé':'En préparation · brouillon uniquement'));line.append(input,span);grid.append(line);}
     panel.append(grid);
     const deposit=document.createElement('label');deposit.className='field';deposit.dataset.paymentDeposit='1';deposit.append(text('span','Acompte par place (€)'));const amount=document.createElement('input');amount.name='deposit_amount';amount.type='number';amount.step='0.01';amount.min='0.50';amount.value=w?.deposit_cents!=null?String(w.deposit_cents/100):'';amount.setAttribute('value',amount.value);deposit.append(amount);panel.append(deposit);
     const help=text('p','');help.dataset.paymentHelp='1';help.className='fine';panel.append(help);return panel;
@@ -197,7 +197,7 @@ function create(d){
     for(const radio of radios)radio.disabled=radio.value==='free'?price>0:price===0&&e.price.value!=='';
     const mode=radios.find(x=>x.checked)?.value||'onsite',deposit=form.querySelector('[data-payment-deposit]'),amount=e.deposit_amount;
     deposit.hidden=mode!=='deposit';amount.disabled=mode!=='deposit';amount.required=mode==='deposit';if(Number.isFinite(price))amount.max=String(Math.max(0,Math.round(price*100-1)/100));
-    form.querySelector('[data-payment-help]').textContent=mode==='free'?'Les familles réservent sans paiement.':mode==='onsite'?'La famille réserve en ligne et règle directement auprès de toi.':mode==='online'&&checkoutConfigured?'Paiement intégral en mode test, pour l’atelier autorisé uniquement.':'Le réglage est enregistré dans ton brouillon. La publication sera ouverte après validation du paiement en ligne.';
+    form.querySelector('[data-payment-help]').textContent=mode==='free'?'Les familles réservent sans paiement.':mode==='onsite'?'La famille réserve en ligne et règle directement auprès de toi.':checkoutConfigured?'Règlement en mode test, pour les ateliers autorisés uniquement.':'Le réglage est enregistré dans ton brouillon. La publication sera ouverte après validation du paiement en ligne.';
   }
   function fields(form){
     syncPayment(form);
@@ -364,7 +364,7 @@ function create(d){
     if(!publication||!ready||busy||uncertain||!owner||!d.isPage())return;
     if(status==='published'&&pendingOnline(w)){message='Les paiements en ligne sont en préparation. Ce brouillon est conservé ; choisis le paiement sur place pour le publier dès maintenant.';decorate();return;}
     if(status==='published'&&!complete(w)){message='Complète la date, la catégorie, le public et le lieu ou la visioconférence avant publication.';decorate();return;}
-    if(status==='published'&&w.payment_mode==='online'&&!window.confirm('Ce paiement est un test. Aucun argent réel ne sera débité. Ne partage le lien qu’avec les testeurs autorisés. Continuer ?'))return;
+    if(status==='published'&&['online','choice','deposit'].includes(w.payment_mode)&&!window.confirm('Ce paiement est un test. Aucun argent réel ne sera débité. Ne partage le lien qu’avec les testeurs autorisés. Continuer ?'))return;
     if(!window.confirm(status==='published'?'Publier cet atelier ? Son titre, description, adresse de l’atelier, nom professionnel et photo seront accessibles sans compte. N’utilise aucune donnée privée de famille.':'Dépublier cet atelier ? Son lien ne sera plus accessible aux familles.'))return;
     const version=revision;busy=true;decorate();
     try{
