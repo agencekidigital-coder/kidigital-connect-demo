@@ -12,7 +12,7 @@ export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
   if(request.method==='POST'&&(request.headers.get('Origin')!==url.origin||request.headers.get('Content-Type')!=='application/json'))return json(403,{error:'ORIGIN_FORBIDDEN'});
   const call=(u,opts={})=>fetchImpl(u,{redirect:'manual',signal:AbortSignal.timeout(10000),...opts});
   const read=async(r,max=262144)=>{if(!r.ok){r.body?.cancel().catch(()=>{});throw Error('provider');}return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(await bytes(r,max)));};
-  let stage='AUTH',stripeStatus=null;
+  let stage='AUTH',stripeStatus=null,stripeRequestId=null;
   try{
    const auth=await call(c.url+'/auth/v1/user',{headers:{apikey:c.publishableKey,Authorization:token}});
    if(!auth.ok){auth.body?.cancel().catch(()=>{});return json(401,{error:'AUTH_REQUIRED'});}
@@ -23,9 +23,10 @@ export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
    const get=async()=>{const u=new URL(table);u.searchParams.set('professional_id','eq.'+uid);u.searchParams.set('select','stripe_account_id');const rows=await read(await call(u.href,{headers:dbHeaders}),8192);if(!Array.isArray(rows)||rows.length>1||rows.length&& !ACCOUNT.test(rows[0]?.stripe_account_id||''))throw Error('account');return rows[0]?.stripe_account_id||null;};
    let id=await get();
    const stripe=async(path,params,idem)=>{
-    stripeStatus=null;
+    stripeStatus=null;stripeRequestId=null;
     const response=await call('https://api.stripe.com/v2/core/'+path,{method:params?'POST':'GET',headers:{Authorization:'Bearer '+key,'Stripe-Version':STRIPE_VERSION,Accept:'application/json',...(params?{'Content-Type':'application/json'}:{}),...(idem?{'Idempotency-Key':idem}:{})},...(params?{body:JSON.stringify(params)}:{})});
     stripeStatus=response.status;
+    const requestId=response.headers.get('request-id');if(/^req_[A-Za-z0-9]{1,100}$/.test(requestId||''))stripeRequestId=requestId;
     return read(response);
    };
    if(!id&&request.method==='GET')return json(200,{status:'not_connected'});
@@ -43,7 +44,7 @@ export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
     id=await get();if(!id)throw Error('account');
    }
    stage='STRIPE_STATUS';
-   const query=new URLSearchParams();for(const field of ['configuration.merchant','defaults','requirements'])query.append('include[]',field);
+   const query=new URLSearchParams();['configuration.merchant','defaults','requirements'].forEach((field,index)=>query.set('include['+index+']',field));
    const account=await stripe('accounts/'+id+'?'+query.toString());
    if(account.id!==id||account.livemode===true||account.dashboard!=='full'||account.defaults?.responsibilities?.fees_collector!=='stripe'||account.defaults?.responsibilities?.losses_collector!=='stripe'||!account.configuration?.merchant)throw Error('account configuration');
    const ready=account.configuration.merchant.capabilities?.card_payments?.status==='active';
@@ -53,6 +54,6 @@ export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
    const link=await stripe('account_links',{account:id,use_case:{type:'account_onboarding',account_onboarding:{configurations:['merchant'],collection_options:{fields:'eventually_due'},refresh_url:back,return_url:back}}});
    const target=new URL(link.url);if(target.origin!=='https://connect.stripe.com'||target.username||target.password)throw Error('link');
    return json(200,{status:'incomplete',url:target.href});
-  }catch{return json(503,{error:'STRIPE_TEST_UNAVAILABLE',stage,...(stage.startsWith('STRIPE_')&&Number.isInteger(stripeStatus)?{stripe_status:stripeStatus}:{})});}
+  }catch{return json(503,{error:'STRIPE_TEST_UNAVAILABLE',stage,...(stage.startsWith('STRIPE_')&&Number.isInteger(stripeStatus)?{stripe_status:stripeStatus,...(stripeRequestId?{stripe_request_id:stripeRequestId}:{})}:{})});}
  };
 }
