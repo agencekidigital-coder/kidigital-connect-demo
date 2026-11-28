@@ -661,7 +661,7 @@ function create(d){
     const root=document.createElement('div');root.id='naiteaPrivateBookings';root.append(text('p','Chargement des inscriptions…'));
     d.showModal('Inscriptions · '+w.title,'Retrouve tes inscriptions confirmées et l’historique des annulations.',root.outerHTML);
     const target=el('naiteaPrivateBookings');
-    const loadList=async(notice='')=>{
+    const loadList=async(notice='',paymentNotice=false)=>{
       try{
         const {data,error}=await client.from('naitea_bookings').select('id,workshop_id,parent_name,parent_email,seats,status,confirmed_at,parent_first_name,parent_last_name,parent_phone,coparent_present,coparent_first_name,coparent_last_name,child_present,child_first_name,child_age,newsletter_requested_at,confirmation_mode,cancellation_reason,cancelled_at,booking_source,cancellation_email_status,payment_status,amount_paid_cents,balance_due_cents').eq('workshop_id',w.id).order('confirmed_at',{ascending:false}).limit(1001);
         if(version!==revision||owner!==uid||!target.isConnected)return;
@@ -672,7 +672,7 @@ function create(d){
         if(version!==revision||owner!==uid||!target.isConnected)return;
         target.replaceChildren();
         const summary=document.createElement('div');summary.className='naitea-fill';summary.dataset.naiteaFill=w.id;paintBookingCount(summary,w);target.append(summary);
-        if(notice){const n=text('p',notice);n.setAttribute('role','status');target.append(n);}
+        if(notice&&!paymentNotice){const n=text('p',notice);n.setAttribute('role','status');target.append(n);}
         if(checkoutConfigured&&['online','choice','deposit'].includes(w.payment_mode)){
           const paymentPanel=document.createElement('section');paymentPanel.className='card naitea-booking-group';paymentPanel.append(text('h3','Paiements Stripe (test)'),text('p','Vérifie les paiements en attente, même si la famille a fermé sa page de réservation. Aucun nouveau débit.'));
           const sync=button('Synchroniser les paiements Stripe',async()=>{
@@ -683,9 +683,11 @@ function create(d){
               const result=await response.json();if(!response.ok)throw Error();if(version!==revision||owner!==uid||!target.isConnected)return;
               const count=result.paid+result.pending+result.expired+result.failed+result.errors;
               const notice=count===0?'Aucun paiement en attente à synchroniser.':result.paid+' paiement(s) confirmé(s) · '+result.pending+' en attente · '+(result.expired+result.failed)+' non finalisé(s)'+(result.errors?' · '+result.errors+' vérification(s) non aboutie(s)':'')+(result.more?' · D’autres paiements restent à vérifier.':'');
-              await loadList(notice);
-            }catch{if(version===revision&&owner===uid&&target.isConnected)await loadList('Synchronisation non confirmée. Réessaie sans refaire de paiement.');}
-          });sync.className='btn';paymentPanel.append(sync);target.append(paymentPanel);
+              const labels={session_missing:'Session Stripe non associée. Ne refais pas de paiement.',checkout_open:'Stripe indique que le paiement n’a pas été finalisé (session encore ouverte).',payment_processing:'Stripe traite encore le règlement.',stripe_pending:'Stripe n’a pas confirmé le règlement.',stripe_unavailable:'Impossible de consulter la session Stripe.',session_mismatch:'La session Stripe ne correspond pas à la réservation.',settlement_unavailable:'Règlement vérifié mais enregistrement indisponible.',settlement_conflict:'Le règlement vérifié ne peut pas encore être enregistré.',verification_unavailable:'Vérification indisponible.'};
+              const details=Object.entries(result.diagnostics||{}).filter(([k,v])=>Object.hasOwn(labels,k)&&Number.isInteger(v)&&v>0).map(([k,v])=>v+' × '+labels[k]).join(' ');
+              await loadList(notice+(details?' — '+details:''),true);
+            }catch{if(version===revision&&owner===uid&&target.isConnected)await loadList('Synchronisation non confirmée. Réessaie sans refaire de paiement.',true);}
+          });sync.className='btn';paymentPanel.append(sync);if(notice&&paymentNotice){const n=text('p',notice);n.setAttribute('role','status');paymentPanel.append(n);}target.append(paymentPanel);
         }
         if(manualEnabled&&!['online','deposit'].includes(w.payment_mode)&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
         const confirmed=data.slice(0,1000).filter(b=>b.status==='confirmed'),cancelled=data.slice(0,1000).filter(b=>b.status==='cancelled');

@@ -99,7 +99,7 @@ async function settleVerifiedSession({db,c,fetchImpl,bookingId,account,s,outcome
 // Explicit recovery of an existing bound session, never a new charge. The
 // opaque return token identifies the server-side booking; no client-supplied
 // Stripe account, session, amount or status is accepted.
-export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash}){
+export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash,diagnose=()=>{}}){
  if(!checkoutEnabled(env)||!HEX.test(hash||''))throw Error('Recovery disabled');
  const url=new URL('/rest/v1/naitea_workshop_test_payments',c.url);
  url.searchParams.set('return_hash','eq.'+hash);
@@ -111,19 +111,19 @@ export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash}){
  if(!held)return 'unknown';
  if(['paid','expired','failed'].includes(held.state))return held.state;
  if(held.state!=='pending'||!UUID.test(held.booking_id||'')||!ACCOUNT.test(held.stripe_account_id||'')||held.currency!=='eur'||!Number.isSafeInteger(held.amount_cents)||held.amount_cents<50)throw Error('Invalid payment record');
- if(!held.session_id)return 'pending';
+ if(!held.session_id){diagnose('session_missing');return 'pending';}
  if(!SESSION.test(held.session_id))throw Error('Invalid session');
- const session=await stripe(env,fetchImpl,'/v1/checkout/sessions/'+held.session_id,{account:held.stripe_account_id});
- if(session.id!==held.session_id||!validSession(session,held))throw Error('Payment mismatch');
+ let session;try{session=await stripe(env,fetchImpl,'/v1/checkout/sessions/'+held.session_id,{account:held.stripe_account_id});}catch(e){diagnose('stripe_unavailable');throw e;}
+ if(session.id!==held.session_id||!validSession(session,held)){diagnose('session_mismatch');throw Error('Payment mismatch');}
  // No synthetic failed event: an unpaid complete session can still settle.
  const outcome=paymentOutcome('checkout.session.expired',session);
- if(!outcome)return 'pending';
- const result=await settleVerifiedSession({db,c,fetchImpl,bookingId:held.booking_id,account:held.stripe_account_id,s:session,outcome});
+ if(!outcome){diagnose(session.status==='open'&&session.payment_status==='unpaid'?'checkout_open':session.status==='complete'&&session.payment_status==='unpaid'?'payment_processing':'stripe_pending');return 'pending';}
+ let result;try{result=await settleVerifiedSession({db,c,fetchImpl,bookingId:held.booking_id,account:held.stripe_account_id,s:session,outcome});}catch(e){diagnose('settlement_unavailable');throw e;}
  if(['CONFIRMED','RELEASED','ALREADY_SETTLED'].includes(result.code))return outcome;
  // A concurrent webhook can settle while this request is in progress.
  const state=await db('naitea_workshop_checkout_return',{p_hash:hash});
  if(['paid','expired','failed'].includes(state))return state;
- throw Error('Settlement conflict');
+ diagnose('settlement_conflict');throw Error('Settlement conflict');
 }
 // Professional recovery is scoped to the authenticated owner's workshop.
 async function syncProfessionalWorkshop(request,{c,env,fetchImpl,db}){
@@ -148,12 +148,14 @@ async function syncProfessionalWorkshop(request,{c,env,fetchImpl,db}){
   if(!Array.isArray(rows)||rows.some(b=>!UUID.test(b.id||'')||b.workshop_id!==id||b.naitea_workshops?.professional_id!==user.id))throw Error('Booking ownership');
   const totals={paid:0,pending:0,expired:0,failed:0,errors:0,more:rows.length>5};
   await Promise.all(rows.slice(0,5).map(async b=>{
+   let diagnostic;
    try{
     const matches=await get('/rest/v1/naitea_workshop_test_payments',{booking_id:'eq.'+b.id,select:'booking_id,return_hash',limit:'2'},privileged);
     if(!Array.isArray(matches)||matches.length!==1||matches[0].booking_id!==b.id||!HEX.test(matches[0].return_hash||''))throw Error('Payment not found');
-    const state=await recoverWorkshopPayment({db,c,env,fetchImpl,hash:matches[0].return_hash});
+    const state=await recoverWorkshopPayment({db,c,env,fetchImpl,hash:matches[0].return_hash,diagnose:code=>{diagnostic=code;}});
     if(['paid','pending','expired','failed'].includes(state))totals[state]++;else totals.errors++;
-   }catch{totals.errors++;}
+   }catch{totals.errors++;diagnostic=diagnostic||'verification_unavailable';}
+   if(diagnostic){totals.diagnostics=totals.diagnostics||{};totals.diagnostics[diagnostic]=(totals.diagnostics[diagnostic]||0)+1;}
   }));
   return json(200,totals);
  }catch{return json(503,{error:'SYNC_UNAVAILABLE'});}

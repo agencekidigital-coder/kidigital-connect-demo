@@ -61,3 +61,5 @@ test('Professional sync recovers only a verified bound payment in their workshop
 });
 
 test('Deposit checkout charges only the stored deposit and labels it clearly',()=>{const p=checkoutParams({...hold,payment_mode:'deposit',unit_cents:1000,amount_cents:2000},'https://beta.example.com','a'.repeat(64),'test@example.com');assert.equal(p.get('line_items[0][price_data][unit_amount]'),'1000');assert.equal(p.get('line_items[0][price_data][product_data][name]'),'Acompte — Massage bébé');});
+
+test('Recovery distinguishes open unpaid sessions from completed processing sessions without settling',async()=>{for(const [status,expected] of [['open','checkout_open'],['complete','payment_processing']]){const seen=[];assert.equal(await recoverWorkshopPayment({db:async()=>assert.fail('must not settle'),c,env,fetchImpl:mock({status,payment_status:'unpaid'}),hash,diagnose:x=>seen.push(x)}),'pending');assert.deepEqual(seen,[expected]);}});
