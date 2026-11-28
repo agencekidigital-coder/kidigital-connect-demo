@@ -52,7 +52,7 @@ export function createStripeTestHandler({fetchImpl=globalThis.fetch}={}){
    const back=c.origin+'/compte#stripeTestPanel';
    stage='STRIPE_ONBOARDING';
    const link=await stripe('account_links',{account:id,use_case:{type:'account_onboarding',account_onboarding:{configurations:['merchant'],collection_options:{fields:'eventually_due'},refresh_url:back,return_url:back}}});
-   const target=new URL(link.url);if(target.origin!=='https://connect.stripe.com'||target.username||target.password)throw Error('link');
+   const target=new URL(link.url);if(!['https://connect.stripe.com','https://accounts.stripe.com'].includes(target.origin)||target.username||target.password)throw Error('link');
    return json(200,{status:'incomplete',url:target.href});
   }catch{return json(503,{error:'STRIPE_TEST_UNAVAILABLE',stage,...(stage.startsWith('STRIPE_')&&Number.isInteger(stripeStatus)?{stripe_status:stripeStatus,...(stripeRequestId?{stripe_request_id:stripeRequestId}:{})}:{})});}
  };

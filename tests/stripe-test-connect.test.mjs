@@ -25,11 +25,11 @@ test('Creates merchant account with v2 JSON, preserves owner mapping and opens v
   }
   if(url.pathname==='/v2/core/accounts/'+accountId){assert.deepEqual([...url.searchParams],[['include[0]','configuration.merchant'],['include[1]','defaults'],['include[2]','requirements']]);return Response.json(v2Account());}
   if(url.pathname==='/v2/core/account_links'){
-   const p=JSON.parse(o.body);assert.equal(p.account,accountId);assert.equal(p.use_case.type,'account_onboarding');assert.deepEqual(p.use_case.account_onboarding.configurations,['merchant']);assert.equal(p.use_case.account_onboarding.return_url,origin+'/compte#stripeTestPanel');return Response.json({url:'https://connect.stripe.com/setup/test'});
+   const p=JSON.parse(o.body);assert.equal(p.account,accountId);assert.equal(p.use_case.type,'account_onboarding');assert.deepEqual(p.use_case.account_onboarding.configurations,['merchant']);assert.equal(p.use_case.account_onboarding.return_url,origin+'/compte#stripeTestPanel');return Response.json({url:'https://accounts.stripe.com/r/acct_Test123#alu_test_example'});
   }
   throw Error('Unexpected request');
  }});
- const r=await h(req('POST',postHeaders),env);assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:'incomplete',url:'https://connect.stripe.com/setup/test'});assert.equal(calls.length,7);
+ const r=await h(req('POST',postHeaders),env);assert.equal(r.status,200);assert.deepEqual(await r.json(),{status:'incomplete',url:'https://accounts.stripe.com/r/acct_Test123#alu_test_example'});assert.equal(calls.length,7);
 });
 test('Existing v2 account must have active merchant card capability to be ready',async()=>{
  for(const status of ['active','pending']){
