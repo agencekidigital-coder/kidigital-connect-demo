@@ -85,20 +85,63 @@ export function paymentOutcome(eventType,s){
  return null;
 }
 const EVENTS=new Set(['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.async_payment_failed','checkout.session.expired']);
+async function settleVerifiedSession({db,c,fetchImpl,bookingId,account,s,outcome}){
+ const result=await db('naitea_settle_workshop_checkout',{p_booking_id:bookingId,p_account:account,p_session:s.id,p_amount:s.amount_total,p_currency:s.currency,p_outcome:outcome});
+ if(result?.code==='CONFIRMED'){
+  let sent=false;
+  if(result.email===c.testEmail&&result.workshop){
+   try{const response=await fetchImpl('https://api.brevo.com/v3/smtp/email',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(8000),headers:{'api-key':c.brevo,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({sender:{name:'Naïtéa',email:c.sender},to:[{email:result.email}],...workshopEmail('confirmed',result.workshop,result.first_name,result.seats,'',{amount_cents:result.amount_cents})})});sent=response.ok;response.body?.cancel().catch(()=>{});}catch{}
+  }
+  return {code:result.code,mail:sent?'accepted':'unconfirmed'};
+ }
+ return {code:result?.code};
+}
+// Explicit recovery of an existing bound session, never a new charge. The
+// opaque return token identifies the server-side booking; no client-supplied
+// Stripe account, session, amount or status is accepted.
+export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash}){
+ if(!checkoutEnabled(env)||!HEX.test(hash||''))throw Error('Recovery disabled');
+ const url=new URL('/rest/v1/naitea_workshop_test_payments',c.url);
+ url.searchParams.set('return_hash','eq.'+hash);
+ url.searchParams.set('select','booking_id,stripe_account_id,session_id,amount_cents,currency,state');
+ url.searchParams.set('limit','2');
+ const rows=await readJSON(await fetchImpl(url.href,{method:'GET',redirect:'manual',signal:AbortSignal.timeout(10000),headers:{apikey:c.service,Accept:'application/json'}}));
+ if(!Array.isArray(rows)||rows.length>1)throw Error('Invalid payment lookup');
+ const held=rows[0];
+ if(!held)return 'unknown';
+ if(['paid','expired','failed'].includes(held.state))return held.state;
+ if(held.state!=='pending'||!UUID.test(held.booking_id||'')||!ACCOUNT.test(held.stripe_account_id||'')||held.currency!=='eur'||!Number.isSafeInteger(held.amount_cents)||held.amount_cents<50)throw Error('Invalid payment record');
+ if(!held.session_id)return 'pending';
+ if(!SESSION.test(held.session_id))throw Error('Invalid session');
+ const session=await stripe(env,fetchImpl,'/v1/checkout/sessions/'+held.session_id,{account:held.stripe_account_id});
+ if(session.id!==held.session_id||!validSession(session,held))throw Error('Payment mismatch');
+ // No synthetic failed event: an unpaid complete session can still settle.
+ const outcome=paymentOutcome('checkout.session.expired',session);
+ if(!outcome)return 'pending';
+ const result=await settleVerifiedSession({db,c,fetchImpl,bookingId:held.booking_id,account:held.stripe_account_id,s:session,outcome});
+ if(['CONFIRMED','RELEASED','ALREADY_SETTLED'].includes(result.code))return outcome;
+ // A concurrent webhook can settle while this request is in progress.
+ const state=await db('naitea_workshop_checkout_return',{p_hash:hash});
+ if(['paid','expired','failed'].includes(state))return state;
+ throw Error('Settlement conflict');
+}
 export function createWorkshopPaymentHandler({fetchImpl=globalThis.fetch}={}){
  return async(request,env,path)=>{
   const c=bookingConfig(env),u=new URL(request.url);
   if(!c||u.origin!==c.origin||!checkoutEnabled(env))return json(423,{error:'CHECKOUT_TEST_DISABLED'});
   const db=rpc(c,fetchImpl);
   if(path==='/reservation/paiement'){
-   if(request.method!=='GET'||!HEX.test(u.searchParams.get('t')||''))return page(400,'Réservation','Lien de suivi invalide.');
+   if(!['GET','POST'].includes(request.method)||!HEX.test(u.searchParams.get('t')||'')||u.searchParams.getAll('t').length!==1)return page(400,'Réservation','Lien de suivi invalide.');
+   if(request.method==='POST'&&request.headers.get('origin')!==c.origin)return page(403,'Réservation','Actualisation non autorisée.');
    try{
-    const token=u.searchParams.get('t'),state=await db('naitea_workshop_checkout_return',{p_hash:await digest(token)});
+    const token=u.searchParams.get('t'),hash=await digest(token);
+    const state=request.method==='POST'?await recoverWorkshopPayment({db,c,env,fetchImpl,hash}):await db('naitea_workshop_checkout_return',{p_hash:hash});
+    if(request.method==='POST'&&['paid','expired','failed'].includes(state))return new Response(null,{status:303,headers:{Location:c.origin+'/reservation/paiement?t='+token,'Cache-Control':'no-store','Referrer-Policy':'strict-origin'}});
     if(state==='paid')return page(200,'Votre inscription est confirmée !','Paiement de test vérifié. Votre place est réservée. Aucun argent réel n’a été débité.');
     if(['expired','failed'].includes(state))return page(200,'Paiement non finalisé','Aucune inscription confirmée. Les places ont été libérées.');
     if(state!=='pending')return page(404,'Réservation','Lien de suivi inconnu.');
-    return page(200,'Vérification du paiement','La réservation reste en attente de confirmation Stripe. Si vous avez quitté le paiement, les places sont libérées après expiration confirmée de la session.','<p><a class="btn" href="/reservation/paiement?t='+token+'">Actualiser le statut</a></p>');
-   }catch{return page(503,'Vérification indisponible','Réessayez plus tard, sans effectuer un nouveau paiement.');}
+    return page(200,'Vérification du paiement','La réservation reste en attente de confirmation Stripe. Si vous avez quitté le paiement, les places sont libérées après expiration confirmée de la session.','<form method="post" action="/reservation/paiement?t='+token+'"><button class="btn" type="submit">Actualiser le statut</button></form>');
+   }catch{return page(503,'Vérification indisponible','Le paiement n’a pas pu être vérifié. Ne payez pas une deuxième fois.','<form method="post" action="/reservation/paiement?t='+u.searchParams.get('t')+'"><button class="btn" type="submit">Réessayer la vérification</button></form>');}
   }
   if(request.method!=='POST')return json(405,{error:'METHOD_NOT_ALLOWED'});
   try{
@@ -115,16 +158,9 @@ export function createWorkshopPaymentHandler({fetchImpl=globalThis.fetch}={}){
    if(!validSession(s,{...held,booking_id:bookingId})||s.id!==obj.id)return json(409,{error:'PAYMENT_MISMATCH'});
    const outcome=paymentOutcome(e.type,s);
    if(!outcome)return json(200,{received:true,pending:true});
-   const result=await db('naitea_settle_workshop_checkout',{p_booking_id:bookingId,p_account:e.account,p_session:s.id,p_amount:s.amount_total,p_currency:s.currency,p_outcome:outcome});
-   if(result?.code==='CONFIRMED'){
-    // Only the transaction which first confirms the booking claims the email.
-    let sent=false;
-    if(result.email===c.testEmail&&result.workshop){
-     try{const response=await fetchImpl('https://api.brevo.com/v3/smtp/email',{method:'POST',redirect:'manual',signal:AbortSignal.timeout(8000),headers:{'api-key':c.brevo,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({sender:{name:'Naïtéa',email:c.sender},to:[{email:result.email}],...workshopEmail('confirmed',result.workshop,result.first_name,result.seats,'',{amount_cents:result.amount_cents})})});sent=response.ok;response.body?.cancel().catch(()=>{});}catch{}
-    }
-    return json(200,{received:true,confirmed:true,mail:sent?'accepted':'unconfirmed'});
-   }
-   if(['RELEASED','ALREADY_SETTLED'].includes(result?.code))return json(200,{received:true});
+   const result=await settleVerifiedSession({db,c,fetchImpl,bookingId,account:e.account,s,outcome});
+   if(result.code==='CONFIRMED')return json(200,{received:true,confirmed:true,mail:result.mail});
+   if(['RELEASED','ALREADY_SETTLED'].includes(result.code))return json(200,{received:true});
    return json(409,{error:'SETTLEMENT_CONFLICT'});
   }catch{return json(503,{error:'WEBHOOK_UNAVAILABLE'});}
  };

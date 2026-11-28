@@ -63,7 +63,7 @@ function guard(response, request, { embed = false, auth = false, account = false
     if(/^\/atelier\/[a-z0-9-]{1,180}\/reserver$/.test(new URL(request.url).pathname))headers.set('Content-Security-Policy',headers.get('Content-Security-Policy').replace("form-action 'self'","form-action 'self' https://checkout.stripe.com"));
     headers.set('X-Frame-Options','DENY');headers.set('Referrer-Policy','strict-origin');
   }
-  if(new URL(request.url).pathname==='/reservation/paiement'){headers.set('Referrer-Policy','no-referrer');headers.set('X-Frame-Options','DENY');headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; style-src 'self'; font-src 'self'; img-src 'self'");}
+  if(new URL(request.url).pathname==='/reservation/paiement'){headers.set('Referrer-Policy','strict-origin');headers.set('X-Frame-Options','DENY');headers.set('Content-Security-Policy',"default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; style-src 'self'; font-src 'self'; img-src 'self'");}
   if (auth) headers.set('X-Frame-Options', 'DENY');
   if (headers.get('Content-Type')?.includes('text/html')) headers.set('Cache-Control', 'no-store');
   return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, statusText: response.statusText, headers });
