@@ -51,7 +51,7 @@ export async function startWorkshopCheckout({c,env,fetchImpl,w,email,seats,key,d
   params=checkoutParams(held,c.origin,token,email);
   const q=new URLSearchParams({'include[0]':'configuration.merchant','include[1]':'defaults'});
   const a=await stripe(env,fetchImpl,'/v2/core/accounts/'+held.account+'?'+q);
-  if(a.id!==held.account||a.livemode!==false||a.dashboard!=='full'||a.defaults?.responsibilities?.fees_collector!=='stripe'||a.defaults?.responsibilities?.losses_collector!=='stripe'||a.configuration?.merchant?.capabilities?.card_payments?.status!=='active')throw Error('Inactive account');
+  if(a.id!==held.account||a.livemode===true||a.dashboard!=='full'||a.defaults?.responsibilities?.fees_collector!=='stripe'||a.defaults?.responsibilities?.losses_collector!=='stripe'||a.configuration?.merchant?.capabilities?.card_payments?.status!=='active')throw Error('Inactive account');
  }catch{await abort();return page(503,'Paiement indisponible','La professionnelle ne peut pas encore accepter ce paiement de test. Aucune inscription confirmée.');}
  let session;
  try{
