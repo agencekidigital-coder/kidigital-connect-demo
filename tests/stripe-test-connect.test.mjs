@@ -25,7 +25,7 @@ test('Creates merchant account with v2 JSON, preserves owner mapping and opens v
   }
   if(url.pathname==='/v2/core/accounts/'+accountId){assert.deepEqual([...url.searchParams],[['include[0]','configuration.merchant'],['include[1]','defaults'],['include[2]','requirements']]);return Response.json(v2Account());}
   if(url.pathname==='/v2/core/account_links'){
-   const p=JSON.parse(o.body);assert.equal(p.account,accountId);assert.equal(p.use_case.type,'account_onboarding');assert.deepEqual(p.use_case.account_onboarding.configurations,['merchant']);assert.equal(p.use_case.account_onboarding.return_url,origin+'/compte#stripeTestPanel');return Response.json({url:'https://accounts.stripe.com/r/acct_Test123#alu_test_example'});
+   const p=JSON.parse(o.body);assert.equal(p.account,accountId);assert.equal(p.use_case.type,'account_onboarding');assert.deepEqual(p.use_case.account_onboarding,{collection_options:{fields:'eventually_due'},refresh_url:origin+'/compte#stripeTestPanel',return_url:origin+'/compte#stripeTestPanel'});assert.equal(p.use_case.account_onboarding.return_url,origin+'/compte#stripeTestPanel');return Response.json({url:'https://accounts.stripe.com/r/acct_Test123#alu_test_example'});
   }
   throw Error('Unexpected request');
  }});
@@ -45,4 +45,10 @@ test('Stripe error exposes HTTP status but not secret response content',async()=
 test('A mapped account is retrieved with indexed v2 includes without creating a new account',async()=>{
  const h=createStripeTestHandler({fetchImpl:async(u,o)=>{const url=new URL(u);if(url.pathname==='/auth/v1/user')return Response.json({id:owner});if(url.pathname.startsWith('/rest/'))return Response.json([{stripe_account_id:accountId}]);assert.equal(o.method,'GET');assert.equal(url.pathname,'/v2/core/accounts/'+accountId);assert.deepEqual([...url.searchParams],[['include[0]','configuration.merchant'],['include[1]','defaults'],['include[2]','requirements']]);return new Response('provider private error',{status:400,headers:{'Request-Id':'req_Test123'}});}});
  const r=await h(req('GET',{Authorization:'Bearer aa.bb.cc'}),env);assert.equal(r.status,503);assert.deepEqual(await r.json(),{error:'STRIPE_TEST_UNAVAILABLE',stage:'STRIPE_STATUS',stripe_status:400,stripe_request_id:'req_Test123'});
+});
+
+test('Endive onboarding resumes an existing merchant account without the removed configurations field',async()=>{
+ let links=0;
+ const h=createStripeTestHandler({fetchImpl:async(u,o)=>{const url=new URL(u);if(url.pathname==='/auth/v1/user')return Response.json({id:owner});if(url.pathname.startsWith('/rest/')){assert.notEqual(o.method,'POST');return Response.json([{stripe_account_id:accountId}]);}if(url.pathname==='/v2/core/accounts/'+accountId)return Response.json(v2Account());if(url.pathname==='/v2/core/account_links'){links++;const p=JSON.parse(o.body);assert.deepEqual(p,{account:accountId,use_case:{type:'account_onboarding',account_onboarding:{collection_options:{fields:'eventually_due'},refresh_url:origin+'/compte#stripeTestPanel',return_url:origin+'/compte#stripeTestPanel'}}});return Response.json({url:'https://accounts.stripe.com/r/acct_Test123#alu_test_example'});}throw Error('Must not recreate account');}});
+ const r=await h(req('POST',postHeaders),env);assert.equal(r.status,200);assert.equal(links,1);assert.equal((await r.json()).status,'incomplete');
 });
