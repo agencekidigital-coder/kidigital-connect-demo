@@ -38,3 +38,24 @@ test('Recovery verifies existing session on bound connected account and settles 
 test('Recovery refuses wrong amount, currency, metadata, session or live payment',async()=>{for(const overrides of [{amount_total:1},{currency:'usd'},{metadata:{}},{id:'cs_test_wrong'},{livemode:true}])await assert.rejects(()=>recoverWorkshopPayment({db:async()=>assert.fail('must not settle'),c,env,fetchImpl:mock(overrides),hash}));});
 test('Unpaid completed sessions remain pending and unknown tokens do not settle',async()=>{const db=async()=>assert.fail('must not settle');assert.equal(await recoverWorkshopPayment({db,c,env,fetchImpl:mock({payment_status:'unpaid'}),hash}),'pending');assert.equal(await recoverWorkshopPayment({db,c,env,fetchImpl:mock({},null),hash}),'unknown');});
 test('Explicit refresh rejects cross-origin POST before calling providers',async()=>{const h=createWorkshopPaymentHandler({fetchImpl:async()=>assert.fail('must not fetch')});const r=await h(new Request(origin+'/reservation/paiement?t='+hash,{method:'POST',headers:{Origin:'https://other.example.com'}}),env,'/reservation/paiement');assert.equal(r.status,403);});
+
+const ownerId='ab345678-1234-4234-8234-123456789012',wid='cd345678-1234-4234-8234-123456789012';
+const syncRequest=()=>new Request(origin+'/api/workshop-payment-sync',{method:'POST',headers:{Origin:origin,Authorization:'Bearer aa.bb.cc','Content-Type':'application/json'},body:JSON.stringify({workshop_id:wid})});
+test('Professional sync never queries payments for an unowned workshop',async()=>{
+ const h=createWorkshopPaymentHandler({fetchImpl:async(u,o)=>{const path=new URL(u).pathname;if(path==='/auth/v1/user')return Response.json({id:ownerId});if(path==='/rest/v1/naitea_workshops'){assert.equal(o.headers.Authorization,'Bearer aa.bb.cc');return Response.json([]);}assert.fail('must not access payments');}});
+ const r=await h(syncRequest(),env,'/api/workshop-payment-sync');assert.equal(r.status,404);
+});
+test('Professional sync recovers only a verified bound payment in their workshop',async()=>{
+ let settled=0;
+ const h=createWorkshopPaymentHandler({fetchImpl:async(u,o)=>{
+  const url=new URL(u),path=url.pathname;
+  if(path==='/auth/v1/user')return Response.json({id:ownerId});
+  if(path==='/rest/v1/naitea_workshops'){assert.equal(url.searchParams.get('professional_id'),'eq.'+ownerId);return Response.json([{id:wid,professional_id:ownerId}]);}
+  if(path==='/rest/v1/naitea_bookings'){assert.equal(url.searchParams.get('workshop_id'),'eq.'+wid);assert.equal(url.searchParams.get('naitea_workshops.professional_id'),'eq.'+ownerId);return Response.json([{id,workshop_id:wid,naitea_workshops:{professional_id:ownerId}}]);}
+  if(path==='/rest/v1/naitea_workshop_test_payments'){if(url.searchParams.has('booking_id'))return Response.json([{booking_id:id,return_hash:hash}]);assert.equal(url.searchParams.get('return_hash'),'eq.'+hash);return Response.json([record]);}
+  if(path==='/v1/checkout/sessions/'+sid){assert.equal(o.headers['Stripe-Account'],'acct_Test');assert.equal(o.method,'GET');return Response.json(session);}
+  if(path==='/rest/v1/rpc/naitea_settle_workshop_checkout'){settled++;assert.equal(JSON.parse(o.body).p_outcome,'paid');return Response.json({code:'ALREADY_SETTLED'});}
+  assert.fail('unexpected request');
+ }});
+ const r=await h(syncRequest(),env,'/api/workshop-payment-sync');assert.equal(r.status,200);assert.deepEqual(await r.json(),{paid:1,pending:0,expired:0,failed:0,errors:0,more:false});assert.equal(settled,1);
+});

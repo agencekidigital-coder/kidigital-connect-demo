@@ -125,11 +125,45 @@ export async function recoverWorkshopPayment({db,c,env,fetchImpl,hash}){
  if(['paid','expired','failed'].includes(state))return state;
  throw Error('Settlement conflict');
 }
+// Professional recovery is scoped to the authenticated owner's workshop.
+async function syncProfessionalWorkshop(request,{c,env,fetchImpl,db}){
+ if(request.method!=='POST')return json(405,{error:'METHOD_NOT_ALLOWED'});
+ if(request.headers.get('origin')!==c.origin)return json(403,{error:'ORIGIN_FORBIDDEN'});
+ const auth=/^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/i.exec(request.headers.get('authorization')||'');
+ if(!auth||auth[1].length>8192)return json(401,{error:'AUTH_REQUIRED'});
+ if((request.headers.get('content-type')||'').split(';')[0].trim().toLowerCase()!=='application/json')return json(415,{error:'JSON_REQUIRED'});
+ let id;
+ try{const input=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(await bytes(request,2048)));if(!input||Object.keys(input).length!==1||!UUID.test(input.workshop_id||''))throw Error();id=input.workshop_id;}catch{return json(400,{error:'INVALID_REQUEST'});}
+ const headers={apikey:c.publishableKey,Authorization:'Bearer '+auth[1],Accept:'application/json'};
+ const get=async(path,query,head)=>{const url=new URL(path,c.url);for(const [k,v] of Object.entries(query))url.searchParams.set(k,v);return readJSON(await fetchImpl(url.href,{method:'GET',headers:head,redirect:'manual',signal:AbortSignal.timeout(10000)}));};
+ try{
+  const authResponse=await fetchImpl(c.url+'/auth/v1/user',{method:'GET',headers,redirect:'manual',signal:AbortSignal.timeout(10000)});
+  if(!authResponse.ok){authResponse.body?.cancel().catch(()=>{});return json(401,{error:'AUTH_REQUIRED'});}
+  const user=await readJSON(authResponse,65536);
+  if(!UUID.test(user.id||'')||user.is_anonymous===true)return json(401,{error:'AUTH_REQUIRED'});
+  const owned=await get('/rest/v1/naitea_workshops',{id:'eq.'+id,professional_id:'eq.'+user.id,select:'id,professional_id',limit:'2'},headers);
+  if(!Array.isArray(owned)||owned.length!==1||owned[0].id!==id||owned[0].professional_id!==user.id)return json(404,{error:'WORKSHOP_NOT_FOUND'});
+  const privileged={apikey:c.service,Accept:'application/json'};
+  const rows=await get('/rest/v1/naitea_bookings',{workshop_id:'eq.'+id,status:'eq.pending',payment_status:'eq.pending',select:'id,workshop_id,naitea_workshops!inner(professional_id)','naitea_workshops.professional_id':'eq.'+user.id,order:'id.asc',limit:'6'},privileged);
+  if(!Array.isArray(rows)||rows.some(b=>!UUID.test(b.id||'')||b.workshop_id!==id||b.naitea_workshops?.professional_id!==user.id))throw Error('Booking ownership');
+  const totals={paid:0,pending:0,expired:0,failed:0,errors:0,more:rows.length>5};
+  await Promise.all(rows.slice(0,5).map(async b=>{
+   try{
+    const matches=await get('/rest/v1/naitea_workshop_test_payments',{booking_id:'eq.'+b.id,select:'booking_id,return_hash',limit:'2'},privileged);
+    if(!Array.isArray(matches)||matches.length!==1||matches[0].booking_id!==b.id||!HEX.test(matches[0].return_hash||''))throw Error('Payment not found');
+    const state=await recoverWorkshopPayment({db,c,env,fetchImpl,hash:matches[0].return_hash});
+    if(['paid','pending','expired','failed'].includes(state))totals[state]++;else totals.errors++;
+   }catch{totals.errors++;}
+  }));
+  return json(200,totals);
+ }catch{return json(503,{error:'SYNC_UNAVAILABLE'});}
+}
 export function createWorkshopPaymentHandler({fetchImpl=globalThis.fetch}={}){
  return async(request,env,path)=>{
   const c=bookingConfig(env),u=new URL(request.url);
   if(!c||u.origin!==c.origin||!checkoutEnabled(env))return json(423,{error:'CHECKOUT_TEST_DISABLED'});
   const db=rpc(c,fetchImpl);
+  if(path==='/api/workshop-payment-sync')return syncProfessionalWorkshop(request,{c,env,fetchImpl,db});
   if(path==='/reservation/paiement'){
    if(!['GET','POST'].includes(request.method)||!HEX.test(u.searchParams.get('t')||'')||u.searchParams.getAll('t').length!==1)return page(400,'Réservation','Lien de suivi invalide.');
    if(request.method==='POST'&&request.headers.get('origin')!==c.origin)return page(403,'Réservation','Actualisation non autorisée.');

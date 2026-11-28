@@ -672,6 +672,20 @@ function create(d){
         target.replaceChildren();
         const summary=document.createElement('div');summary.className='naitea-fill';summary.dataset.naiteaFill=w.id;paintBookingCount(summary,w);target.append(summary);
         if(notice){const n=text('p',notice);n.setAttribute('role','status');target.append(n);}
+        if(checkoutConfigured&&w.payment_mode==='online'){
+          const paymentPanel=document.createElement('section');paymentPanel.className='card naitea-booking-group';paymentPanel.append(text('h3','Paiements Stripe (test)'),text('p','Vérifie les paiements en attente, même si la famille a fermé sa page de réservation. Aucun nouveau débit.'));
+          const sync=button('Synchroniser les paiements Stripe',async()=>{
+            sync.disabled=true;sync.textContent='Vérification en cours…';
+            try{
+              const {data,error}=await client.auth.getSession();if(version!==revision||owner!==uid||!target.isConnected)return;if(error||data?.session?.user?.id!==uid||!data.session.access_token)throw Error();
+              const response=await fetch('/api/workshop-payment-sync',{method:'POST',credentials:'omit',cache:'no-store',headers:{Authorization:'Bearer '+data.session.access_token,'Content-Type':'application/json'},body:JSON.stringify({workshop_id:w.id})});
+              const result=await response.json();if(!response.ok)throw Error();if(version!==revision||owner!==uid||!target.isConnected)return;
+              const count=result.paid+result.pending+result.expired+result.failed+result.errors;
+              const notice=count===0?'Aucun paiement en attente à synchroniser.':result.paid+' paiement(s) confirmé(s) · '+result.pending+' en attente · '+(result.expired+result.failed)+' non finalisé(s)'+(result.errors?' · '+result.errors+' vérification(s) non aboutie(s)':'')+(result.more?' · D’autres paiements restent à vérifier.':'');
+              await loadList(notice);
+            }catch{if(version===revision&&owner===uid&&target.isConnected)await loadList('Synchronisation non confirmée. Réessaie sans refaire de paiement.');}
+          });sync.className='btn';paymentPanel.append(sync);target.append(paymentPanel);
+        }
         if(manualEnabled&&w.payment_mode!=='online'&&w.status==='published'&&Date.parse(w.starts_at)>Date.now()){target.append(manualForm(w,target,loadList,version,uid,prefill));prefill=null;}
         const confirmed=data.slice(0,1000).filter(b=>b.status==='confirmed'),cancelled=data.slice(0,1000).filter(b=>b.status==='cancelled');
         const group=(label,items,empty)=>{const section=document.createElement('section');section.className='naitea-booking-group';section.append(text('h3',label+' ('+items.length+(data.length>1000?'+':'')+')'));if(!items.length)section.append(text('p',empty));return section;};

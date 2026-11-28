@@ -193,7 +193,7 @@ async function route(request, env, ctx, pathname) {
   if (pathname === '/api/manual-bookings') return manualBookingHandler(request, env);
   if (pathname === '/api/waitlist') return waitlistHandler(request, env);
   if (pathname === '/api/cancellations') return cancellationHandler(request, env);
-  if(pathname==='/api/stripe-test-webhook'||pathname==='/reservation/paiement')return workshopPaymentHandler(request,env,pathname);
+  if(pathname==='/api/stripe-test-webhook'||pathname==='/reservation/paiement'||pathname==='/api/workshop-payment-sync')return workshopPaymentHandler(request,env,pathname);
   if(pathname==='/reservation/confirmer')return bookingHandler(request,env);
   const appointmentMatch=/^\/(?:accompagnement\/([a-f0-9-]{36})|(accompagnement-[a-z0-9]+(?:-[a-z0-9]+)*))(?:\/(photo))?$/.exec(pathname);
   if(appointmentMatch)return publicAppointmentHandler(request,env,appointmentMatch[1]||appointmentMatch[2],appointmentMatch[3]==='photo');
